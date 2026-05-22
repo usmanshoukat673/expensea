@@ -18,7 +18,8 @@ import {
 } from "@/lib/actions/lunch-entries"
 import { useCurrency } from "@/hooks/use-currency"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
-import type { LunchEntryWithProfile } from "@/lib/database.types"
+import type { ExpenseCategory, LunchEntryWithProfile } from "@/lib/database.types"
+import { getCategoryIcon } from "@/lib/categories/icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -60,12 +61,14 @@ import {
 
 export function EntriesTable({
   entries: initialEntries,
+  categories = [],
   canEdit,
   onOpenChange,
   onAddEntry,
   onEditEntry,
 }: {
   entries: LunchEntryWithProfile[]
+  categories?: ExpenseCategory[]
   canEdit: boolean
   onOpenChange: (open: boolean) => void
   onAddEntry?: () => void
@@ -76,6 +79,7 @@ export function EntriesTable({
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState<string[]>([])
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [pending, startTransition] = useTransition()
 
@@ -83,14 +87,18 @@ export function EntriesTable({
     return entries.filter((e) => {
       const matchStatus =
         statusFilter === "all" || e.payment_status === statusFilter
+      const matchCategory =
+        !categoryFilter.length ||
+        (e.category_id && categoryFilter.includes(e.category_id))
       const q = debouncedSearch.toLowerCase()
       const matchSearch =
         !q ||
         (e.notes?.toLowerCase().includes(q) ?? false) ||
-        (e.profiles?.full_name?.toLowerCase().includes(q) ?? false)
-      return matchStatus && matchSearch
+        (e.profiles?.full_name?.toLowerCase().includes(q) ?? false) ||
+        (e.expense_categories?.name?.toLowerCase().includes(q) ?? false)
+      return matchStatus && matchSearch && matchCategory
     })
-  }, [entries, debouncedSearch, statusFilter])
+  }, [entries, debouncedSearch, statusFilter, categoryFilter])
 
   const columns = useMemo<ColumnDef<LunchEntryWithProfile>[]>(
     () => [
@@ -117,6 +125,22 @@ export function EntriesTable({
         accessorKey: "profiles.full_name",
         header: "Member",
         cell: ({ row }) => row.original.profiles?.full_name ?? "—",
+      },
+      {
+        id: "category",
+        header: "Category",
+        cell: ({ row }) => {
+          const cat = row.original.expense_categories
+          if (!cat) return "—"
+          const Icon = getCategoryIcon(cat.icon)
+          return (
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+              <Icon className="w-3.5 h-3.5" style={{ color: cat.color }} />
+              {cat.name}
+            </span>
+          )
+        },
       },
       {
         accessorKey: "amount",
@@ -262,6 +286,26 @@ export function EntriesTable({
               <SelectItem value="unpaid">Unpaid</SelectItem>
             </SelectContent>
           </Select>
+          {categories.length > 0 && (
+            <Select
+              value={categoryFilter[0] ?? "all"}
+              onValueChange={(v) =>
+                setCategoryFilter(v === "all" ? [] : [v])
+              }
+            >
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {canEdit && selectedIds.length > 0 && (

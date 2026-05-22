@@ -242,6 +242,8 @@ export async function updateTeamSettings(formData: FormData): Promise<ActionResu
 
   const name = String(formData.get('name') ?? '').trim();
   const isPublic = formData.get('isPublic') === 'on';
+  const showBalancesOnPublic = formData.get('showBalancesOnPublic') === 'on';
+  const showCategoryAnalyticsOnPublic = formData.get('showCategoryAnalyticsOnPublic') === 'on';
   const currency = normalizeCurrencyCode(String(formData.get('currency') ?? 'PKR'));
   const brandName = String(formData.get('brandName') ?? '').trim() || null;
   if (name.length < 2) return { error: 'Team name is required' };
@@ -249,7 +251,14 @@ export async function updateTeamSettings(formData: FormData): Promise<ActionResu
   const supabase = await createClient();
   const { error } = await supabase
     .from('teams')
-    .update({ name, is_public: isPublic, currency, brand_name: brandName })
+    .update({
+      name,
+      is_public: isPublic,
+      currency,
+      brand_name: brandName,
+      show_balances_on_public: showBalancesOnPublic,
+      show_category_analytics_on_public: showCategoryAnalyticsOnPublic,
+    })
     .eq('id', session.teamId);
 
   if (error) return { error: error.message };

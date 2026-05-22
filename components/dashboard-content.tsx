@@ -24,7 +24,8 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCurrency } from "@/hooks/use-currency"
 import { EmptyState } from "@/components/ui/empty-states"
-import type { LunchEntryWithProfile } from "@/lib/database.types"
+import type { LunchEntryWithProfile, SettlementWithProfiles } from "@/lib/database.types"
+import { DashboardBalanceWidgets } from "@/components/dashboard/balance-widgets"
 
 const DashboardMonthlyChart = dynamic(
   () =>
@@ -35,6 +36,16 @@ const DashboardMonthlyChart = dynamic(
     ssr: false,
     loading: () => <Skeleton className="h-[220px] w-full rounded-lg" />,
   },
+)
+
+const ExpensesByCategoryChart = dynamic(
+  () => import("@/components/charts/category-charts").then((m) => m.ExpensesByCategoryChart),
+  { ssr: false, loading: () => <Skeleton className="h-[220px] w-full rounded-lg" /> },
+)
+
+const TopCategoriesList = dynamic(
+  () => import("@/components/charts/category-charts").then((m) => m.TopCategoriesList),
+  { ssr: false, loading: () => <Skeleton className="h-[120px] w-full rounded-lg" /> },
 )
 
 type Activity = {
@@ -53,7 +64,19 @@ type DashboardProps = {
   }
   recentEntries: LunchEntryWithProfile[]
   monthlyEntries: { amount: number; lunch_date: string }[]
+  categoryEntries: {
+    amount: number
+    lunch_date: string
+    category_id?: string | null
+    expense_categories?: { id: string; name: string; color: string } | null
+  }[]
   activity: Activity[]
+  balance: {
+    pendingTotal: number
+    youOwe: number
+    youReceive: number
+    recentSettlements: SettlementWithProfiles[]
+  }
   leaderboard: {
     userId: string
     name: string
@@ -67,8 +90,10 @@ export function DashboardContent({
   stats,
   recentEntries,
   monthlyEntries,
+  categoryEntries,
   activity,
   leaderboard,
+  balance,
 }: DashboardProps) {
   const { format } = useCurrency()
 
@@ -103,7 +128,8 @@ export function DashboardContent({
 
   const quickActions = [
     { href: "/entries", label: "All entries", icon: BookOpen },
-    { href: "/team", label: "Team", icon: Users },
+    { href: "/settlements", label: "Settlements", icon: Wallet },
+    { href: "/categories", label: "Categories", icon: BookOpen },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
   ]
 
@@ -159,6 +185,13 @@ export function DashboardContent({
         })}
       </div>
 
+      <DashboardBalanceWidgets
+        pendingTotal={balance.pendingTotal}
+        youOwe={balance.youOwe}
+        youReceive={balance.youReceive}
+        recentSettlements={balance.recentSettlements}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Monthly overview</CardTitle>
@@ -168,6 +201,28 @@ export function DashboardContent({
           <DashboardMonthlyChart entries={monthlyEntries} />
         </CardContent>
       </Card>
+
+      {categoryEntries.length > 0 && (
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Expenses by category</CardTitle>
+              <CardDescription>This month</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ExpensesByCategoryChart entries={categoryEntries} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Top categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TopCategoriesList entries={categoryEntries} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
@@ -201,7 +256,7 @@ export function DashboardContent({
                         {entry.profiles?.full_name ?? "Member"}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {entry.notes || "Expense"} ·{" "}
+                        {entry.expense_categories?.name ?? entry.notes ?? "Expense"} ·{" "}
                         {formatDistanceToNow(new Date(entry.created_at), {
                           addSuffix: true,
                         })}

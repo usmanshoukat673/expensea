@@ -47,6 +47,25 @@ export const lunchEntrySchema = z.object({
   lunchDate: z.string().min(1, 'Date is required'),
   notes: z.string().max(500).optional(),
   paymentStatus: z.enum(['paid', 'unpaid']),
+  categoryId: z.string().uuid().optional().nullable(),
+  isShared: z.coerce.boolean().optional(),
+  splitType: z.enum(['none', 'equal', 'selected']).optional(),
+  participantIds: z.array(z.string().uuid()).optional(),
+});
+
+export const categorySchema = z.object({
+  name: z.string().min(2, 'Name is required').max(50),
+  icon: z.string().min(1).max(30),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color'),
+  description: z.string().max(200).optional(),
+});
+
+export const settlementSchema = z.object({
+  payerUserId: z.string().uuid(),
+  receiverUserId: z.string().uuid(),
+  amount: z.coerce.number().positive('Amount must be positive'),
+  note: z.string().max(500).optional(),
+  proofUrl: z.string().url().optional().or(z.literal('')),
 });
 
 export const onboardingNameSchema = z.object({
@@ -60,3 +79,5 @@ export const joinTeamSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LunchEntryInput = z.infer<typeof lunchEntrySchema>;
+export type CategoryInput = z.infer<typeof categorySchema>;
+export type SettlementFormInput = z.infer<typeof settlementSchema>;

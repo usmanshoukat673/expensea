@@ -22,6 +22,8 @@ This project is open source software. You are free to use, study, modify, and sh
 3. Run SQL in **Supabase → SQL Editor** (in order):
    - `supabase/migrations/001_initial_schema.sql`
    - `supabase/migrations/002_fix_auth_user_trigger.sql` (signup + backfill)
+   - …through `006_multi_team_architecture.sql`
+   - `supabase/migrations/007_categories_and_settlements.sql`
 4. In Supabase **Authentication → URL Configuration**, add:
    - Site URL: your app URL
    - Redirect URLs: `{APP_URL}/auth/callback`
@@ -39,7 +41,7 @@ npm run dev
 | ---------- | ------------------------------------------------------------------------ |
 | Auth       | `/login`, `/signup`, `/forgot-password`, `/reset-password`               |
 | Onboarding | `/onboarding`, `/create-team`, `/join-team`                              |
-| App        | `/`, `/entries`, `/team`, `/team/invite`, `/team/settings`, `/analytics` |
+| App        | `/`, `/entries`, `/categories`, `/settlements`, `/team`, `/team/invite`, `/team/settings`, `/analytics` |
 | Settings   | `/settings/profile`, `/settings/team`, `/settings/billing`               |
 | Public     | `/share/[teamSlug]`, `/share/user/[id]`                                  |
 

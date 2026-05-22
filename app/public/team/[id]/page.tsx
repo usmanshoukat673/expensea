@@ -34,6 +34,9 @@ export default async function PublicTeamByIdPage({ params }: Props) {
         pending={data.pending}
         memberCount={data.members.length}
         entries={data.entries}
+        showCategoryAnalytics={data.team.show_category_analytics_on_public !== false}
+        showBalances={!!data.team.show_balances_on_public}
+        balanceEdges={data.balanceSummary?.debtSummary.edges ?? []}
       />
     </PublicPageShell>
   );

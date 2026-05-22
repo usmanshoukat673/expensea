@@ -6,16 +6,20 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntriesTable } from '@/components/entries/entries-table';
 import { LunchEntryDialog, useLunchEntryModal } from '@/components/lunch/lunch-entry-dialog';
-import type { LunchEntryWithProfile } from '@/lib/database.types';
+import type { ExpenseCategory, LunchEntryWithProfile } from '@/lib/database.types';
 
 export function EntriesPageContent({
   entries,
   members,
+  categories,
+  recentCategoryIds = [],
   canEdit,
   defaultLunchDate,
 }: {
   entries: LunchEntryWithProfile[];
   members: { user_id: string; name: string }[];
+  categories: ExpenseCategory[];
+  recentCategoryIds?: string[];
   canEdit: boolean;
   defaultLunchDate: string;
 }) {
@@ -65,6 +69,7 @@ export function EntriesPageContent({
 
       <EntriesTable
         entries={entries}
+        categories={categories}
         canEdit={canEdit}
         onOpenChange={handleOpenChange}
         onAddEntry={openAdd}
@@ -74,6 +79,8 @@ export function EntriesPageContent({
       {canEdit && (
         <LunchEntryDialog
           members={members}
+          categories={categories}
+          recentCategoryIds={recentCategoryIds}
           entry={editEntry}
           open={open}
           onOpenChange={handleOpenChange}
