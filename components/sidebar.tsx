@@ -10,23 +10,21 @@ import {
   Settings,
   UserCog,
   Coins,
+  Tag,
+  Scale,
 } from "lucide-react"
 import { useCurrency } from "@/hooks/use-currency"
 import { cn } from "@/lib/utils"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { TeamSwitcher } from "@/components/team/team-switcher"
 import type { TeamRole } from "@/lib/database.types"
-} from 'lucide-react';
-import { useCurrency } from '@/hooks/use-currency';
-import { cn } from '@/lib/utils';
-import { SignOutButton } from '@/components/auth/sign-out-button';
-import { ThemeToggle } from '@/components/theme-toggle';
-import { TeamSwitcher } from '@/components/team/team-switcher';
-import type { TeamRole } from '@/lib/database.types';
 
 const navItems = [
   { href: "/", icon: Home, label: "Dashboard" },
   { href: "/entries", icon: BookOpen, label: "Entries" },
+  { href: "/categories", icon: Tag, label: "Categories" },
+  { href: "/settlements", icon: Scale, label: "Settlements" },
   { href: "/team", icon: Users, label: "Team" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
   { href: "/settings/profile", icon: Settings, label: "Settings" },
@@ -47,17 +45,6 @@ export function Sidebar({
 
   return (
     <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border z-40">
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm">
-          EX
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-sidebar-foreground truncate">
-            Expensea
-          </p>
-          <p className="text-xs text-sidebar-foreground/50 capitalize">
-            {role ?? "member"}
-          </p>
       <div className="px-4 py-5 border-b border-sidebar-border space-y-3">
         <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0">

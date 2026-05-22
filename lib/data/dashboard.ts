@@ -43,13 +43,13 @@ export async function getDashboardData(teamId: string) {
     await Promise.all([
       supabase
         .from("lunch_entries")
-        .select("*")
+        .select("*, expense_categories(id, name, icon, color, slug)")
         .eq("team_id", teamId)
         .order("created_at", { ascending: false })
         .limit(8),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date")
+        .select("amount, lunch_date, category_id, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .gte("lunch_date", monthStart)
         .lte("lunch_date", monthEnd),
@@ -146,7 +146,7 @@ export async function getLunchEntries(
 
   let query = supabase
     .from("lunch_entries")
-    .select("*", { count: "exact" })
+    .select("*, expense_categories(id, name, icon, color, slug), lunch_entry_participants(user_id, share_amount)", { count: "exact" })
     .eq("team_id", teamId)
     .order("lunch_date", { ascending: false })
 
@@ -155,6 +155,9 @@ export async function getLunchEntries(
   }
   if (opts?.from) query = query.gte("lunch_date", opts.from)
   if (opts?.to) query = query.lte("lunch_date", opts.to)
+  if ((opts as { categoryIds?: string[] })?.categoryIds?.length) {
+    query = query.in("category_id", (opts as { categoryIds: string[] }).categoryIds)
+  }
 
   const { data, count, error } = await query.range(fromIdx, fromIdx + limit - 1)
   let entries = data ?? []
@@ -270,15 +273,18 @@ export async function getPublicTeamById(teamId: string) {
 
   if (!team) return null
 
-  const [entries, summaries, membersRes] = await Promise.all([
+  const [entries, summaries, membersRes, categories] = await Promise.all([
     supabase
       .from("lunch_entries")
-      .select("amount, lunch_date, payment_status, user_id")
+      .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
       .eq("team_id", team.id)
       .order("lunch_date", { ascending: false })
       .limit(100),
     supabase.from("monthly_summaries").select("*").eq("team_id", team.id),
     supabase.from("team_members").select("user_id").eq("team_id", team.id),
+    team.show_category_analytics_on_public !== false
+      ? supabase.from("expense_categories").select("*").eq("team_id", team.id)
+      : Promise.resolve({ data: [] }),
   ])
 
   const members = await attachProfiles(
@@ -291,13 +297,21 @@ export async function getPublicTeamById(teamId: string) {
     0,
   )
 
+  let balanceSummary = null
+  if (team.show_balances_on_public) {
+    const { getBalanceContext } = await import("@/lib/data/settlements")
+    balanceSummary = await getBalanceContext(team.id)
+  }
+
   return {
     team,
     entries: entries.data ?? [],
     summaries: summaries.data ?? [],
     members,
+    categories: categories.data ?? [],
     total,
     pending,
+    balanceSummary,
   }
 }
 
@@ -312,15 +326,18 @@ export async function getPublicTeamBySlug(slug: string) {
 
   if (!team) return null
 
-  const [entries, summaries, membersRes] = await Promise.all([
+  const [entries, summaries, membersRes, categories] = await Promise.all([
     supabase
       .from("lunch_entries")
-      .select("amount, lunch_date, payment_status, user_id")
+      .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
       .eq("team_id", team.id)
       .order("lunch_date", { ascending: false })
       .limit(100),
     supabase.from("monthly_summaries").select("*").eq("team_id", team.id),
     supabase.from("team_members").select("user_id").eq("team_id", team.id),
+    team.show_category_analytics_on_public !== false
+      ? supabase.from("expense_categories").select("*").eq("team_id", team.id)
+      : Promise.resolve({ data: [] }),
   ])
 
   const members = await attachProfiles(
@@ -333,13 +350,21 @@ export async function getPublicTeamBySlug(slug: string) {
     0,
   )
 
+  let balanceSummary = null
+  if (team.show_balances_on_public) {
+    const { getBalanceContext } = await import("@/lib/data/settlements")
+    balanceSummary = await getBalanceContext(team.id)
+  }
+
   return {
     team,
     entries: entries.data ?? [],
     summaries: summaries.data ?? [],
     members,
+    categories: categories.data ?? [],
     total,
     pending,
+    balanceSummary,
   }
 }
 
@@ -381,7 +406,10 @@ export async function getPublicUserSummary(userId: string) {
   return { profile, team, summaries: summaries ?? [], entries: entries ?? [] }
 }
 
-export async function getAnalyticsData(teamId: string) {
+export async function getAnalyticsData(
+  teamId: string,
+  opts?: { categoryIds?: string[] },
+) {
   const supabase = await createClient()
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
@@ -389,11 +417,17 @@ export async function getAnalyticsData(teamId: string) {
     .toISOString()
     .split("T")[0]
 
-  const { data: entries } = await supabase
+  let query = supabase
     .from("lunch_entries")
-    .select("amount, lunch_date, payment_status, user_id")
+    .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
     .eq("team_id", teamId)
     .gte("lunch_date", from)
+
+  if (opts?.categoryIds?.length) {
+    query = query.in("category_id", opts.categoryIds)
+  }
+
+  const { data: entries } = await query
 
   const { data: summaries } = await supabase
     .from("monthly_summaries")
@@ -401,5 +435,30 @@ export async function getAnalyticsData(teamId: string) {
     .eq("team_id", teamId)
     .gte("month", from)
 
-  return { entries: entries ?? [], summaries: summaries ?? [] }
+  const { data: categories } = await supabase
+    .from("expense_categories")
+    .select("*")
+    .eq("team_id", teamId)
+
+  return {
+    entries: entries ?? [],
+    summaries: summaries ?? [],
+    categories: categories ?? [],
+  }
+}
+
+export async function getDashboardBalance(teamId: string, userId: string) {
+  const { getBalanceContext } = await import("@/lib/data/settlements")
+  return getBalanceContext(teamId, userId)
+}
+
+export async function getNotifications(userId: string, limit = 8) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit)
+  return data ?? []
 }

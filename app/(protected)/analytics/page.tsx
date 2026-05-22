@@ -8,8 +8,8 @@ export const metadata = { title: "Analytics" }
 
 async function AnalyticsData() {
   const session = await requireTeam()
-  const { entries } = await getAnalyticsData(session.teamId)
-  return <AnalyticsContent entries={entries} />
+  const { entries, categories } = await getAnalyticsData(session.teamId)
+  return <AnalyticsContent entries={entries} categories={categories} />
 }
 
 export default function AnalyticsPage() {

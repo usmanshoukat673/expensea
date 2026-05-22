@@ -3,6 +3,8 @@ export type MemberStatus = 'active' | 'invited' | 'suspended';
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
 export type PaymentStatus = 'paid' | 'unpaid';
 export type ProfileStatus = 'active' | 'inactive';
+export type SettlementStatus = 'pending' | 'completed' | 'cancelled';
+export type ExpenseSplitType = 'none' | 'equal' | 'selected';
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -34,6 +36,8 @@ export interface Database {
           brand_name?: string | null;
           logo_url?: string | null;
           created_by?: string | null;
+          show_balances_on_public?: boolean;
+          show_category_analytics_on_public?: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -110,6 +114,29 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['team_invites']['Row']>;
       };
+      expense_categories: {
+        Row: {
+          id: string;
+          team_id: string;
+          name: string;
+          slug: string;
+          icon: string;
+          color: string;
+          description: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          team_id: string;
+          name: string;
+          slug: string;
+          icon?: string;
+          color?: string;
+          description?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['expense_categories']['Insert']>;
+      };
       lunch_entries: {
         Row: {
           id: string;
@@ -119,6 +146,9 @@ export interface Database {
           lunch_date: string;
           notes: string | null;
           payment_status: PaymentStatus;
+          category_id: string | null;
+          is_shared: boolean;
+          split_type: ExpenseSplitType;
           created_by: string;
           created_at: string;
           updated_at: string;
@@ -130,9 +160,76 @@ export interface Database {
           lunch_date?: string;
           notes?: string | null;
           payment_status?: PaymentStatus;
+          category_id?: string | null;
+          is_shared?: boolean;
+          split_type?: ExpenseSplitType;
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['lunch_entries']['Insert']>;
+      };
+      lunch_entry_participants: {
+        Row: {
+          id: string;
+          entry_id: string;
+          user_id: string;
+          share_amount: number | null;
+          created_at: string;
+        };
+        Insert: {
+          entry_id: string;
+          user_id: string;
+          share_amount?: number | null;
+        };
+        Update: { share_amount?: number | null };
+      };
+      settlements: {
+        Row: {
+          id: string;
+          team_id: string;
+          payer_user_id: string;
+          receiver_user_id: string;
+          amount: number;
+          status: SettlementStatus;
+          note: string | null;
+          proof_url: string | null;
+          settled_at: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          team_id: string;
+          payer_user_id: string;
+          receiver_user_id: string;
+          amount: number;
+          status?: SettlementStatus;
+          note?: string | null;
+          proof_url?: string | null;
+          settled_at?: string | null;
+          created_by: string;
+        };
+        Update: Partial<Database['public']['Tables']['settlements']['Insert']>;
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          type: string;
+          title: string;
+          body: string | null;
+          metadata: Record<string, unknown>;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          team_id: string;
+          type: string;
+          title: string;
+          body?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Update: { read_at?: string | null };
       };
       monthly_summaries: {
         Row: {
@@ -197,6 +294,8 @@ export interface Database {
       payment_status: PaymentStatus;
       profile_status: ProfileStatus;
       member_status: MemberStatus;
+      settlement_status: SettlementStatus;
+      expense_split_type: ExpenseSplitType;
     };
   };
 }
@@ -210,8 +309,19 @@ export type LunchEntry = Database['public']['Tables']['lunch_entries']['Row'];
 export type MonthlySummary = Database['public']['Tables']['monthly_summaries']['Row'];
 export type TeamActivity = Database['public']['Tables']['team_activity_log']['Row'];
 
+export type ExpenseCategory = Database['public']['Tables']['expense_categories']['Row'];
+export type Settlement = Database['public']['Tables']['settlements']['Row'];
+export type Notification = Database['public']['Tables']['notifications']['Row'];
+
 export type LunchEntryWithProfile = LunchEntry & {
   profiles?: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'> | null;
+  expense_categories?: Pick<ExpenseCategory, 'id' | 'name' | 'icon' | 'color' | 'slug'> | null;
+  lunch_entry_participants?: { user_id: string; share_amount: number | null }[];
+};
+
+export type SettlementWithProfiles = Settlement & {
+  payer?: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'> | null;
+  receiver?: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'> | null;
 };
 
 export type TeamMemberWithProfile = TeamMember & {
