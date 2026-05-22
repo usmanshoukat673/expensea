@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth, requireTeam, canEdit, isOwner } from '@/lib/auth/session';
+import { clearActiveTeamIfRemoved, persistActiveTeam } from '@/lib/auth/teams';
 import { teamNameSchema } from '@/lib/validations';
 import { normalizeCurrencyCode, type CurrencyCode } from '@/lib/currency';
 import type { TeamRole } from '@/lib/database.types';
@@ -46,6 +47,7 @@ export async function createTeam(formData: FormData): Promise<ActionResult<{ tea
       name: parsed.data.name,
       slug,
       owner_id: session.user.id,
+      created_by: session.user.id,
       currency: 'PKR',
     })
     .select()
@@ -60,15 +62,8 @@ export async function createTeam(formData: FormData): Promise<ActionResult<{ tea
   });
   if (memberError) return { error: memberError.message };
 
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({
-      team_id: team.id,
-      onboarding_completed: true,
-    })
-    .eq('id', session.user.id);
-
-  if (profileError) return { error: profileError.message };
+  const { error: activeError } = await persistActiveTeam(supabase, session.user.id, team.id);
+  if (activeError) return { error: activeError };
 
   await supabase.from('team_activity_log').insert({
     team_id: team.id,
@@ -113,10 +108,8 @@ export async function joinTeamByToken(formData: FormData): Promise<ActionResult>
   if (memberError) return { error: memberError.message };
 
   await supabase.from('team_invitations').update({ status: 'accepted' }).eq('id', invite.id);
-  await supabase
-    .from('profiles')
-    .update({ team_id: invite.team_id, onboarding_completed: true })
-    .eq('id', session.user.id);
+  const { error: activeError } = await persistActiveTeam(supabase, session.user.id, invite.team_id);
+  if (activeError) return { error: activeError };
 
   await supabase.from('team_activity_log').insert({
     team_id: invite.team_id,
@@ -180,10 +173,7 @@ export async function removeMember(memberId: string): Promise<ActionResult> {
   const { error } = await supabase.from('team_members').delete().eq('id', memberId);
   if (error) return { error: error.message };
 
-  await supabase
-    .from('profiles')
-    .update({ team_id: null, onboarding_completed: false })
-    .eq('id', member.user_id);
+  await clearActiveTeamIfRemoved(supabase, member.user_id, session.teamId);
 
   revalidatePath('/team');
   return { success: true };
@@ -308,10 +298,15 @@ export async function addMemberByEmail(formData: FormData): Promise<ActionResult
   });
   if (error) return { error: error.message };
 
-  await supabase
+  const { data: targetProfile } = await supabase
     .from('profiles')
-    .update({ team_id: session.teamId, onboarding_completed: true })
-    .eq('id', profile.id);
+    .select('team_id')
+    .eq('id', profile.id)
+    .maybeSingle();
+
+  if (!targetProfile?.team_id) {
+    await persistActiveTeam(supabase, profile.id, session.teamId);
+  }
 
   await supabase.from('team_activity_log').insert({
     team_id: session.teamId,
@@ -329,11 +324,11 @@ export async function toggleMemberStatus(userId: string, active: boolean): Promi
   if (!canEdit(session.role)) return { error: 'Permission denied' };
 
   const supabase = await createClient();
-  const status = active ? 'active' : 'inactive';
+  const status = active ? 'active' : 'suspended';
   const { error } = await supabase
-    .from('profiles')
+    .from('team_members')
     .update({ status })
-    .eq('id', userId)
+    .eq('user_id', userId)
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
@@ -347,10 +342,14 @@ export async function deleteTeam(): Promise<ActionResult> {
 
   const supabase = await createClient();
 
-  await supabase
-    .from('profiles')
-    .update({ team_id: null, onboarding_completed: false })
+  const { data: members } = await supabase
+    .from('team_members')
+    .select('user_id')
     .eq('team_id', session.teamId);
+
+  for (const m of members ?? []) {
+    await clearActiveTeamIfRemoved(supabase, m.user_id, session.teamId);
+  }
 
   const { error } = await supabase.from('teams').delete().eq('id', session.teamId);
   if (error) return { error: error.message };

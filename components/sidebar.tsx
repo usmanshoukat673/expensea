@@ -16,6 +16,13 @@ import { cn } from "@/lib/utils"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import type { TeamRole } from "@/lib/database.types"
+} from 'lucide-react';
+import { useCurrency } from '@/hooks/use-currency';
+import { cn } from '@/lib/utils';
+import { SignOutButton } from '@/components/auth/sign-out-button';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { TeamSwitcher } from '@/components/team/team-switcher';
+import type { TeamRole } from '@/lib/database.types';
 
 const navItems = [
   { href: "/", icon: Home, label: "Dashboard" },
@@ -51,7 +58,14 @@ export function Sidebar({
           <p className="text-xs text-sidebar-foreground/50 capitalize">
             {role ?? "member"}
           </p>
+      <div className="px-4 py-5 border-b border-sidebar-border space-y-3">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0">
+            EX
+          </div>
+          <span className="text-xs font-medium text-sidebar-foreground/60">Expensea</span>
         </div>
+        <TeamSwitcher variant="sidebar" className="px-2" />
       </div>
 
       <nav className="flex-1 px-4 py-6 space-y-1">

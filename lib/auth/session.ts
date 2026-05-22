@@ -10,6 +10,12 @@ export type SessionContext = {
   teamId: string | null
   role: TeamRole | null
 }
+  user: { id: string; email?: string };
+  profile: import('@/lib/database.types').Profile;
+  teamId: string | null;
+  role: TeamRole | null;
+  hasMembership?: boolean;
+};
 
 export async function getSession(): Promise<SessionContext | null> {
   const supabase = await createClient()
@@ -33,6 +39,8 @@ export async function getSession(): Promise<SessionContext | null> {
     teamId: workspace.teamId,
     role: workspace.role,
   }
+    hasMembership: workspace.hasMembership,
+  };
 }
 
 export async function requireAuth(): Promise<SessionContext> {

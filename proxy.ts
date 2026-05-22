@@ -52,6 +52,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (matches(pathname, ONBOARDING_ROUTES)) {
+    if (pathname === '/create-team' || pathname.startsWith('/create-team/')) {
+      return supabaseResponse;
+    }
     if (ready) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
