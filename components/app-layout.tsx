@@ -1,17 +1,17 @@
-'use client';
+"use client"
 
-import { Sidebar } from './sidebar';
-import { Navbar } from './navbar';
-import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav';
-import { FloatingActionButton } from '@/components/layout/floating-action-button';
-import { PageTransition } from '@/components/layout/page-transition';
-import type { TeamRole } from '@/lib/database.types';
+import { Sidebar } from "./sidebar"
+import { Navbar } from "./navbar"
+import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav"
+import { FloatingActionButton } from "@/components/layout/floating-action-button"
+import { PageTransition } from "@/components/layout/page-transition"
+import type { TeamRole } from "@/lib/database.types"
 
 export type AppLayoutUser = {
-  name: string;
-  email: string;
-  avatar: string | null;
-};
+  name: string
+  email: string
+  avatar: string | null
+}
 
 export function AppLayout({
   children,
@@ -21,14 +21,14 @@ export function AppLayout({
   teamId,
   teamSlug,
 }: {
-  children: React.ReactNode;
-  user: AppLayoutUser;
-  teamName: string;
-  role: TeamRole | null;
-  teamId: string;
-  teamSlug?: string;
+  children: React.ReactNode
+  user: AppLayoutUser
+  teamName: string
+  role: TeamRole | null
+  teamId: string
+  teamSlug?: string
 }) {
-  const canEdit = role === 'owner' || role === 'admin';
+  const canEdit = role === "owner" || role === "admin"
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -40,5 +40,5 @@ export function AppLayout({
       <MobileBottomNav />
       <FloatingActionButton canEdit={canEdit} />
     </div>
-  );
+  )
 }

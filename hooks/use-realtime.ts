@@ -1,52 +1,55 @@
-'use client';
+"use client"
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
-export function useRealtime(teamId: string | null, tables: string[] = ['lunch_entries']) {
-  const router = useRouter();
+export function useRealtime(
+  teamId: string | null,
+  tables: string[] = ["lunch_entries"],
+) {
+  const router = useRouter()
 
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId) return
 
-    const supabase = createClient();
+    const supabase = createClient()
     const channel = supabase
       .channel(`team-${teamId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'lunch_entries',
+          event: "*",
+          schema: "public",
+          table: "lunch_entries",
           filter: `team_id=eq.${teamId}`,
         },
-        () => router.refresh()
+        () => router.refresh(),
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'team_members',
+          event: "*",
+          schema: "public",
+          table: "team_members",
           filter: `team_id=eq.${teamId}`,
         },
-        () => router.refresh()
+        () => router.refresh(),
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'monthly_summaries',
+          event: "*",
+          schema: "public",
+          table: "monthly_summaries",
           filter: `team_id=eq.${teamId}`,
         },
-        () => router.refresh()
+        () => router.refresh(),
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [teamId, router, tables]);
+      supabase.removeChannel(channel)
+    }
+  }, [teamId, router, tables])
 }
