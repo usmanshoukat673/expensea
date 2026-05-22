@@ -1,4 +1,5 @@
 export type TeamRole = 'owner' | 'admin' | 'viewer';
+export type MemberStatus = 'active' | 'invited' | 'suspended';
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
 export type PaymentStatus = 'paid' | 'unpaid';
 export type ProfileStatus = 'active' | 'inactive';
@@ -31,6 +32,8 @@ export interface Database {
           is_public: boolean;
           currency?: string;
           brand_name?: string | null;
+          logo_url?: string | null;
+          created_by?: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -41,6 +44,8 @@ export interface Database {
           is_public?: boolean;
           currency?: string;
           brand_name?: string | null;
+          logo_url?: string | null;
+          created_by?: string;
         };
         Update: Partial<Database['public']['Tables']['teams']['Row']>;
       };
@@ -50,14 +55,16 @@ export interface Database {
           team_id: string;
           user_id: string;
           role: TeamRole;
+          status?: MemberStatus;
           joined_at: string;
         };
         Insert: {
           team_id: string;
           user_id: string;
           role?: TeamRole;
+          status?: MemberStatus;
         };
-        Update: { role?: TeamRole };
+        Update: { role?: TeamRole; status?: MemberStatus };
       };
       team_invitations: {
         Row: {
@@ -189,6 +196,7 @@ export interface Database {
       invitation_status: InvitationStatus;
       payment_status: PaymentStatus;
       profile_status: ProfileStatus;
+      member_status: MemberStatus;
     };
   };
 }

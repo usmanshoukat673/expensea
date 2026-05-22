@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth, requireTeam, canEdit } from '@/lib/auth/session';
+import { persistActiveTeam } from '@/lib/auth/teams';
 import { inviteSchema } from '@/lib/validations';
 import type { TeamRole } from '@/lib/database.types';
 import {
@@ -272,10 +273,8 @@ export async function acceptTeamInvite(token: string): Promise<ActionResult> {
     await supabase.from('team_invites').update({ is_active: false }).eq('id', invite.id);
   }
 
-  await supabase
-    .from('profiles')
-    .update({ team_id: invite.team_id, onboarding_completed: true })
-    .eq('id', session.user.id);
+  const { error: activeError } = await persistActiveTeam(supabase, session.user.id, invite.team_id);
+  if (activeError) return { error: activeError };
 
   await supabase.from('team_activity_log').insert({
     team_id: invite.team_id,

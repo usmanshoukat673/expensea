@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { listUserTeams, type UserTeam } from '@/lib/auth/teams';
 import type { Profile, TeamRole } from '@/lib/database.types';
 import type { User } from '@supabase/supabase-js';
 
@@ -9,6 +10,8 @@ type AuthState = {
   user: User | null;
   profile: Profile | null;
   role: TeamRole | null;
+  teams: UserTeam[];
+  activeTeamId: string | null;
   loading: boolean;
   refresh: () => Promise<void>;
 };
@@ -19,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<TeamRole | null>(null);
+  const [teams, setTeams] = useState<UserTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
@@ -26,17 +30,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (uid: string) => {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', uid).single();
       setProfile(p);
-      if (p?.team_id) {
-        const { data: m } = await supabase
-          .from('team_members')
-          .select('role')
-          .eq('team_id', p.team_id)
-          .eq('user_id', uid)
-          .single();
-        setRole(m?.role ?? null);
-      } else {
-        setRole(null);
-      }
+      const userTeams = await listUserTeams(supabase, uid);
+      setTeams(userTeams);
+      const activeId = p?.team_id ?? null;
+      const active = userTeams.find((t) => t.id === activeId);
+      setRole(active?.role ?? null);
     },
     [supabase]
   );
@@ -50,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else {
       setProfile(null);
       setRole(null);
+      setTeams([]);
     }
   }, [supabase, loadProfile]);
 
@@ -63,14 +62,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       else {
         setProfile(null);
         setRole(null);
+        setTeams([]);
       }
     });
     return () => subscription.unsubscribe();
   }, [supabase, refresh, loadProfile]);
 
   const value = useMemo(
-    () => ({ user, profile, role, loading, refresh }),
-    [user, profile, role, loading, refresh]
+    () => ({
+      user,
+      profile,
+      role,
+      teams,
+      activeTeamId: profile?.team_id ?? null,
+      loading,
+      refresh,
+    }),
+    [user, profile, role, teams, loading, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

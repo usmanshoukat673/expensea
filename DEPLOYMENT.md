@@ -6,6 +6,10 @@
 2. Open **SQL Editor** and run migrations in order:
    - `supabase/migrations/001_initial_schema.sql`
    - `supabase/migrations/002_fix_auth_user_trigger.sql` (required for signup)
+   - `supabase/migrations/003_fix_teams_select_rls.sql`
+   - `supabase/migrations/004_team_invites.sql`
+   - `supabase/migrations/005_default_currency_pkr.sql`
+   - `supabase/migrations/006_multi_team_architecture.sql` (multi-team RLS + member status)
 3. Enable **Email** auth provider under Authentication → Providers.
 4. Set **Site URL** and redirect URLs:
    - Site URL: `https://your-domain.vercel.app`
@@ -52,7 +56,14 @@ supabase db push
 - Team page: `/public/team/{team-uuid}` or `/share/{team-slug}`
 - Member page: `/public/user/{user-uuid}` (requires public team)
 
-## Roles
+## Multi-team
+
+- Users can belong to multiple teams with **different roles per team** (`team_members`).
+- **Active team** is stored on `profiles.team_id` and mirrored in client `localStorage` (`expensea:active-team-id`).
+- Use the **team switcher** in the sidebar (desktop) or navbar (mobile) to change context; all data queries filter by the active `team_id`.
+- Creating a team adds membership and switches the active team to the new workspace.
+
+## Roles (per team)
 
 | Role | Permissions |
 |------|-------------|
