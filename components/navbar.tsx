@@ -7,6 +7,7 @@ import { Menu, X, Home, BookOpen, Users, BarChart3, Settings } from 'lucide-reac
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { TeamSwitcher } from '@/components/team/team-switcher';
 import type { AppLayoutUser } from '@/components/app-layout';
 
 const navItems = [
@@ -30,14 +31,12 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
   return (
     <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-50">
       <div className="flex items-center justify-between h-full px-4 gap-2">
-        <Link href="/" className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm shrink-0">
             EX
           </div>
-          <div className="min-w-0">
-            <span className="text-sm font-semibold text-sidebar-foreground block truncate">{teamName}</span>
-          </div>
-        </Link>
+          <TeamSwitcher variant="navbar" />
+        </div>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <Avatar className="h-8 w-8">

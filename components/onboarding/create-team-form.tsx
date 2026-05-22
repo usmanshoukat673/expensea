@@ -31,9 +31,9 @@ export function CreateTeamForm() {
       const result = await createTeam(fd);
       if (result?.error) toast.error(result.error);
       else {
-        toast.success('Workspace created');
+        toast.success('Team created');
         router.refresh();
-        router.push('/');
+        router.push(result.data?.teamId ? '/' : '/');
       }
     });
   });

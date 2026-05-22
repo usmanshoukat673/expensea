@@ -9,7 +9,7 @@ import {
   transferOwnership,
   toggleMemberStatus,
 } from '@/lib/actions/teams';
-import type { TeamRole, ProfileStatus } from '@/lib/database.types';
+import type { TeamRole, MemberStatus } from '@/lib/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,12 +51,12 @@ export type MemberRow = {
   id: string;
   user_id: string;
   role: TeamRole;
+  status?: MemberStatus;
   joined_at: string;
   profiles?: {
     full_name: string | null;
     email: string | null;
     avatar_url: string | null;
-    status?: ProfileStatus;
   } | null;
   lunchStats?: { total: number; pending: number };
 };
@@ -140,7 +140,7 @@ export function TeamMembersTable({
             ) : (
               pageMembers.map((m) => {
                 const name = m.profiles?.full_name ?? m.profiles?.email ?? 'Member';
-                const active = (m.profiles?.status ?? 'active') === 'active';
+                const active = (m.status ?? 'active') === 'active';
                 return (
                   <TableRow key={m.id}>
                     <TableCell>
