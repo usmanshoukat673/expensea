@@ -8,6 +8,12 @@ import { categorySlugify } from '@/lib/categories/defaults';
 
 export type ActionResult = { error?: string; success?: boolean };
 
+const CATEGORY_PATHS = ['/', '/categories', '/entries', '/analytics', '/budgets'] as const;
+
+function revalidateCategoryPaths() {
+  for (const path of CATEGORY_PATHS) revalidatePath(path);
+}
+
 export async function createExpenseCategory(formData: FormData): Promise<ActionResult> {
   const session = await requireTeam();
   if (!canEdit(session.role)) return { error: 'Permission denied' };
@@ -33,7 +39,7 @@ export async function createExpenseCategory(formData: FormData): Promise<ActionR
   });
 
   if (error) return { error: error.message };
-  revalidatePath('/categories');
+  revalidateCategoryPaths();
   return { success: true };
 }
 
@@ -63,8 +69,7 @@ export async function updateExpenseCategory(id: string, formData: FormData): Pro
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
-  revalidatePath('/categories');
-  revalidatePath('/entries');
+  revalidateCategoryPaths();
   return { success: true };
 }
 
@@ -80,6 +85,6 @@ export async function deleteExpenseCategory(id: string): Promise<ActionResult> {
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
-  revalidatePath('/categories');
+  revalidateCategoryPaths();
   return { success: true };
 }

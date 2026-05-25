@@ -33,18 +33,25 @@ export type DashboardBudgetSummary = {
   budgets: BudgetWithUsage[];
 };
 
+export function formatDateYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function getMonthStart(date = new Date()): string {
-  return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+  return formatDateYMD(new Date(date.getFullYear(), date.getMonth(), 1));
 }
 
 export function getMonthEnd(monthStart: string): string {
   const [y, m] = monthStart.split('-').map(Number);
-  return new Date(y, m, 0).toISOString().split('T')[0];
+  return formatDateYMD(new Date(y, m, 0));
 }
 
 export function monthKeyFromDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return getMonthStart(d);
+  const [year, month] = dateStr.slice(0, 10).split('-');
+  return `${year}-${month}-01`;
 }
 
 function spendKey(

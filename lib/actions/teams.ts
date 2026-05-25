@@ -122,7 +122,9 @@ export async function joinTeamByToken(formData: FormData): Promise<ActionResult>
   return { success: true };
 }
 
-export async function inviteMember(formData: FormData): Promise<ActionResult> {
+export async function inviteMember(
+  formData: FormData,
+): Promise<ActionResult<{ token: string }>> {
   const { sendEmailInvite } = await import('@/lib/actions/team-invites');
   return sendEmailInvite(formData);
 }

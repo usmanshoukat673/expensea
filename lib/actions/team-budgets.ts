@@ -19,6 +19,26 @@ function parseMonth(month?: string | null): string | null {
   return null;
 }
 
+async function validateBudgetCategory(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string,
+  type: 'monthly' | 'category',
+  categoryId?: string | null,
+) {
+  if (type !== 'category' || !categoryId) return null;
+
+  const { data, error } = await supabase
+    .from('expense_categories')
+    .select('id')
+    .eq('id', categoryId)
+    .eq('team_id', teamId)
+    .maybeSingle();
+
+  if (error) return error.message;
+  if (!data) return 'Selected category does not belong to this team';
+  return null;
+}
+
 export async function createTeamBudget(formData: FormData): Promise<ActionResult> {
   const session = await requireTeam();
   if (!canEdit(session.role)) return { error: 'Permission denied' };
@@ -32,6 +52,14 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
 
   const supabase = await createClient();
+  const categoryError = await validateBudgetCategory(
+    supabase,
+    session.teamId,
+    parsed.data.type,
+    parsed.data.categoryId,
+  );
+  if (categoryError) return { error: categoryError };
+
   const { data: team } = await supabase
     .from('teams')
     .select('currency')
@@ -69,6 +97,14 @@ export async function updateTeamBudget(
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
 
   const supabase = await createClient();
+  const categoryError = await validateBudgetCategory(
+    supabase,
+    session.teamId,
+    parsed.data.type,
+    parsed.data.categoryId,
+  );
+  if (categoryError) return { error: categoryError };
+
   const { error } = await supabase
     .from('team_budgets')
     .update({

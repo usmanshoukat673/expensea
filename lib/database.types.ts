@@ -25,6 +25,15 @@ export interface Database {
         };
         Insert: Partial<Database['public']['Tables']['profiles']['Row']> & { id: string };
         Update: Partial<Database['public']['Tables']['profiles']['Row']>;
+        Relationships: [
+          {
+            foreignKeyName: 'profiles_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       teams: {
         Row: {
@@ -53,6 +62,15 @@ export interface Database {
           created_by?: string;
         };
         Update: Partial<Database['public']['Tables']['teams']['Row']>;
+        Relationships: [
+          {
+            foreignKeyName: 'teams_owner_id_fkey';
+            columns: ['owner_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       team_members: {
         Row: {
@@ -70,6 +88,22 @@ export interface Database {
           status?: MemberStatus;
         };
         Update: { role?: TeamRole; status?: MemberStatus };
+        Relationships: [
+          {
+            foreignKeyName: 'team_members_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'team_members_user_id_profiles_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       team_invitations: {
         Row: {
@@ -90,6 +124,15 @@ export interface Database {
           invited_by: string;
         };
         Update: Partial<Database['public']['Tables']['team_invitations']['Row']>;
+        Relationships: [
+          {
+            foreignKeyName: 'expense_categories_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       team_invites: {
         Row: {
@@ -114,6 +157,29 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['team_invites']['Row']>;
+        Relationships: [
+          {
+            foreignKeyName: 'lunch_entries_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'lunch_entries_category_id_fkey';
+            columns: ['category_id'];
+            isOneToOne: true;
+            referencedRelation: 'expense_categories';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'lunch_entries_user_id_profiles_fkey';
+            columns: ['user_id'];
+            isOneToOne: true;
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       expense_categories: {
         Row: {
@@ -137,6 +203,15 @@ export interface Database {
           created_by?: string | null;
         };
         Update: Partial<Database['public']['Tables']['expense_categories']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'lunch_entry_participants_entry_id_fkey';
+            columns: ['entry_id'];
+            isOneToOne: true;
+            referencedRelation: 'lunch_entries';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       lunch_entries: {
         Row: {
@@ -167,6 +242,15 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['lunch_entries']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'settlements_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       lunch_entry_participants: {
         Row: {
@@ -182,6 +266,22 @@ export interface Database {
           share_amount?: number | null;
         };
         Update: { share_amount?: number | null };
+        Relationships: [
+          {
+            foreignKeyName: 'team_budgets_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: true;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'team_budgets_category_id_fkey';
+            columns: ['category_id'];
+            isOneToOne: true;
+            referencedRelation: 'expense_categories';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       settlements: {
         Row: {
@@ -209,6 +309,7 @@ export interface Database {
           created_by: string;
         };
         Update: Partial<Database['public']['Tables']['settlements']['Insert']>;
+        Relationships: [];
       };
       team_budgets: {
         Row: {
@@ -232,6 +333,7 @@ export interface Database {
           created_by?: string | null;
         };
         Update: Partial<Database['public']['Tables']['team_budgets']['Insert']>;
+        Relationships: [];
       };
       notifications: {
         Row: {
@@ -254,6 +356,7 @@ export interface Database {
           metadata?: Record<string, unknown>;
         };
         Update: { read_at?: string | null };
+        Relationships: [];
       };
       monthly_summaries: {
         Row: {
@@ -275,6 +378,7 @@ export interface Database {
           pending_amount?: number;
         };
         Update: Partial<Database['public']['Tables']['monthly_summaries']['Row']>;
+        Relationships: [];
       };
       team_activity_log: {
         Row: {
@@ -291,6 +395,8 @@ export interface Database {
           action: string;
           metadata?: Record<string, unknown>;
         };
+        Update: Partial<Database['public']['Tables']['team_activity_log']['Insert']>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;

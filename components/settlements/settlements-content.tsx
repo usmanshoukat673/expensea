@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowDownLeft, ArrowUpRight, Plus, Scale, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -55,6 +55,10 @@ export function SettlementsContent({
   const [items, setItems] = useState(settlements);
   const [pending, startTransition] = useTransition();
 
+  useEffect(() => {
+    setItems(settlements);
+  }, [settlements]);
+
   const nameMap = useMemo(
     () => new Map(members.map((m) => [m.userId, m.name])),
     [members],
@@ -74,7 +78,7 @@ export function SettlementsContent({
     });
   };
 
-  const pendingList = filterList(pendingSettlements);
+  const pendingList = filterList(items.filter((s) => s.status === 'pending'));
   const completedList = filterList(items.filter((s) => s.status === 'completed'));
 
   const markStatus = (id: string, status: 'completed' | 'cancelled') => {

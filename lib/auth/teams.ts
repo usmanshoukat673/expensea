@@ -32,8 +32,8 @@ export async function listUserTeams(
   if (!memberships?.length) return [];
 
   return memberships
-    .map((m) => {
-      const raw = m.teams as
+    .map((m): UserTeam | null => {
+      const raw = m.teams as unknown as
         | {
             id: string;
             name: string;

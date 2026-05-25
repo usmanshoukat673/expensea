@@ -8,6 +8,29 @@ import { notifyTeamMembers } from '@/lib/notifications';
 
 export type ActionResult = { error?: string; success?: boolean };
 
+async function validateSettlementMembers(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string,
+  payerUserId: string,
+  receiverUserId: string,
+) {
+  const { data, error } = await supabase
+    .from('team_members')
+    .select('user_id')
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .in('user_id', [payerUserId, receiverUserId]);
+
+  if (error) return error.message;
+
+  const members = new Set((data ?? []).map((m) => m.user_id));
+  if (!members.has(payerUserId) || !members.has(receiverUserId)) {
+    return 'Settlement users must be active members of this team';
+  }
+
+  return null;
+}
+
 export async function createSettlement(formData: FormData): Promise<ActionResult> {
   const session = await requireTeam();
   if (!canEdit(session.role)) return { error: 'Permission denied' };
@@ -25,6 +48,14 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
   }
 
   const supabase = await createClient();
+  const memberError = await validateSettlementMembers(
+    supabase,
+    session.teamId,
+    parsed.data.payerUserId,
+    parsed.data.receiverUserId,
+  );
+  if (memberError) return { error: memberError };
+
   const { error } = await supabase.from('settlements').insert({
     team_id: session.teamId,
     payer_user_id: parsed.data.payerUserId,
@@ -50,6 +81,7 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
 
   revalidatePath('/settlements');
   revalidatePath('/');
+  revalidatePath('/analytics');
   return { success: true };
 }
 
@@ -68,6 +100,9 @@ export async function updateSettlementStatus(
     .single();
 
   if (!existing) return { error: 'Settlement not found' };
+  if (existing.status !== 'pending') {
+    return { error: 'Only pending settlements can be updated' };
+  }
 
   const isParty =
     existing.payer_user_id === session.user.id ||
@@ -80,7 +115,8 @@ export async function updateSettlementStatus(
       status,
       settled_at: status === 'completed' ? new Date().toISOString() : null,
     })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
 
@@ -97,6 +133,7 @@ export async function updateSettlementStatus(
 
   revalidatePath('/settlements');
   revalidatePath('/');
+  revalidatePath('/analytics');
   return { success: true };
 }
 

@@ -6,38 +6,30 @@ import type {
   Profile,
   TeamMemberWithProfile,
 } from "@/lib/database.types"
+import { getMonthEnd, getMonthStart } from "@/lib/budget/engine"
 
 async function attachProfiles<T extends { user_id: string }>(
   items: T[],
-  fields: (keyof Profile)[] = ["id", "full_name", "email", "avatar_url"],
-): Promise<
-  (T & { profiles: Pick<Profile, (typeof fields)[number]> | null })[]
-> {
+): Promise<(T & { profiles: Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> | null })[]> {
   if (!items.length) return []
   const supabase = await createClient()
   const ids = [...new Set(items.map((i) => i.user_id))]
   const { data: profiles } = await supabase
     .from("profiles")
-    .select(fields.join(", "))
+    .select("id, full_name, email, avatar_url")
     .in("id", ids)
   const map = new Map((profiles ?? []).map((p) => [p.id, p]))
   return items.map((item) => ({
     ...item,
-    profiles:
-      (map.get(item.user_id) as Pick<Profile, (typeof fields)[number]>) ?? null,
+    profiles: map.get(item.user_id) ?? null,
   }))
 }
 
 export async function getDashboardData(teamId: string) {
   const supabase = await createClient()
   const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0]
-
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0]
+  const monthStart = getMonthStart(now)
+  const monthEnd = getMonthEnd(monthStart)
 
   const [entriesRes, monthEntriesRes, summariesRes, membersRes, activityRes] =
     await Promise.all([
@@ -160,7 +152,7 @@ export async function getLunchEntries(
   }
 
   const { data, count, error } = await query.range(fromIdx, fromIdx + limit - 1)
-  let entries = data ?? []
+  let entries = (data ?? []) as unknown as LunchEntryWithProfile[]
 
   if (opts?.search) {
     const q = opts.search.toLowerCase()
@@ -169,9 +161,9 @@ export async function getLunchEntries(
       (e) =>
         e.notes?.toLowerCase().includes(q) ||
         e.profiles?.full_name?.toLowerCase().includes(q),
-    ) as LunchEntry[]
+    ) as LunchEntryWithProfile[]
   } else {
-    entries = (await attachProfiles(entries)) as LunchEntry[]
+    entries = (await attachProfiles(entries)) as LunchEntryWithProfile[]
   }
 
   return {
@@ -213,9 +205,7 @@ export async function getTeamData(teamId: string) {
 
   const members = await attachProfiles(membersRes.data ?? [])
   const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0]
+  const monthStart = getMonthStart(now)
   const { data: monthSummaries } = await supabase
     .from("monthly_summaries")
     .select("user_id, total_amount, pending_amount")
@@ -413,9 +403,7 @@ export async function getAnalyticsData(
   const supabase = await createClient()
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-  const from = new Date(sixMonthsAgo.getFullYear(), sixMonthsAgo.getMonth(), 1)
-    .toISOString()
-    .split("T")[0]
+  const from = getMonthStart(sixMonthsAgo)
 
   let query = supabase
     .from("lunch_entries")
