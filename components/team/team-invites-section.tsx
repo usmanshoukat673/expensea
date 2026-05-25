@@ -73,7 +73,7 @@ export function TeamInvitesSection({
             disabled={pending}
             onClick={() => copyUrl(inv.token)}
           >
-            <Copy className="w-3.5 h-3.5 mr-1" />
+            <Copy className="size-3.5" />
             Copy
           </Button>
           <Button
@@ -93,7 +93,7 @@ export function TeamInvitesSection({
               });
             }}
           >
-            <RefreshCw className="w-3.5 h-3.5 mr-1" />
+            <RefreshCw className="size-3.5" />
             Regenerate
           </Button>
           <Button
@@ -108,7 +108,7 @@ export function TeamInvitesSection({
               })
             }
           >
-            <Ban className="w-3.5 h-3.5 mr-1" />
+            <Ban className="size-3.5" />
             Disable
           </Button>
         </div>

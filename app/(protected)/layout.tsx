@@ -57,7 +57,7 @@ export default async function ProtectedLayout({
           teamSlug={team?.slug}
         >
           <RealtimeProvider teamId={session.teamId} />
-          <div className="fixed top-4 right-4 z-30 hidden md:block">
+          <div className="fixed right-5 top-4 z-30 hidden md:block">
             <NotificationsBell initialNotifications={notifications} />
           </div>
           <CommandPalette canEdit={userCanEdit} />

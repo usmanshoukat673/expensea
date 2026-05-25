@@ -79,7 +79,7 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner className="mr-2" /> : null}
+        {pending ? <Spinner /> : null}
         Create account
       </Button>
       <p className="text-center text-sm text-muted-foreground">

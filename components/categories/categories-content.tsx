@@ -52,7 +52,7 @@ export function CategoriesContent({
   }, [items, debounced]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
@@ -62,14 +62,14 @@ export function CategoriesContent({
         </div>
         {canEdit && (
           <Button onClick={() => { setEdit(null); setOpen(true); }}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="size-4" />
             Add category
           </Button>
         )}
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9"
           placeholder="Search categories..."
@@ -96,10 +96,10 @@ export function CategoriesContent({
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-2">
                     <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-lg"
                       style={{ backgroundColor: `${cat.color}22` }}
                     >
-                      <Icon className="w-5 h-5" style={{ color: cat.color }} />
+                      <Icon className="size-5" style={{ color: cat.color }} />
                     </div>
                     {canEdit && (
                       <div className="flex gap-1">
@@ -108,12 +108,12 @@ export function CategoriesContent({
                           size="icon"
                           onClick={() => { setEdit(cat); setOpen(true); }}
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil className="size-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="icon">
-                              <Trash2 className="w-4 h-4 text-destructive" />
+                              <Trash2 className="size-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -154,7 +154,7 @@ export function CategoriesContent({
                 <CardContent>
                   <Badge variant="secondary">{count} expenses</Badge>
                   <span
-                    className="ml-2 inline-block w-3 h-3 rounded-full align-middle"
+                    className="ml-2 inline-block size-3 rounded-full align-middle"
                     style={{ backgroundColor: cat.color }}
                   />
                 </CardContent>

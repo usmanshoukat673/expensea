@@ -141,7 +141,7 @@ export function LunchEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md border-border/80 shadow-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="border-border/80 shadow-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit expense' : 'Add expense'}</DialogTitle>
         </DialogHeader>
@@ -173,7 +173,7 @@ export function LunchEntryDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="amount">Amount ({currency.symbol})</Label>
               <Input id="amount" type="number" step="0.01" {...register('amount')} />
@@ -197,7 +197,7 @@ export function LunchEntryDialog({
           </div>
 
           {isShared && (
-            <div className="space-y-3 rounded-lg border border-border p-3 bg-muted/20">
+            <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
               <div className="space-y-2">
                 <Label>Split type</Label>
                 <Select
@@ -213,7 +213,7 @@ export function LunchEntryDialog({
               </div>
               <div className="space-y-2">
                 <Label>Participants</Label>
-                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto">
                   {members.map((m) => (
                     <label
                       key={m.user_id}
@@ -263,16 +263,16 @@ export function LunchEntryDialog({
             <Textarea id="notes" rows={2} {...register('notes')} />
           </div>
           {selectedCategory && (
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <span
-                className="w-2 h-2 rounded-full"
+                className="size-2 shrink-0 rounded-full"
                 style={{ backgroundColor: selectedCategory.color }}
               />
               {selectedCategory.name}
             </p>
           )}
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             {isEdit ? 'Save changes' : 'Add entry'}
           </Button>
         </form>

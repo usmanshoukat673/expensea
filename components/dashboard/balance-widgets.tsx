@@ -32,7 +32,7 @@ export function DashboardBalanceWidgets({
         <CardContent>
           <Button variant="outline" size="sm" asChild>
             <Link href="/settlements">
-              <Scale className="w-4 h-4 mr-1" />
+              <Scale className="size-4" />
               Settlements
             </Link>
           </Button>
@@ -41,7 +41,7 @@ export function DashboardBalanceWidgets({
       <Card>
         <CardHeader className="pb-2 flex flex-row justify-between">
           <CardDescription>You owe</CardDescription>
-          <ArrowDownLeft className="w-4 h-4 text-amber-600" />
+          <ArrowDownLeft className="size-4 shrink-0 text-amber-600" />
         </CardHeader>
         <CardContent>
           <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
@@ -52,7 +52,7 @@ export function DashboardBalanceWidgets({
       <Card>
         <CardHeader className="pb-2 flex flex-row justify-between">
           <CardDescription>You receive</CardDescription>
-          <ArrowUpRight className="w-4 h-4 text-green-600" />
+          <ArrowUpRight className="size-4 shrink-0 text-green-600" />
         </CardHeader>
         <CardContent>
           <p className="text-xl font-bold text-green-600 dark:text-green-400">

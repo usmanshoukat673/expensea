@@ -38,11 +38,11 @@ export function InviteMemberDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <UserPlus className="w-4 h-4 mr-2" />
+          <UserPlus className="size-4" />
           Invite / Add
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add team member</DialogTitle>
           <DialogDescription>Email invite or share a join link</DialogDescription>
@@ -107,7 +107,7 @@ export function InviteMemberDialog() {
                 </Select>
               </div>
               <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? <Spinner className="mr-2" /> : null}
+                {pending ? <Spinner /> : null}
                 Send email invite
               </Button>
             </form>

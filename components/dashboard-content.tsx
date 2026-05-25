@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { formatDistanceToNow, format } from "date-fns"
+import { formatDistanceToNow } from "date-fns"
 import { motion } from "framer-motion"
 import {
   ArrowDownLeft,
@@ -144,7 +144,7 @@ export function DashboardContent({
   ]
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -160,15 +160,15 @@ export function DashboardContent({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
             >
-              <Card className="hover-lift soft-shadow">
+              <Card className="h-full hover-lift soft-shadow">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {stat.title}
                   </CardTitle>
-                  <Icon className="w-4 h-4 text-accent" />
+                  <Icon className="size-4 shrink-0 text-accent" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="break-words text-2xl font-bold">{stat.value}</div>
                   <p
                     className={`text-xs mt-1 ${stat.className ?? "text-muted-foreground"}`}
                   >
@@ -187,7 +187,7 @@ export function DashboardContent({
           return (
             <Button key={a.href} variant="outline" size="sm" asChild>
               <Link href={a.href}>
-                <Icon className="w-4 h-4 mr-1" />
+                <Icon className="size-4" />
                 {a.label}
               </Link>
             </Button>
@@ -218,7 +218,7 @@ export function DashboardContent({
       </Card>
 
       {categoryEntries.length > 0 && (
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Expenses by category</CardTitle>
@@ -239,10 +239,10 @@ export function DashboardContent({
         </div>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid min-w-0 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <div className="min-w-0">
               <CardTitle>Recent entries</CardTitle>
               <CardDescription>Latest expense records</CardDescription>
             </div>
@@ -264,20 +264,20 @@ export function DashboardContent({
                 {recentEntries.map((entry) => (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between py-3 border-b border-border last:border-0"
+                    className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
                   >
-                    <div>
-                      <p className="font-medium">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
                         {entry.profiles?.full_name ?? "Member"}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
                         {entry.expense_categories?.name ?? entry.notes ?? "Expense"} ·{" "}
                         {formatDistanceToNow(new Date(entry.created_at), {
                           addSuffix: true,
                         })}
                       </p>
                     </div>
-                    <div className="text-right flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2 text-right">
                       <Badge
                         variant={
                           entry.payment_status === "paid"
@@ -302,7 +302,7 @@ export function DashboardContent({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Wallet className="w-4 h-4 text-accent" />
+                <Wallet className="size-4 shrink-0 text-accent" />
                 Leaderboard
               </CardTitle>
               <CardDescription>This month by spend</CardDescription>
@@ -322,7 +322,7 @@ export function DashboardContent({
                         Pending {format(row.pending)}
                       </p>
                     </div>
-                    <span className="text-sm font-semibold">
+                    <span className="shrink-0 text-sm font-semibold">
                       {format(row.total)}
                     </span>
                   </div>

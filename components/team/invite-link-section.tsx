@@ -77,9 +77,9 @@ export function InviteLinkSection({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/20">
+    <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
       <div className="flex items-center gap-2 text-sm font-medium">
-        <Link2 className="w-4 h-4" />
+        <Link2 className="size-4" />
         Shareable invite link
       </div>
       {onExpiryChange && (
@@ -108,7 +108,7 @@ export function InviteLinkSection({
           className="text-xs font-mono"
         />
       </div>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Button
           type="button"
           variant="secondary"
@@ -116,7 +116,7 @@ export function InviteLinkSection({
           disabled={pending || loadingLink || !linkUrl}
           onClick={copyLink}
         >
-          <Copy className="w-4 h-4 mr-2" />
+          <Copy className="size-4" />
           Copy invite link
         </Button>
         <Button
@@ -126,7 +126,7 @@ export function InviteLinkSection({
           disabled={pending}
           onClick={generate}
         >
-          {pending ? <Spinner className="mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+          {pending ? <Spinner /> : <RefreshCw className="size-4" />}
           {linkUrl ? 'Generate new link' : 'Generate link'}
         </Button>
       </div>

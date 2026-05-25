@@ -17,7 +17,7 @@ export function MobileBottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-md pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around h-16 px-2">
         {items.map((item) => {
           const active =
@@ -29,12 +29,12 @@ export function MobileBottomNav() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-[10px] font-medium min-w-[56px]",
+                "flex min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-[10px] font-medium leading-none",
                 active ? "text-accent" : "text-muted-foreground",
               )}
             >
-              <Icon className="w-5 h-5" />
-              {item.label}
+              <Icon className="size-5 shrink-0" />
+              <span>{item.label}</span>
             </Link>
           )
         })}

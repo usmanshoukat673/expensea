@@ -134,10 +134,10 @@ export function EntriesTable({
           if (!cat) return "—"
           const Icon = getCategoryIcon(cat.icon)
           return (
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
-              <Icon className="w-3.5 h-3.5" style={{ color: cat.color }} />
-              {cat.name}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
+              <Icon className="size-3.5 shrink-0" style={{ color: cat.color }} />
+              <span className="truncate">{cat.name}</span>
             </span>
           )
         },
@@ -177,7 +177,7 @@ export function EntriesTable({
               id: "actions",
               header: "",
               cell: ({ row }) => (
-                <div className="flex justify-end gap-1">
+                <div className="flex items-center justify-end gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -186,12 +186,12 @@ export function EntriesTable({
                       onOpenChange(true)
                     }}
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="size-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="ghost" size="icon">
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                        <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -267,9 +267,9 @@ export function EntriesTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <div className="flex flex-1 flex-col sm:flex-row gap-2 max-w-2xl">
+    <div className="min-w-0 space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
+        <div className="flex min-w-0 max-w-2xl flex-1 flex-col gap-2 sm:flex-row">
           <Input
             placeholder="Search notes or member..."
             value={search}
@@ -307,7 +307,7 @@ export function EntriesTable({
             </Select>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canEdit && selectedIds.length > 0 && (
             <Button
               variant="destructive"
@@ -331,12 +331,12 @@ export function EntriesTable({
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={exportCsv}>
-            <Download className="w-4 h-4 mr-1" /> Export
+            <Download className="size-4" /> Export
           </Button>
         </div>
       </div>
 
-      <div className="relative rounded-lg border border-border overflow-auto max-h-[calc(100vh-280px)] bg-card">
+      <div className="relative max-h-[calc(100dvh-280px)] min-h-[220px] min-w-0 overflow-auto rounded-lg border border-border bg-card">
         <LoadingOverlay show={pending} />
         <Table>
           <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">

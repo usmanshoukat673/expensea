@@ -42,14 +42,14 @@ export function JoinTeamForm({ defaultToken }: { defaultToken?: string }) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="rounded-xl border border-border p-6 space-y-4 bg-card">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="space-y-2">
         <Label htmlFor="token">Invitation token</Label>
         <Input id="token" placeholder="Paste token from invite email" {...register('token')} />
         {errors.token && <p className="text-sm text-destructive">{errors.token.message}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner className="mr-2" /> : null}
+        {pending ? <Spinner /> : null}
         Join workspace
       </Button>
     </form>

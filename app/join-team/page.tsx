@@ -18,10 +18,10 @@ export default async function JoinTeamPage({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="flex min-h-dvh items-center justify-center overflow-x-hidden bg-background p-4 sm:p-6">
       <div className="w-full max-w-md space-y-6">
         <Link href="/onboarding" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="size-4" /> Back
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Join workspace</h1>

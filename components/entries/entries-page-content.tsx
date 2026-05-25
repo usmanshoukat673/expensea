@@ -49,7 +49,7 @@ export function EntriesPageContent({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 py-4 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -60,7 +60,7 @@ export function EntriesPageContent({
           </div>
           {canEdit && (
             <Button onClick={openAdd} className="w-full sm:w-auto shrink-0">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="size-4" />
               Add entry
             </Button>
           )}

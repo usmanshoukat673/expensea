@@ -29,7 +29,7 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
     .toUpperCase();
 
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-50">
+    <header className="fixed left-0 right-0 top-0 z-50 h-16 border-b border-sidebar-border bg-sidebar md:hidden">
       <div className="flex items-center justify-between h-full px-4 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm shrink-0">
@@ -37,7 +37,7 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
           </div>
           <TeamSwitcher variant="navbar" />
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.avatar ?? undefined} />
@@ -46,15 +46,15 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="p-2 hover:bg-sidebar-accent rounded-lg"
+            className="inline-flex size-9 items-center justify-center rounded-lg hover:bg-sidebar-accent"
             aria-label="Menu"
           >
-            {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
       {isOpen && (
-        <nav className="absolute top-16 left-0 right-0 bg-sidebar border-b border-sidebar-border px-4 py-4 space-y-1 max-h-[70vh] overflow-y-auto">
+        <nav className="absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto border-b border-sidebar-border bg-sidebar px-4 py-4 shadow-lg">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
@@ -64,12 +64,12 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
                 href={item.href}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium',
+                  'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium leading-none',
                   isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground'
                 )}
               >
-                <Icon className="w-5 h-5" />
-                {item.label}
+                <Icon className="size-5 shrink-0" />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}

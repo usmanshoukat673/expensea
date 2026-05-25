@@ -46,8 +46,8 @@ export function Sidebar({
   const { currency } = useCurrency()
 
   return (
-    <aside className="hidden md:flex flex-col fixed left-0 top-0 h-screen w-64 bg-sidebar border-r border-sidebar-border z-40">
-      <div className="px-4 py-5 border-b border-sidebar-border space-y-3">
+    <aside className="fixed left-0 top-0 z-40 hidden h-dvh w-64 min-w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar md:flex">
+      <div className="shrink-0 space-y-3 border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center gap-3 px-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0">
             EX
@@ -57,7 +57,7 @@ export function Sidebar({
         <TeamSwitcher variant="sidebar" className="px-2" />
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-1">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-6">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -68,14 +68,14 @@ export function Sidebar({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium leading-none transition-colors",
                 isActive
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50",
               )}
             >
-              <Icon className="w-5 h-5 shrink-0" />
-              <span>{item.label}</span>
+              <Icon className="size-5 shrink-0" />
+              <span className="truncate">{item.label}</span>
             </Link>
           )
         })}
@@ -83,19 +83,19 @@ export function Sidebar({
           <Link
             href="/team/invite"
             className={cn(
-              "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium leading-none transition-colors",
               pathname === "/team/invite"
                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50",
             )}
           >
-            <UserCog className="w-5 h-5" />
-            <span>Invite</span>
+            <UserCog className="size-5 shrink-0" />
+            <span className="truncate">Invite</span>
           </Link>
         )}
       </nav>
 
-      <div className="px-4 py-4 border-t border-sidebar-border space-y-2">
+      <div className="shrink-0 space-y-2 border-t border-sidebar-border px-4 py-4">
         <Link
           href="/settings/profile"
           className={cn(

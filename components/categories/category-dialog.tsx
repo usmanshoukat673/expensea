@@ -90,9 +90,9 @@ export function CategoryDialog({
           <DialogTitle>{isEdit ? 'Edit category' : 'Add category'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-            <PreviewIcon className="w-6 h-6" style={{ color }} />
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-3">
+            <span className="size-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+            <PreviewIcon className="size-6 shrink-0" style={{ color }} />
             <span className="text-sm font-medium">{watch('name') || 'Preview'}</span>
           </div>
           <div className="space-y-2">
@@ -100,7 +100,7 @@ export function CategoryDialog({
             <Input {...register('name')} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Icon</Label>
               <Select value={iconName} onValueChange={(v) => setValue('icon', v)}>
@@ -122,7 +122,7 @@ export function CategoryDialog({
             <Textarea rows={2} {...register('description')} />
           </div>
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             {isEdit ? 'Save' : 'Create'}
           </Button>
         </form>

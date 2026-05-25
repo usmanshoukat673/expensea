@@ -109,7 +109,7 @@ export function SettlementDialog({
             <Input type="url" placeholder="https://..." {...register('proofUrl')} />
           </div>
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             Save
           </Button>
         </form>

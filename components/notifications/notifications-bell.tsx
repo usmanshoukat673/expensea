@@ -36,10 +36,14 @@ export function NotificationsBell({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative size-9 hover:translate-y-0 active:scale-100"
+        >
+          <Bell className="size-5" />
           {unread > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px]">
+            <Badge className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]">
               {unread}
             </Badge>
           )}

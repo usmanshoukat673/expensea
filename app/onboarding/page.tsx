@@ -11,7 +11,7 @@ export default async function OnboardingPage() {
   const session = await requireAuth();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+    <div className="flex min-h-dvh items-center justify-center overflow-x-hidden bg-background p-4 sm:p-6">
       <div className="w-full max-w-lg space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Welcome{session.profile.full_name ? `, ${session.profile.full_name.split(' ')[0]}` : ''}</h1>
@@ -20,15 +20,15 @@ export default async function OnboardingPage() {
         <OnboardingForm defaultName={session.profile.full_name ?? ''} />
         <div className="grid sm:grid-cols-2 gap-4">
           <Link href="/create-team">
-            <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-2">
-              <Plus className="w-6 h-6 text-accent" />
+            <Button variant="outline" className="flex h-auto w-full flex-col gap-2 py-6 text-center">
+              <Plus className="size-6 text-accent" />
               <span className="font-semibold">Create team</span>
               <span className="text-xs text-muted-foreground font-normal">Start a new workspace</span>
             </Button>
           </Link>
           <Link href="/join-team">
-            <Button variant="outline" className="w-full h-auto py-6 flex flex-col gap-2">
-              <Users className="w-6 h-6 text-accent" />
+            <Button variant="outline" className="flex h-auto w-full flex-col gap-2 py-6 text-center">
+              <Users className="size-6 text-accent" />
               <span className="font-semibold">Join team</span>
               <span className="text-xs text-muted-foreground font-normal">Use an invite link</span>
             </Button>

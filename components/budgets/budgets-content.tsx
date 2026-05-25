@@ -88,7 +88,7 @@ export function BudgetsContent({
   const monthLabel = format(new Date(monthStart), 'MMMM yyyy');
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Budgets</h1>
@@ -98,15 +98,15 @@ export function BudgetsContent({
         </div>
         {canEdit && (
           <Button onClick={() => { setEdit(null); setOpen(true); }}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="size-4" />
             Create budget
           </Button>
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 max-w-2xl">
+      <div className="flex max-w-2xl flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
             placeholder="Search budgets..."
@@ -114,7 +114,7 @@ export function BudgetsContent({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {(['all', 'monthly', 'category'] as const).map((t) => (
             <Button
               key={t}
@@ -138,7 +138,7 @@ export function BudgetsContent({
         />
       ) : (
         <>
-          <div className="hidden md:block rounded-lg border border-border overflow-hidden">
+          <div className="hidden min-w-0 overflow-hidden rounded-lg border border-border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -168,7 +168,7 @@ export function BudgetsContent({
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <Icon
-                            className="w-4 h-4 shrink-0"
+                            className="size-4 shrink-0"
                             style={
                               u.categoryColor
                                 ? { color: u.categoryColor }
@@ -218,7 +218,7 @@ export function BudgetsContent({
                       </TableCell>
                       {canEdit && (
                         <TableCell>
-                          <div className="flex gap-1 justify-end">
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -227,12 +227,12 @@ export function BudgetsContent({
                                 setOpen(true);
                               }}
                             >
-                              <Pencil className="w-4 h-4" />
+                              <Pencil className="size-4" />
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">
-                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                  <Trash2 className="size-4 text-destructive" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -318,7 +318,7 @@ export function BudgetsContent({
                             setOpen(true);
                           }}
                         >
-                          <Pencil className="w-4 h-4 mr-1" />
+                          <Pencil className="size-4" />
                           Edit
                         </Button>
                         <Button
@@ -334,7 +334,7 @@ export function BudgetsContent({
                             })
                           }
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="size-4" />
                         </Button>
                       </div>
                     )}

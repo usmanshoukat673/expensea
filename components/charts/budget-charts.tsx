@@ -40,20 +40,22 @@ export function BudgetVsActualChart({ data }: { data: ComparisonPoint[] }) {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
-        <XAxis dataKey="label" tick={chart.tick} />
-        <YAxis tick={chart.tick} />
-        <Tooltip
-          formatter={(v: number) => format(v)}
-          contentStyle={chart.tooltipStyle}
-        />
-        <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-        <Bar dataKey="spent" name="Actual" fill={chart.accent} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="budget" name="Budget" fill={chart.colors[1]} radius={[4, 4, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="h-[280px] min-w-0 overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
+          <XAxis dataKey="label" tick={chart.tick} tickLine={false} axisLine={false} />
+          <YAxis tick={chart.tick} tickLine={false} axisLine={false} width={48} />
+          <Tooltip
+            formatter={(v: number) => format(v)}
+            contentStyle={chart.tooltipStyle}
+          />
+          <Legend wrapperStyle={{ color: 'hsl(var(--foreground))', fontSize: 12 }} />
+          <Bar dataKey="spent" name="Actual" fill={chart.accent} radius={[4, 4, 0, 0]} />
+          <Bar dataKey="budget" name="Budget" fill={chart.colors[1]} radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -75,23 +77,25 @@ export function CategoryBudgetBreakdownChart({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <BarChart
-        data={chartData}
-        layout="vertical"
-        margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} horizontal={false} />
-        <XAxis type="number" tick={chart.tick} />
-        <YAxis type="category" dataKey="name" width={100} tick={chart.tick} />
-        <Tooltip
-          formatter={(v: number) => format(v)}
-          contentStyle={chart.tooltipStyle}
-        />
-        <Legend />
-        <Bar dataKey="spent" name="Spent" fill={chart.accent} radius={[0, 4, 4, 0]} />
-        <Bar dataKey="budget" name="Budget" fill="#22c55e" radius={[0, 4, 4, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="h-[280px] min-w-0 overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={chartData}
+          layout="vertical"
+          margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} horizontal={false} />
+          <XAxis type="number" tick={chart.tick} tickLine={false} axisLine={false} />
+          <YAxis type="category" dataKey="name" width={100} tick={chart.tick} tickLine={false} axisLine={false} />
+          <Tooltip
+            formatter={(v: number) => format(v)}
+            contentStyle={chart.tooltipStyle}
+          />
+          <Legend wrapperStyle={{ color: 'hsl(var(--foreground))', fontSize: 12 }} />
+          <Bar dataKey="spent" name="Spent" fill={chart.accent} radius={[0, 4, 4, 0]} />
+          <Bar dataKey="budget" name="Budget" fill={chart.colors[2]} radius={[0, 4, 4, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
