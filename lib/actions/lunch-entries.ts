@@ -41,6 +41,44 @@ async function syncParticipants(
   );
 }
 
+async function validateEntryTeamRefs(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string,
+  userId: string,
+  categoryId: string | null | undefined,
+  participantIds: string[],
+) {
+  const userIds = [...new Set([userId, ...participantIds])];
+  const { data: members, error: membersError } = await supabase
+    .from('team_members')
+    .select('user_id')
+    .eq('team_id', teamId)
+    .eq('status', 'active')
+    .in('user_id', userIds);
+
+  if (membersError) return membersError.message;
+
+  const memberSet = new Set((members ?? []).map((m) => m.user_id));
+  if (!memberSet.has(userId)) return 'Selected payer is not an active team member';
+  if (participantIds.some((id) => !memberSet.has(id))) {
+    return 'All participants must be active members of this team';
+  }
+
+  if (categoryId) {
+    const { data: category, error: categoryError } = await supabase
+      .from('expense_categories')
+      .select('id')
+      .eq('id', categoryId)
+      .eq('team_id', teamId)
+      .maybeSingle();
+
+    if (categoryError) return categoryError.message;
+    if (!category) return 'Selected category does not belong to this team';
+  }
+
+  return null;
+}
+
 export async function createLunchEntry(formData: FormData): Promise<ActionResult> {
   const session = await requireTeam();
   if (!canEdit(session.role)) return { error: 'Viewers cannot add entries' };
@@ -69,6 +107,15 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
         : [];
 
   const supabase = await createClient();
+  const refError = await validateEntryTeamRefs(
+    supabase,
+    session.teamId,
+    parsed.data.userId,
+    parsed.data.categoryId,
+    participants,
+  );
+  if (refError) return { error: refError };
+
   const { data: row, error } = await supabase
     .from('lunch_entries')
     .insert({
@@ -143,6 +190,23 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   const splitType = isShared ? (parsed.data.splitType ?? 'equal') : 'none';
 
   const supabase = await createClient();
+  const participants =
+    isShared && participantIds.length > 0
+      ? participantIds.includes(parsed.data.userId)
+        ? participantIds
+        : [parsed.data.userId, ...participantIds]
+      : isShared
+        ? [parsed.data.userId]
+        : [];
+  const refError = await validateEntryTeamRefs(
+    supabase,
+    session.teamId,
+    parsed.data.userId,
+    parsed.data.categoryId,
+    participants,
+  );
+  if (refError) return { error: refError };
+
   const { error } = await supabase
     .from('lunch_entries')
     .update({
@@ -161,13 +225,7 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   if (error) return { error: error.message };
 
   if (isShared) {
-    const ids =
-      participantIds.length > 0
-        ? participantIds.includes(parsed.data.userId)
-          ? participantIds
-          : [parsed.data.userId, ...participantIds]
-        : [parsed.data.userId];
-    await syncParticipants(supabase, id, ids, parsed.data.amount, splitType);
+    await syncParticipants(supabase, id, participants, parsed.data.amount, splitType);
   } else {
     await supabase.from('lunch_entry_participants').delete().eq('entry_id', id);
   }

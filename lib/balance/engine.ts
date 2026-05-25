@@ -34,9 +34,11 @@ function debtKey(from: string, to: string) {
 }
 
 function addDebt(map: Map<string, number>, from: string, to: string, amount: number) {
-  if (from === to || amount <= 0) return;
+  if (from === to || amount === 0) return;
   const key = debtKey(from, to);
-  map.set(key, (map.get(key) ?? 0) + amount);
+  const next = (map.get(key) ?? 0) + amount;
+  if (Math.abs(next) < 0.01) map.delete(key);
+  else map.set(key, next);
 }
 
 function netPair(map: Map<string, number>, a: string, b: string): number {

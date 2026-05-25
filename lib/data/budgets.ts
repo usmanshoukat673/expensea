@@ -30,7 +30,7 @@ export async function getTeamBudgets(teamId: string): Promise<TeamBudget[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('team_budgets')
-    .select('*, expense_categories(id, name, color, icon)')
+    .select('*')
     .eq('team_id', teamId)
     .order('created_at', { ascending: false });
 
@@ -44,7 +44,7 @@ export async function getBudgetPageData(teamId: string, monthStart?: string) {
   const [budgetsRes, entries, categoriesRes] = await Promise.all([
     supabase
       .from('team_budgets')
-      .select('*, expense_categories(id, name, color, icon)')
+      .select('*')
       .eq('team_id', teamId)
       .order('type')
       .order('created_at', { ascending: false }),
@@ -125,9 +125,10 @@ export async function getAnalyticsBudgetData(teamId: string) {
     categoryMeta,
   );
 
-  const monthlyBudget = budgets.find(
-    (b) => b.type === 'monthly' && (!b.month || b.month === monthStart),
-  );
+  const monthlyBudgets = budgets.filter((b) => b.type === 'monthly');
+  const currentMonthlyBudget = monthlyBudgets.find(
+    (b) => b.month === monthStart,
+  ) ?? monthlyBudgets.find((b) => !b.month);
 
   const months: string[] = [];
   for (let i = 5; i >= 0; i--) {
@@ -138,6 +139,9 @@ export async function getAnalyticsBudgetData(teamId: string) {
 
   const comparison = months.map((m) => {
     const spent = getAggregatedSpent(spendIndex, teamId, null, m);
+    const monthlyBudget =
+      monthlyBudgets.find((b) => b.month === m) ??
+      monthlyBudgets.find((b) => !b.month);
     const limit = monthlyBudget ? Number(monthlyBudget.amount) : 0;
     return {
       month: m,
@@ -158,6 +162,6 @@ export async function getAnalyticsBudgetData(teamId: string) {
     currentUsages,
     comparison,
     categoryBreakdown,
-    hasMonthlyBudget: !!monthlyBudget,
+    hasMonthlyBudget: !!currentMonthlyBudget,
   };
 }

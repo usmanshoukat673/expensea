@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Plus, Search, Pencil, Trash2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { deleteExpenseCategory } from '@/lib/actions/expense-categories';
@@ -40,6 +40,10 @@ export function CategoriesContent({
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<ExpenseCategory | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setItems(categories);
+  }, [categories]);
 
   const filtered = useMemo(() => {
     const q = debounced.toLowerCase();

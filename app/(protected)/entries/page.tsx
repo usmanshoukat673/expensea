@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { requireTeam, canEdit } from "@/lib/auth/session"
 import { getDashboardData, getLunchEntries } from "@/lib/data/dashboard"
 import { getTeamCategories } from "@/lib/data/categories"
+import { formatDateYMD } from "@/lib/budget/engine"
 import { EntriesPageContent } from "@/components/entries/entries-page-content"
 import { EntriesPageSkeleton } from "@/components/entries/entries-page-skeleton"
 
@@ -28,7 +29,7 @@ export default async function EntriesPage() {
     name: m.profiles?.full_name ?? m.profiles?.email ?? "Member",
   }))
 
-  const defaultLunchDate = new Date().toISOString().slice(0, 10)
+  const defaultLunchDate = formatDateYMD(new Date())
 
   return (
     <Suspense fallback={<EntriesPageSkeleton />}>
