@@ -26,6 +26,8 @@ import { useChartTheme } from '@/hooks/use-chart-theme';
 import { EmptyState } from '@/components/ui/empty-states';
 import type { ExpenseCategory } from '@/lib/database.types';
 import { getCategoryIcon } from '@/lib/categories/icons';
+import { AnalyticsBudgetSection } from '@/components/analytics/analytics-budget-section';
+import type { BudgetWithUsage } from '@/lib/budget/engine';
 
 const ExpensesByCategoryChart = dynamic(
   () => import('@/components/charts/category-charts').then((m) => m.ExpensesByCategoryChart),
@@ -54,9 +56,15 @@ type Entry = {
 export function AnalyticsContent({
   entries,
   categories,
+  budgetComparison = [],
+  budgetCategoryBreakdown = [],
+  hasMonthlyBudget = false,
 }: {
   entries: Entry[];
   categories: ExpenseCategory[];
+  budgetComparison?: { month: string; spent: number; budget: number; label: string }[];
+  budgetCategoryBreakdown?: BudgetWithUsage[];
+  hasMonthlyBudget?: boolean;
 }) {
   const { format } = useCurrency();
   const chart = useChartTheme();
@@ -212,6 +220,12 @@ export function AnalyticsContent({
           </CardContent>
         </Card>
       </div>
+
+      <AnalyticsBudgetSection
+        comparison={budgetComparison}
+        categoryBreakdown={budgetCategoryBreakdown}
+        hasMonthlyBudget={hasMonthlyBudget}
+      />
 
       <Card>
         <CardHeader>

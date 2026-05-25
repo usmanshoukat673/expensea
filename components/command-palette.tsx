@@ -11,7 +11,7 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import { BookOpen, Home, Plus, Settings, Users, BarChart3, Tag, Scale } from 'lucide-react';
+import { BookOpen, Home, Plus, Settings, Users, BarChart3, Tag, Scale, PiggyBank } from 'lucide-react';
 
 export function CommandPalette({ canEdit }: { canEdit: boolean }) {
   const [open, setOpen] = useState(false);
@@ -60,6 +60,9 @@ export function CommandPalette({ canEdit }: { canEdit: boolean }) {
           </CommandItem>
           <CommandItem onSelect={() => go('/categories')}>
             <Tag className="mr-2 h-4 w-4" /> Categories
+          </CommandItem>
+          <CommandItem onSelect={() => go('/budgets')}>
+            <PiggyBank className="mr-2 h-4 w-4" /> Budgets
           </CommandItem>
           <CommandItem onSelect={() => go('/settlements')}>
             <Scale className="mr-2 h-4 w-4" /> Settlements

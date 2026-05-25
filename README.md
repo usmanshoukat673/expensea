@@ -35,6 +35,16 @@ npm install
 npm run dev
 ```
 
+### Demo data (optional)
+
+With `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`:
+
+```bash
+npm run db:seed
+```
+
+Log in as `owner@expensea.app` / `password123`. See [docs/SEEDING.md](docs/SEEDING.md) for all demo accounts, teams, and reset commands.
+
 ## Features
 
 | Area       | Routes                                                                   |

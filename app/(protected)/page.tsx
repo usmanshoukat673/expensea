@@ -1,12 +1,14 @@
 import { requireTeam } from "@/lib/auth/session"
 import { getDashboardData, getDashboardBalance } from "@/lib/data/dashboard"
+import { getDashboardBudgetSummary } from "@/lib/data/budgets"
 import { DashboardContent } from "@/components/dashboard-content"
 
 export default async function DashboardPage() {
   const session = await requireTeam()
-  const [data, balance] = await Promise.all([
+  const [data, balance, budgetSummary] = await Promise.all([
     getDashboardData(session.teamId),
     getDashboardBalance(session.teamId, session.user.id),
+    getDashboardBudgetSummary(session.teamId),
   ])
 
   const categoryEntries = data.monthlyEntries.map((e) => ({
@@ -30,6 +32,7 @@ export default async function DashboardPage() {
         youReceive: balance.personal.youReceive,
         recentSettlements: balance.recentCompleted,
       }}
+      budgetSummary={budgetSummary}
     />
   )
 }

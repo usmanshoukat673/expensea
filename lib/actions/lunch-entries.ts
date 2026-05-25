@@ -117,6 +117,7 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
   revalidatePath('/entries');
   revalidatePath('/settlements');
   revalidatePath('/analytics');
+  revalidatePath('/budgets');
   return { success: true };
 }
 
@@ -174,6 +175,8 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   revalidatePath('/');
   revalidatePath('/entries');
   revalidatePath('/settlements');
+  revalidatePath('/analytics');
+  revalidatePath('/budgets');
   return { success: true };
 }
 
@@ -192,6 +195,8 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
   revalidatePath('/');
   revalidatePath('/entries');
   revalidatePath('/settlements');
+  revalidatePath('/analytics');
+  revalidatePath('/budgets');
   return { success: true };
 }
 
@@ -208,7 +213,10 @@ export async function bulkDeleteLunchEntries(ids: string[]): Promise<ActionResul
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  revalidatePath('/');
   revalidatePath('/entries');
   revalidatePath('/settlements');
+  revalidatePath('/analytics');
+  revalidatePath('/budgets');
   return { success: true };
 }

@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Users,
   Wallet,
+  PiggyBank,
 } from "lucide-react"
 import {
   Card,
@@ -26,6 +27,12 @@ import { useCurrency } from "@/hooks/use-currency"
 import { EmptyState } from "@/components/ui/empty-states"
 import type { LunchEntryWithProfile, SettlementWithProfiles } from "@/lib/database.types"
 import { DashboardBalanceWidgets } from "@/components/dashboard/balance-widgets"
+import { DashboardBudgetWidgets } from "@/components/budgets/budget-widgets"
+import {
+  BudgetAlertBanner,
+  BudgetAlertToasts,
+} from "@/components/budgets/budget-alerts"
+import type { DashboardBudgetSummary } from "@/lib/budget/engine"
 
 const DashboardMonthlyChart = dynamic(
   () =>
@@ -77,6 +84,7 @@ type DashboardProps = {
     youReceive: number
     recentSettlements: SettlementWithProfiles[]
   }
+  budgetSummary: DashboardBudgetSummary
   leaderboard: {
     userId: string
     name: string
@@ -94,6 +102,7 @@ export function DashboardContent({
   activity,
   leaderboard,
   balance,
+  budgetSummary,
 }: DashboardProps) {
   const { format } = useCurrency()
 
@@ -130,6 +139,7 @@ export function DashboardContent({
     { href: "/entries", label: "All entries", icon: BookOpen },
     { href: "/settlements", label: "Settlements", icon: Wallet },
     { href: "/categories", label: "Categories", icon: BookOpen },
+    { href: "/budgets", label: "Budgets", icon: PiggyBank },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
   ]
 
@@ -185,12 +195,17 @@ export function DashboardContent({
         })}
       </div>
 
+      <BudgetAlertToasts budgets={budgetSummary.budgets} />
+      <BudgetAlertBanner summary={budgetSummary} />
+
       <DashboardBalanceWidgets
         pendingTotal={balance.pendingTotal}
         youOwe={balance.youOwe}
         youReceive={balance.youReceive}
         recentSettlements={balance.recentSettlements}
       />
+
+      <DashboardBudgetWidgets summary={budgetSummary} />
 
       <Card>
         <CardHeader>
