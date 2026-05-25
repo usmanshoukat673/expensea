@@ -46,6 +46,16 @@ export function useRealtime(
         },
         () => router.refresh(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "team_budgets",
+          filter: `team_id=eq.${teamId}`,
+        },
+        () => router.refresh(),
+      )
       .subscribe()
 
     return () => {

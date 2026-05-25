@@ -5,6 +5,7 @@ export type PaymentStatus = 'paid' | 'unpaid';
 export type ProfileStatus = 'active' | 'inactive';
 export type SettlementStatus = 'pending' | 'completed' | 'cancelled';
 export type ExpenseSplitType = 'none' | 'equal' | 'selected';
+export type BudgetType = 'monthly' | 'category';
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -209,6 +210,29 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['settlements']['Insert']>;
       };
+      team_budgets: {
+        Row: {
+          id: string;
+          team_id: string;
+          category_id: string | null;
+          type: BudgetType;
+          amount: number;
+          currency: string;
+          month: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          team_id: string;
+          category_id?: string | null;
+          type: BudgetType;
+          amount: number;
+          currency?: string;
+          month?: string | null;
+          created_by?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['team_budgets']['Insert']>;
+      };
       notifications: {
         Row: {
           id: string;
@@ -296,6 +320,7 @@ export interface Database {
       member_status: MemberStatus;
       settlement_status: SettlementStatus;
       expense_split_type: ExpenseSplitType;
+      budget_type: BudgetType;
     };
   };
 }
@@ -310,6 +335,9 @@ export type MonthlySummary = Database['public']['Tables']['monthly_summaries']['
 export type TeamActivity = Database['public']['Tables']['team_activity_log']['Row'];
 
 export type ExpenseCategory = Database['public']['Tables']['expense_categories']['Row'];
+export type TeamBudget = Database['public']['Tables']['team_budgets']['Row'] & {
+  expense_categories?: Pick<ExpenseCategory, 'id' | 'name' | 'icon' | 'color'> | null;
+};
 export type Settlement = Database['public']['Tables']['settlements']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 

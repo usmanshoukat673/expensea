@@ -1,0 +1,14 @@
+-- Expensea demo seed (SQL reference only)
+--
+-- Demo data requires Supabase Auth users and service-role access.
+-- Use the TypeScript seed instead:
+--
+--   npm run db:seed
+--
+-- See docs/SEEDING.md for credentials, teams, and reset commands.
+--
+-- To clear demo teams manually (no auth users):
+-- DELETE FROM teams WHERE slug IN (
+--   'expensea-hq', 'remote-team', 'family-budget',
+--   'startup-operations', 'friends-trip'
+-- );

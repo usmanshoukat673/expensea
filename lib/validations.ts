@@ -80,4 +80,17 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LunchEntryInput = z.infer<typeof lunchEntrySchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
+export const budgetSchema = z
+  .object({
+    type: z.enum(['monthly', 'category']),
+    categoryId: z.string().uuid().optional().nullable(),
+    amount: z.coerce.number().positive('Amount must be positive'),
+    month: z.string().optional().nullable(),
+  })
+  .refine(
+    (d) => d.type !== 'category' || (d.categoryId && d.categoryId.length > 0),
+    { message: 'Select a category', path: ['categoryId'] },
+  );
+
 export type SettlementFormInput = z.infer<typeof settlementSchema>;
+export type BudgetInput = z.infer<typeof budgetSchema>;
