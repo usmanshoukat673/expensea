@@ -51,7 +51,7 @@ export function InviteAcceptCard({
   if (!preview.valid) {
     return (
       <Card>
-        <CardContent className="pt-6 text-center space-y-4">
+        <CardContent className="space-y-4 pt-6 text-center">
           <p className="text-sm text-muted-foreground">{invalidMessage}</p>
           <Button variant="outline" asChild>
             <Link href="/login">Sign in</Link>
@@ -63,8 +63,8 @@ export function InviteAcceptCard({
 
   return (
     <Card>
-      <CardContent className="pt-6 space-y-4">
-        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm">
+      <CardContent className="space-y-4 pt-6">
+        <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4 text-sm">
           <div className="flex justify-between gap-2">
             <span className="text-muted-foreground">Team</span>
             <span className="font-medium text-right">{preview.team_name}</span>
@@ -89,7 +89,7 @@ export function InviteAcceptCard({
 
         {isAuthenticated ? (
           <Button type="button" className="w-full" disabled={pending} onClick={onJoin}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             Join team
           </Button>
         ) : (

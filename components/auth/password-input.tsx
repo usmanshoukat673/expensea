@@ -17,19 +17,19 @@ export function PasswordInput({
       <Input
         id={id}
         type={visible ? 'text' : 'password'}
-        className={cn('pr-10', className)}
+        className={cn('pr-11', className)}
         {...props}
       />
       <Button
         type="button"
         variant="ghost"
         size="icon-sm"
-        className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
+        className="absolute right-1 top-1/2 size-7 -translate-y-1/2 text-muted-foreground transition-colors hover:translate-y-[-50%] hover:text-foreground active:scale-100"
         onClick={() => setVisible((v) => !v)}
         tabIndex={-1}
         aria-label={visible ? 'Hide password' : 'Show password'}
       >
-        {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       </Button>
     </div>
   );

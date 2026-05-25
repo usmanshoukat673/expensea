@@ -45,7 +45,7 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
             <Input id="avatarUrl" name="avatarUrl" defaultValue={profile.avatar_url ?? ''} placeholder="https://..." />
           </div>
           <Button type="submit" disabled={pending}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             Save changes
           </Button>
         </form>

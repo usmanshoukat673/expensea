@@ -76,7 +76,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner className="mr-2" /> : null}
+        {pending ? <Spinner /> : null}
         Sign in
       </Button>
       <p className="text-center text-sm text-muted-foreground">

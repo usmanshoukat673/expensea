@@ -45,17 +45,30 @@ export function ExpensesByCategoryChart({ entries }: { entries: Entry[] }) {
   if (!data.length) return null;
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-          {data.map((d, i) => (
-            <Cell key={i} fill={d.color || chart.colors[i % chart.colors.length]} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(v: number) => fmt(v)} contentStyle={chart.tooltipStyle} />
-        <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-      </PieChart>
-    </ResponsiveContainer>
+    <div className="h-[220px] min-w-0 overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="46%"
+            outerRadius={72}
+            labelLine={false}
+          >
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.color || chart.colors[i % chart.colors.length]} />
+            ))}
+          </Pie>
+          <Tooltip formatter={(v: number) => fmt(v)} contentStyle={chart.tooltipStyle} />
+          <Legend
+            verticalAlign="bottom"
+            wrapperStyle={{ color: 'hsl(var(--foreground))', fontSize: 12 }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -85,17 +98,19 @@ export function MonthlyCategoryChart({ entries }: { entries: Entry[] }) {
   if (!data.length) return null;
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
-        <XAxis dataKey="month" tick={chart.tick} />
-        <YAxis tick={chart.tick} />
-        <Tooltip formatter={(v: number) => fmt(v)} contentStyle={chart.tooltipStyle} />
-        {keys.map((k, i) => (
-          <Bar key={k} dataKey={k} stackId="a" fill={chart.colors[i % chart.colors.length]} />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="h-[220px] min-w-0 overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
+          <XAxis dataKey="month" tick={chart.tick} tickLine={false} axisLine={false} />
+          <YAxis tick={chart.tick} tickLine={false} axisLine={false} width={48} />
+          <Tooltip formatter={(v: number) => fmt(v)} contentStyle={chart.tooltipStyle} />
+          {keys.map((k, i) => (
+            <Bar key={k} dataKey={k} stackId="a" fill={chart.colors[i % chart.colors.length]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -118,12 +133,12 @@ export function TopCategoriesList({ entries }: { entries: Entry[] }) {
   return (
     <div className="space-y-3">
       {top.map((row) => (
-        <div key={row.name} className="flex items-center justify-between text-sm">
-          <span className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: row.color }} />
-            {row.name}
+        <div key={row.name} className="flex items-center justify-between gap-3 text-sm">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
+            <span className="truncate">{row.name}</span>
           </span>
-          <span className="font-semibold">{fmt(row.total)}</span>
+          <span className="shrink-0 font-semibold">{fmt(row.total)}</span>
         </div>
       ))}
     </div>

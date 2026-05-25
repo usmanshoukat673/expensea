@@ -14,7 +14,7 @@ export function AuthLayout({
   subtitle: string;
 }) {
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-dvh overflow-x-hidden bg-background">
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-background via-muted/30 to-accent/10 border-r border-border">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
@@ -57,8 +57,8 @@ export function AuthLayout({
           <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Expensea</p>
         </div>
       </div>
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
-        <div className="w-full max-w-md space-y-8">
+      <div className="flex flex-1 items-center justify-center bg-background p-4 sm:p-6">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
           <div className="lg:hidden flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm">
@@ -76,7 +76,7 @@ export function AuthLayout({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.1 }}
-            className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-xl p-8 shadow-xl"
+            className="rounded-xl border border-border/60 bg-card/40 p-5 shadow-xl backdrop-blur-xl sm:p-8"
           >
             {children}
           </motion.div>

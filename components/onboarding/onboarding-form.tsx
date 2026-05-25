@@ -41,14 +41,14 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="rounded-xl border border-border p-6 space-y-4 bg-card">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
       <div className="space-y-2">
         <Label htmlFor="fullName">Full name</Label>
         <Input id="fullName" {...register('fullName')} />
         {errors.fullName && <p className="text-sm text-destructive">{errors.fullName.message}</p>}
       </div>
       <Button type="submit" disabled={pending}>
-        {pending ? <Spinner className="mr-2" /> : null}
+        {pending ? <Spinner /> : null}
         Save profile
       </Button>
     </form>

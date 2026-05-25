@@ -47,7 +47,7 @@ export function ResetPasswordForm() {
         )}
       </div>
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner className="mr-2" /> : null}
+        {pending ? <Spinner /> : null}
         Update password
       </Button>
     </form>

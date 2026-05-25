@@ -95,7 +95,7 @@ export function SettlementsContent({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Settlements</h1>
@@ -105,7 +105,7 @@ export function SettlementsContent({
         </div>
         {canEdit && (
           <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="size-4" />
             Record settlement
           </Button>
         )}
@@ -121,7 +121,7 @@ export function SettlementsContent({
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardDescription>You owe</CardDescription>
-            <ArrowDownLeft className="w-4 h-4 text-amber-600" />
+            <ArrowDownLeft className="size-4 shrink-0 text-amber-600" />
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
@@ -132,7 +132,7 @@ export function SettlementsContent({
         <Card>
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardDescription>You should receive</CardDescription>
-            <ArrowUpRight className="w-4 h-4 text-green-600" />
+            <ArrowUpRight className="size-4 shrink-0 text-green-600" />
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -146,7 +146,7 @@ export function SettlementsContent({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Scale className="w-4 h-4" />
+              <Scale className="size-4 shrink-0" />
               Simplified debts
             </CardTitle>
             <CardDescription>Optimized payment chain</CardDescription>
@@ -189,7 +189,7 @@ export function SettlementsContent({
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-9"
           placeholder="Search settlements..."
@@ -283,7 +283,7 @@ function SettlementTable({
   }
 
   return (
-    <div className="rounded-lg border border-border overflow-auto">
+    <div className="min-w-0 overflow-auto rounded-lg border border-border">
       <Table>
         <TableHeader>
           <TableRow>

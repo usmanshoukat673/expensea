@@ -196,7 +196,7 @@ export function BudgetDialog({
           </div>
 
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             {isEdit ? 'Save' : 'Create'}
           </Button>
         </form>

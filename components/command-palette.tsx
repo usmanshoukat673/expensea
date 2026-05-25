@@ -53,28 +53,28 @@ export function CommandPalette({ canEdit }: { canEdit: boolean }) {
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigation">
           <CommandItem onSelect={() => go('/')}>
-            <Home className="mr-2 h-4 w-4" /> Dashboard
+            <Home className="size-4" /> Dashboard
           </CommandItem>
           <CommandItem onSelect={() => go('/entries')}>
-            <BookOpen className="mr-2 h-4 w-4" /> Entries
+            <BookOpen className="size-4" /> Entries
           </CommandItem>
           <CommandItem onSelect={() => go('/categories')}>
-            <Tag className="mr-2 h-4 w-4" /> Categories
+            <Tag className="size-4" /> Categories
           </CommandItem>
           <CommandItem onSelect={() => go('/budgets')}>
-            <PiggyBank className="mr-2 h-4 w-4" /> Budgets
+            <PiggyBank className="size-4" /> Budgets
           </CommandItem>
           <CommandItem onSelect={() => go('/settlements')}>
-            <Scale className="mr-2 h-4 w-4" /> Settlements
+            <Scale className="size-4" /> Settlements
           </CommandItem>
           <CommandItem onSelect={() => go('/team')}>
-            <Users className="mr-2 h-4 w-4" /> Team
+            <Users className="size-4" /> Team
           </CommandItem>
           <CommandItem onSelect={() => go('/analytics')}>
-            <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+            <BarChart3 className="size-4" /> Analytics
           </CommandItem>
           <CommandItem onSelect={() => go('/settings/profile')}>
-            <Settings className="mr-2 h-4 w-4" /> Settings
+            <Settings className="size-4" /> Settings
           </CommandItem>
         </CommandGroup>
         {canEdit && (
@@ -94,7 +94,7 @@ export function CommandPalette({ canEdit }: { canEdit: boolean }) {
                   }
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" /> Add expense
+                <Plus className="size-4" /> Add expense
                 <span className="ml-auto text-xs text-muted-foreground">⌘⇧N</span>
               </CommandItem>
             </CommandGroup>

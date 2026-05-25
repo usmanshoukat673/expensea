@@ -35,7 +35,7 @@ export function DashboardBudgetWidgets({
           </p>
           <Button variant="outline" size="sm" asChild>
             <Link href="/budgets">
-              <PiggyBank className="w-4 h-4 mr-1" />
+              <PiggyBank className="size-4" />
               Set up budgets
             </Link>
           </Button>
@@ -104,7 +104,7 @@ export function DashboardBudgetWidgets({
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {stat.title}
                   </CardTitle>
-                  <Icon className="w-4 h-4 text-accent" />
+                  <Icon className="size-4 shrink-0 text-accent" />
                 </CardHeader>
                 <CardContent>
                   <div className={`text-2xl font-bold ${stat.className ?? ''}`}>

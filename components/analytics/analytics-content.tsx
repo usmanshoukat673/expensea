@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { format, parseISO, startOfMonth } from 'date-fns';
+import { format as formatDate, parseISO, startOfMonth } from 'date-fns';
 import { motion } from 'framer-motion';
 import {
   BarChart,
@@ -80,7 +80,7 @@ export function AnalyticsContent({
   const monthlyData = useMemo(() => {
     const map = new Map<string, number>();
     filtered.forEach((e) => {
-      const key = format(startOfMonth(parseISO(e.lunch_date)), 'MMM yyyy');
+      const key = formatDate(startOfMonth(parseISO(e.lunch_date)), 'MMM yyyy');
       map.set(key, (map.get(key) ?? 0) + Number(e.amount));
     });
     return Array.from(map.entries()).map(([month, total]) => ({ month, total }));
@@ -104,7 +104,7 @@ export function AnalyticsContent({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
         <p className="text-muted-foreground mt-1">Spending trends and category breakdown</p>
@@ -120,13 +120,13 @@ export function AnalyticsContent({
                 key={cat.id}
                 type="button"
                 onClick={() => toggleCategory(cat.id)}
-                className="focus:outline-none"
+                className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <Badge
                   variant={active ? 'default' : 'outline'}
-                  className="gap-1.5 cursor-pointer"
+                  className="cursor-pointer gap-1.5"
                 >
-                  <Icon className="w-3 h-3" style={{ color: cat.color }} />
+                  <Icon className="size-3 shrink-0" style={{ color: cat.color }} />
                   {cat.name}
                 </Badge>
               </button>
@@ -144,7 +144,7 @@ export function AnalyticsContent({
         </div>
       )}
 
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid md:grid-cols-3 gap-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>6-month spend</CardDescription>
@@ -172,13 +172,13 @@ export function AnalyticsContent({
           <CardHeader>
             <CardTitle>Monthly spending</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[300px] min-w-0 overflow-hidden">
             {monthlyData.length ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyData}>
+                <BarChart data={monthlyData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chart.gridStroke} />
-                  <XAxis dataKey="month" tick={chart.tick} />
-                  <YAxis tick={chart.tick} />
+                  <XAxis dataKey="month" tick={chart.tick} tickLine={false} axisLine={false} />
+                  <YAxis tick={chart.tick} tickLine={false} axisLine={false} width={48} />
                   <Tooltip formatter={(v: number) => format(v)} contentStyle={chart.tooltipStyle} />
                   <Bar dataKey="total" fill={chart.accent} radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -193,7 +193,7 @@ export function AnalyticsContent({
           <CardHeader>
             <CardTitle>Expenses by category</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[300px] min-w-0 overflow-hidden">
             {filtered.length ? <ExpensesByCategoryChart entries={filtered} /> : (
               <EmptyState icon={BarChart3} title="No data" description="Categorize expenses to unlock this chart." actionHref="/categories" actionLabel="Categories" />
             )}
@@ -206,7 +206,7 @@ export function AnalyticsContent({
           <CardHeader>
             <CardTitle>Monthly by category</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[300px] min-w-0 overflow-hidden">
             {filtered.length ? <MonthlyCategoryChart entries={filtered} /> : null}
           </CardContent>
         </Card>
@@ -231,17 +231,25 @@ export function AnalyticsContent({
         <CardHeader>
           <CardTitle>Payment status</CardTitle>
         </CardHeader>
-        <CardContent className="h-[280px]">
+        <CardContent className="h-[280px] min-w-0 overflow-hidden">
           {statusData.length ? (
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label>
+              <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                <Pie
+                  data={statusData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="46%"
+                  outerRadius={82}
+                  labelLine={false}
+                >
                   {statusData.map((_, i) => (
                     <Cell key={i} fill={chart.colors[i % chart.colors.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(v: number) => format(v)} contentStyle={chart.tooltipStyle} />
-                <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
+                <Legend wrapperStyle={{ color: 'hsl(var(--foreground))', fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
           ) : (

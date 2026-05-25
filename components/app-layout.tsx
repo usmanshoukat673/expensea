@@ -35,13 +35,13 @@ export function AppLayout({
 
   return (
     <div
-      className="flex min-h-screen bg-background"
+      className="flex min-h-dvh w-full overflow-x-hidden bg-background"
       data-team-switching={switching ? "true" : undefined}
     >
       <Navbar user={user} teamName={teamName} />
       <Sidebar role={effectiveRole} teamSlug={teamSlug} teamId={teamId} />
       <main
-        className={`relative flex-1 md:ml-64 mt-16 md:mt-0 p-4 md:p-6 pb-24 md:pb-6 max-w-[1600px] transition-opacity duration-200 ${switching ? "opacity-60 pointer-events-none" : ""}`}
+        className={`relative mt-16 min-w-0 flex-1 overflow-x-hidden p-4 pb-24 transition-opacity duration-200 md:ml-64 md:mt-0 md:py-6 md:pl-6 md:pr-20 ${switching ? "opacity-60 pointer-events-none" : ""}`}
       >
         <PageTransition>{children}</PageTransition>
       </main>

@@ -17,11 +17,11 @@ export function PublicPageShell({
   currencyCode?: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-background transition-colors">
-      <header className="border-b border-border/60 bg-card/30 backdrop-blur-md sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+    <div className="min-h-dvh overflow-x-hidden bg-background transition-colors">
+      <header className="sticky top-0 z-10 border-b border-border/60 bg-card/30 backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
               EX
             </div>
             <span className="font-semibold text-sm">Expensea</span>
@@ -29,8 +29,8 @@ export function PublicPageShell({
           <ThemeToggle />
         </div>
       </header>
-      <main className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-        <div>
+      <main className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
+        <div className="min-w-0">
           <p className="text-sm text-accent font-medium">Expense Summary</p>
           <h1 className="text-3xl font-bold mt-1">{title}</h1>
           {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
@@ -39,7 +39,7 @@ export function PublicPageShell({
           {children}
         </CurrencyProvider>
       </main>
-      <footer className="max-w-4xl mx-auto px-6 py-8 border-t border-border text-center text-xs text-muted-foreground">
+      <footer className="mx-auto max-w-4xl border-t border-border px-4 py-8 text-center text-xs text-muted-foreground sm:px-6">
         © {new Date().getFullYear()} Expensea — Smarter Expense Tracking
       </footer>
     </div>

@@ -52,21 +52,21 @@ export function CategorySelector({
           disabled={disabled}
           className="w-full justify-between font-normal"
         >
-          <span className="flex items-center gap-2 truncate">
+          <span className="flex min-w-0 items-center gap-2 truncate">
             {selected && Icon ? (
               <>
                 <span
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  className="size-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: selected.color }}
                 />
-                <Icon className="w-4 h-4 shrink-0" style={{ color: selected.color }} />
-                {selected.name}
+                <Icon className="size-4 shrink-0" style={{ color: selected.color }} />
+                <span className="truncate">{selected.name}</span>
               </>
             ) : (
               'Select category'
             )}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
@@ -87,10 +87,10 @@ export function CategorySelector({
                         setOpen(false);
                       }}
                     >
-                      <Check className={cn('mr-2 h-4 w-4', value === cat.id ? 'opacity-100' : 'opacity-0')} />
-                      <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: cat.color }} />
-                      <CatIcon className="w-4 h-4 mr-2" style={{ color: cat.color }} />
-                      {cat.name}
+                      <Check className={cn('size-4 shrink-0', value === cat.id ? 'opacity-100' : 'opacity-0')} />
+                      <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <CatIcon className="size-4 shrink-0" style={{ color: cat.color }} />
+                      <span className="truncate">{cat.name}</span>
                     </CommandItem>
                   );
                 })}
@@ -108,10 +108,10 @@ export function CategorySelector({
                       setOpen(false);
                     }}
                   >
-                    <Check className={cn('mr-2 h-4 w-4', value === cat.id ? 'opacity-100' : 'opacity-0')} />
-                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: cat.color }} />
-                    <CatIcon className="w-4 h-4 mr-2" style={{ color: cat.color }} />
-                    {cat.name}
+                    <Check className={cn('size-4 shrink-0', value === cat.id ? 'opacity-100' : 'opacity-0')} />
+                    <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <CatIcon className="size-4 shrink-0" style={{ color: cat.color }} />
+                    <span className="truncate">{cat.name}</span>
                   </CommandItem>
                 );
               })}

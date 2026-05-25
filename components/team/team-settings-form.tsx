@@ -95,7 +95,7 @@ export function TeamSettingsForm({ team }: { team: Team }) {
           </p>
           <PublicTeamShare teamId={team.id} isPublic={team.is_public} baseUrl={baseUrl} />
           <Button type="submit" disabled={pending}>
-            {pending ? <Spinner className="mr-2" /> : null}
+            {pending ? <Spinner /> : null}
             Save settings
           </Button>
         </form>

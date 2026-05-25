@@ -49,7 +49,7 @@ export function PublicTeamShare({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2 pt-2">
+    <div className="flex flex-col gap-2 pt-2 sm:flex-row">
       <Button
         type="button"
         variant="outline"
@@ -57,7 +57,7 @@ export function PublicTeamShare({
         disabled={!isPublic}
         onClick={copyPublic}
       >
-        <Copy className="w-4 h-4 mr-2" />
+        <Copy className="size-4" />
         Copy public link
       </Button>
       <Button
@@ -67,7 +67,7 @@ export function PublicTeamShare({
         disabled={!isPublic}
         onClick={share}
       >
-        <Share2 className="w-4 h-4 mr-2" />
+        <Share2 className="size-4" />
         Share
       </Button>
     </div>

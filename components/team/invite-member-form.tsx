@@ -97,7 +97,7 @@ export function InviteMemberForm() {
               </Select>
             </div>
             <Button type="submit" disabled={pending}>
-              {pending ? <Spinner className="mr-2" /> : null}
+              {pending ? <Spinner /> : null}
               Send email invite
             </Button>
           </form>

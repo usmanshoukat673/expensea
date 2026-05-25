@@ -33,7 +33,7 @@ const roleLabels: Record<TeamRole, string> = {
 
 function RoleBadge({ role }: { role: TeamRole }) {
   return (
-    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 capitalize shrink-0">
+    <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[10px] capitalize">
       {roleLabels[role]}
     </Badge>
   );
@@ -104,7 +104,7 @@ export function TeamSwitcher({ variant = 'sidebar', className }: TeamSwitcherPro
               </span>
             )}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -113,7 +113,7 @@ export function TeamSwitcher({ variant = 'sidebar', className }: TeamSwitcherPro
       >
         <Command shouldFilter={false}>
           <div className="flex items-center border-b px-3">
-            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+            <Search className="size-4 shrink-0 opacity-50" />
             <CommandInput
               placeholder="Search teams..."
               value={query}
@@ -142,7 +142,7 @@ export function TeamSwitcher({ variant = 'sidebar', className }: TeamSwitcherPro
                   <RoleBadge role={team.role} />
                   <Check
                     className={cn(
-                      'h-4 w-4 shrink-0',
+                      'size-4 shrink-0',
                       activeTeamId === team.id ? 'opacity-100' : 'opacity-0'
                     )}
                   />
@@ -157,7 +157,7 @@ export function TeamSwitcher({ variant = 'sidebar', className }: TeamSwitcherPro
                   startNav(() => router.push('/create-team'));
                 }}
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="size-4" />
                 Create new team
               </CommandItem>
             </CommandGroup>
@@ -172,9 +172,9 @@ export function TeamSwitcherCreateLink() {
   return (
     <Link
       href="/create-team"
-      className="flex items-center gap-2 text-xs text-muted-foreground hover:text-accent px-4 py-1"
+      className="flex items-center gap-2 px-4 py-1 text-xs text-muted-foreground hover:text-accent"
     >
-      <Plus className="w-3 h-3" />
+      <Plus className="size-3" />
       New team
     </Link>
   );

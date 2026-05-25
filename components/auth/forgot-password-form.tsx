@@ -39,7 +39,7 @@ export function ForgotPasswordForm() {
 
   if (sent) {
     return (
-      <div className="text-center space-y-4">
+      <div className="space-y-4 text-center">
         <p className="text-muted-foreground">We sent a password reset link to your email.</p>
         <Link href="/login" className="text-accent text-sm font-medium hover:underline">
           Back to sign in
@@ -56,7 +56,7 @@ export function ForgotPasswordForm() {
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? <Spinner className="mr-2" /> : null}
+        {pending ? <Spinner /> : null}
         Send reset link
       </Button>
       <p className="text-center text-sm">
