@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { BrandLogo } from '@/components/branding/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { CurrencyProvider } from '@/components/providers/currency-provider';
 import { normalizeCurrencyCode } from '@/lib/currency';
@@ -20,12 +20,7 @@ export function PublicPageShell({
     <div className="min-h-dvh overflow-x-hidden bg-background transition-colors">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-card/30 backdrop-blur-md">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-sm font-bold text-accent-foreground">
-              EX
-            </div>
-            <span className="font-semibold text-sm">Expensea</span>
-          </Link>
+          <BrandLogo href="/" size="sm" />
           <ThemeToggle />
         </div>
       </header>

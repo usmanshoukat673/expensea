@@ -1,5 +1,5 @@
 import type { SeedAdmin } from '@/lib/seed/client';
-import { DEMO_PASSWORD, DEMO_USERS, avatarUrl } from '@/lib/seed/config';
+import { DEMO_PASSWORD, DEMO_USERS } from '@/lib/seed/config';
 import { daysAgo, log, toIso } from '@/lib/seed/utils';
 
 export type UserMap = Map<string, string>;
@@ -28,20 +28,19 @@ async function getOrCreateUser(
     .eq('email', email)
     .maybeSingle();
 
-  const avatar = avatarUrl(fullName);
   const joinedAt = toIso(daysAgo(joinedDaysAgo));
 
   if (existingProfile?.id) {
     await admin.auth.admin.updateUserById(existingProfile.id, {
       password: DEMO_PASSWORD,
       email_confirm: true,
-      user_metadata: { full_name: fullName, avatar_url: avatar },
+      user_metadata: { full_name: fullName },
     });
     await admin
       .from('profiles')
       .update({
         full_name: fullName,
-        avatar_url: avatar,
+        avatar_url: null,
         onboarding_completed: true,
         created_at: joinedAt,
       })
@@ -53,7 +52,7 @@ async function getOrCreateUser(
     email,
     password: DEMO_PASSWORD,
     email_confirm: true,
-    user_metadata: { full_name: fullName, avatar_url: avatar },
+    user_metadata: { full_name: fullName },
   });
 
   if (error || !created.user) {
@@ -64,7 +63,7 @@ async function getOrCreateUser(
     .from('profiles')
     .update({
       full_name: fullName,
-      avatar_url: avatar,
+      avatar_url: null,
       onboarding_completed: true,
       created_at: joinedAt,
     })

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Home, BookOpen, Users, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/branding/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TeamSwitcher } from '@/components/team/team-switcher';
@@ -32,9 +33,7 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
     <header className="fixed left-0 right-0 top-0 z-50 h-16 border-b border-sidebar-border bg-sidebar md:hidden">
       <div className="flex items-center justify-between h-full px-4 gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm shrink-0">
-            EX
-          </div>
+          <BrandLogo showName={false} size="sm" />
           <TeamSwitcher variant="navbar" />
         </div>
         <div className="flex shrink-0 items-center gap-1">

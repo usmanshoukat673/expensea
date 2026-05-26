@@ -205,7 +205,3 @@ function monthOffset(delta: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-export function avatarUrl(fullName: string): string {
-  const seed = encodeURIComponent(fullName.replace(/\s+/g, '-').toLowerCase());
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-}
