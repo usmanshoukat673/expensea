@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useCurrency } from "@/hooks/use-currency"
 import { cn } from "@/lib/utils"
+import { BrandLogo } from "@/components/branding/brand-logo"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { TeamSwitcher } from "@/components/team/team-switcher"
@@ -48,12 +49,11 @@ export function Sidebar({
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-dvh w-64 min-w-64 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar md:flex">
       <div className="shrink-0 space-y-3 border-b border-sidebar-border px-4 py-5">
-        <div className="flex items-center gap-3 px-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0">
-            EX
-          </div>
-          <span className="text-xs font-medium text-sidebar-foreground/60">Expensea</span>
-        </div>
+        <BrandLogo
+          size="sm"
+          className="px-2"
+          nameClassName="text-xs font-medium text-sidebar-foreground/60"
+        />
         <TeamSwitcher variant="sidebar" className="px-2" />
       </div>
 

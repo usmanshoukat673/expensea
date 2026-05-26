@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { BrandLogo } from '@/components/branding/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 export function AuthLayout({
@@ -19,12 +19,7 @@ export function AuthLayout({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-accent/20 via-transparent to-transparent" />
         <div className="relative z-10 flex flex-col justify-between p-12 w-full">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-accent-foreground font-bold">
-                EX
-              </div>
-              <span className="font-semibold text-lg">Expensea</span>
-            </Link>
+            <BrandLogo href="/" size="md" />
             <ThemeToggle />
           </div>
           <motion.div
@@ -60,12 +55,7 @@ export function AuthLayout({
       <div className="flex flex-1 items-center justify-center bg-background p-4 sm:p-6">
         <div className="w-full max-w-md space-y-6 sm:space-y-8">
           <div className="lg:hidden flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground font-bold text-sm">
-                EX
-              </div>
-              <span className="font-semibold">Expensea</span>
-            </Link>
+            <BrandLogo href="/" size="sm" />
             <ThemeToggle />
           </div>
           <div className="text-center lg:text-left space-y-2">
