@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { formatDistanceToNow } from "date-fns"
+import { format as formatDate, formatDistanceToNow, parseISO } from "date-fns"
 import { motion } from "framer-motion"
 import {
   ArrowDownLeft,
@@ -27,6 +27,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useCurrency } from "@/hooks/use-currency"
 import { EmptyState } from "@/components/ui/empty-states"
 import type { LunchEntryWithProfile, SettlementWithProfiles } from "@/lib/database.types"
+import type { RecurringExpenseWithCategory } from "@/lib/database.types"
+import { getCategoryIcon } from "@/lib/categories/icons"
 import { DashboardBalanceWidgets } from "@/components/dashboard/balance-widgets"
 import { DashboardBudgetWidgets } from "@/components/budgets/budget-widgets"
 import {
@@ -102,6 +104,7 @@ type DashboardProps = {
     differencePercent: number
     averageMonthlySpend: number
   }
+  upcomingRecurringExpenses: RecurringExpenseWithCategory[]
 }
 
 export function DashboardContent({
@@ -115,6 +118,7 @@ export function DashboardContent({
   budgetSummary,
   dateRange,
   historicalStats,
+  upcomingRecurringExpenses,
 }: DashboardProps) {
   const { format } = useCurrency()
 
@@ -149,6 +153,7 @@ export function DashboardContent({
 
   const quickActions = [
     { href: "/entries", label: "All entries", icon: BookOpen },
+    { href: "/recurring-expenses", label: "Recurring", icon: CalendarDays },
     { href: "/settlements", label: "Settlements", icon: Wallet },
     { href: "/categories", label: "Categories", icon: BookOpen },
     { href: "/budgets", label: "Budgets", icon: PiggyBank },
@@ -370,6 +375,49 @@ export function DashboardContent({
                     </span>
                   </div>
                 ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="size-4 shrink-0 text-accent" />
+                Upcoming recurring expenses
+              </CardTitle>
+              <CardDescription>Next scheduled rules</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {upcomingRecurringExpenses.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No scheduled expenses</p>
+              ) : (
+                upcomingRecurringExpenses.map((rule) => {
+                  const cat = rule.expense_categories
+                  const Icon = cat ? getCategoryIcon(cat.icon) : CalendarDays
+                  return (
+                    <div
+                      key={rule.id}
+                      className="flex items-center justify-between gap-3 border-b border-border py-2 last:border-0"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{rule.title}</p>
+                        <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                          {cat && (
+                            <>
+                              <Icon className="size-3 shrink-0" style={{ color: cat.color }} />
+                              <span className="truncate">{cat.name}</span>
+                              <span>·</span>
+                            </>
+                          )}
+                          <span>{formatDate(parseISO(rule.next_run_date), "dd MMM yyyy")}</span>
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-sm font-semibold">
+                        {format(Number(rule.amount))}
+                      </span>
+                    </div>
+                  )
+                })
               )}
             </CardContent>
           </Card>
