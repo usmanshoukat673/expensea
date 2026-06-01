@@ -32,10 +32,13 @@ export async function resetDemoData(
 
   await admin.from('notifications').delete().in('team_id', teamIds);
   await admin.from('settlements').delete().in('team_id', teamIds);
+  await admin.from('recurring_expenses').delete().in('team_id', teamIds);
   await admin.from('lunch_entries').delete().in('team_id', teamIds);
   await admin.from('team_budgets').delete().in('team_id', teamIds);
+  await admin.from('activity_logs').delete().in('team_id', teamIds);
   await admin.from('team_activity_log').delete().in('team_id', teamIds);
   await admin.from('monthly_summaries').delete().in('team_id', teamIds);
+  await admin.from('team_invites').delete().in('team_id', teamIds);
   await admin.from('team_invitations').delete().in('team_id', teamIds);
   await admin.from('team_members').delete().in('team_id', teamIds);
   await admin.from('expense_categories').delete().in('team_id', teamIds);
