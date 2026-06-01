@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format as formatDate, parseISO, startOfMonth } from 'date-fns';
+import { differenceInCalendarDays, format as formatDate, parseISO, startOfMonth } from 'date-fns';
 import { useCurrency } from '@/hooks/use-currency';
 import { useChartTheme } from '@/hooks/use-chart-theme';
 
@@ -14,8 +14,14 @@ export function DashboardMonthlyChart({ entries }: { entries: Entry[] }) {
 
   const data = useMemo(() => {
     const map = new Map<string, number>();
+    const dates = entries.map((e) => parseISO(e.lunch_date));
+    const min = dates.length ? Math.min(...dates.map((d) => d.getTime())) : 0;
+    const max = dates.length ? Math.max(...dates.map((d) => d.getTime())) : 0;
+    const groupByDay = dates.length > 0 && differenceInCalendarDays(new Date(max), new Date(min)) <= 45;
+
     entries.forEach((e) => {
-      const key = formatDate(startOfMonth(parseISO(e.lunch_date)), 'MMM');
+      const date = parseISO(e.lunch_date);
+      const key = groupByDay ? formatDate(date, 'dd MMM') : formatDate(startOfMonth(date), 'MMM yy');
       map.set(key, (map.get(key) ?? 0) + Number(e.amount));
     });
     return Array.from(map.entries()).map(([month, total]) => ({ month, total }));

@@ -26,6 +26,19 @@ async function fetchMonthEntries(teamId: string, monthStart: string) {
   return (data ?? []) as ExpenseRow[];
 }
 
+async function fetchRangeEntries(teamId: string, from: string, to: string) {
+  const supabase = await createClient();
+
+  const { data } = await supabase
+    .from('lunch_entries')
+    .select('team_id, amount, lunch_date, category_id')
+    .eq('team_id', teamId)
+    .gte('lunch_date', from)
+    .lte('lunch_date', to);
+
+  return (data ?? []) as ExpenseRow[];
+}
+
 export async function getTeamBudgets(teamId: string): Promise<TeamBudget[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -69,8 +82,9 @@ export async function getBudgetPageData(teamId: string, monthStart?: string) {
 
 export async function getDashboardBudgetSummary(
   teamId: string,
+  monthStartOverride?: string,
 ): Promise<DashboardBudgetSummary> {
-  const monthStart = getMonthStart();
+  const monthStart = monthStartOverride ?? getMonthStart();
   const [budgets, entries] = await Promise.all([
     getTeamBudgets(teamId),
     fetchMonthEntries(teamId, monthStart),
@@ -93,13 +107,16 @@ export async function getDashboardBudgetSummary(
   return computeDashboardBudgetSummary(budgets, entries, monthStart, categoryMeta);
 }
 
-export async function getAnalyticsBudgetData(teamId: string) {
+export async function getAnalyticsBudgetData(
+  teamId: string,
+  range?: { from: string; to: string },
+) {
   const monthStart = getMonthStart();
   const supabase = await createClient();
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-  const rangeStart = getMonthStart(sixMonthsAgo);
+  const rangeStart = range?.from ? getMonthStart(new Date(range.from)) : getMonthStart(sixMonthsAgo);
 
   const [budgets, entriesRes, categoriesRes] = await Promise.all([
     getTeamBudgets(teamId),
@@ -107,7 +124,8 @@ export async function getAnalyticsBudgetData(teamId: string) {
       .from('lunch_entries')
       .select('team_id, amount, lunch_date, category_id')
       .eq('team_id', teamId)
-      .gte('lunch_date', rangeStart),
+      .gte('lunch_date', rangeStart)
+      .lte('lunch_date', range?.to ?? getMonthEnd(monthStart)),
     supabase.from('expense_categories').select('*').eq('team_id', teamId),
   ]);
 
@@ -131,10 +149,19 @@ export async function getAnalyticsBudgetData(teamId: string) {
   ) ?? monthlyBudgets.find((b) => !b.month);
 
   const months: string[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    months.push(getMonthStart(d));
+  if (range?.from && range?.to) {
+    const cursor = new Date(`${getMonthStart(new Date(range.from))}T00:00:00`);
+    const end = new Date(`${getMonthStart(new Date(range.to))}T00:00:00`);
+    while (cursor <= end && months.length < 24) {
+      months.push(getMonthStart(cursor));
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+  } else {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      months.push(getMonthStart(d));
+    }
   }
 
   const comparison = months.map((m) => {
@@ -164,4 +191,39 @@ export async function getAnalyticsBudgetData(teamId: string) {
     categoryBreakdown,
     hasMonthlyBudget: !!currentMonthlyBudget,
   };
+}
+
+export async function getHistoricalBudgetData(teamId: string, from: string, to: string) {
+  const supabase = await createClient();
+
+  const [budgets, entries, categoriesRes] = await Promise.all([
+    getTeamBudgets(teamId),
+    fetchRangeEntries(teamId, from, to),
+    supabase.from('expense_categories').select('*').eq('team_id', teamId),
+  ]);
+
+  const categories = (categoriesRes.data ?? []) as ExpenseCategory[];
+  const categoryMeta = new Map(
+    categories.map((c) => [c.id, { name: c.name, color: c.color }]),
+  );
+  const spendIndex = buildExpenseSpendIndex(entries);
+  const months = [...new Set(entries.map((e) => getMonthStart(new Date(e.lunch_date))))].sort();
+
+  return months.map((month) => {
+    const usages = computeAllBudgetUsages(budgets, entries, month, categoryMeta);
+    const monthly = usages.find((u) => u.type === 'monthly');
+    const totalBudget = monthly
+      ? Number(monthly.amount)
+      : usages.filter((u) => u.type === 'category').reduce((sum, u) => sum + Number(u.amount), 0);
+    const spent = getAggregatedSpent(spendIndex, teamId, null, month);
+    return {
+      month,
+      spent,
+      budget: totalBudget,
+      overspent: Math.max(0, spent - totalBudget),
+      utilization: totalBudget > 0 ? Math.round((spent / totalBudget) * 1000) / 10 : 0,
+      exceeded: totalBudget > 0 && spent > totalBudget,
+      categoryUsages: usages.filter((u) => u.type === 'category'),
+    };
+  });
 }

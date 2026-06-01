@@ -26,10 +26,12 @@ export function AnalyticsBudgetSection({
   comparison,
   categoryBreakdown,
   hasMonthlyBudget,
+  rangeLabel,
 }: {
   comparison: { month: string; spent: number; budget: number; label: string }[];
   categoryBreakdown: BudgetWithUsage[];
   hasMonthlyBudget: boolean;
+  rangeLabel: string;
 }) {
   const categoryChartData = categoryBreakdown.map((b) => ({
     name: b.categoryName ?? 'Category',
@@ -74,7 +76,7 @@ export function AnalyticsBudgetSection({
           <CardHeader>
             <CardTitle>Monthly comparison</CardTitle>
             <CardDescription>
-              Actual spending vs monthly team budget (last 6 months)
+              Actual spending vs monthly team budget ({rangeLabel})
             </CardDescription>
           </CardHeader>
           <CardContent>

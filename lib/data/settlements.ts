@@ -31,16 +31,28 @@ async function attachSettlementProfiles(
   }));
 }
 
-export async function getBalanceContext(teamId: string, currentUserId?: string) {
+export async function getBalanceContext(
+  teamId: string,
+  currentUserId?: string,
+  range?: { from: string; to: string },
+) {
   const supabase = await createClient();
 
   const [entriesRes, settlementsRes, membersRes] = await Promise.all([
-    supabase
+    (() => {
+      let query = supabase
       .from('lunch_entries')
       .select('id, user_id, amount, is_shared, split_type')
       .eq('team_id', teamId)
-      .eq('is_shared', true),
-    supabase.from('settlements').select('*').eq('team_id', teamId).order('created_at', { ascending: false }),
+      .eq('is_shared', true);
+      if (range) query = query.gte('lunch_date', range.from).lte('lunch_date', range.to);
+      return query;
+    })(),
+    (() => {
+      let query = supabase.from('settlements').select('*').eq('team_id', teamId).order('created_at', { ascending: false });
+      if (range) query = query.gte('created_at', `${range.from}T00:00:00`).lte('created_at', `${range.to}T23:59:59`);
+      return query;
+    })(),
     supabase.from('team_members').select('user_id').eq('team_id', teamId),
   ]);
 
@@ -99,6 +111,6 @@ export async function getBalanceContext(teamId: string, currentUserId?: string) 
   };
 }
 
-export async function getSettlementsPageData(teamId: string) {
-  return getBalanceContext(teamId);
+export async function getSettlementsPageData(teamId: string, range?: { from: string; to: string }) {
+  return getBalanceContext(teamId, undefined, range);
 }

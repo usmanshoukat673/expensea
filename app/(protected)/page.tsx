@@ -1,14 +1,22 @@
 import { requireTeam } from "@/lib/auth/session"
-import { getDashboardData, getDashboardBalance } from "@/lib/data/dashboard"
+import { getDashboardData, getDashboardBalance, getDashboardHistoricalStats } from "@/lib/data/dashboard"
 import { getDashboardBudgetSummary } from "@/lib/data/budgets"
 import { DashboardContent } from "@/components/dashboard-content"
+import { getDateRange, monthStartFromYMD } from "@/lib/date-ranges"
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ dateRange?: string; from?: string; to?: string }>
+}) {
+  const params = await searchParams
+  const range = getDateRange(params?.dateRange, params?.from, params?.to)
   const session = await requireTeam()
-  const [data, balance, budgetSummary] = await Promise.all([
-    getDashboardData(session.teamId),
-    getDashboardBalance(session.teamId, session.user.id),
-    getDashboardBudgetSummary(session.teamId),
+  const [data, balance, budgetSummary, historicalStats] = await Promise.all([
+    getDashboardData(session.teamId, range),
+    getDashboardBalance(session.teamId, session.user.id, range),
+    getDashboardBudgetSummary(session.teamId, monthStartFromYMD(range.from)),
+    getDashboardHistoricalStats(session.teamId),
   ])
 
   const categoryEntries = data.monthlyEntries.map((e) => ({
@@ -33,6 +41,8 @@ export default async function DashboardPage() {
         recentSettlements: balance.recentCompleted,
       }}
       budgetSummary={budgetSummary}
+      dateRange={range}
+      historicalStats={historicalStats}
     />
   )
 }

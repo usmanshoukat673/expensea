@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import {
   useReactTable,
   getCoreRowModel,
@@ -82,6 +82,11 @@ export function EntriesTable({
   const [categoryFilter, setCategoryFilter] = useState<string[]>([])
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [pending, startTransition] = useTransition()
+
+  useEffect(() => {
+    setEntries(initialEntries)
+    setRowSelection({})
+  }, [initialEntries])
 
   const filtered = useMemo(() => {
     return entries.filter((e) => {

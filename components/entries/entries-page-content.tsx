@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { EntriesTable } from '@/components/entries/entries-table';
 import { LunchEntryDialog, useLunchEntryModal } from '@/components/lunch/lunch-entry-dialog';
 import type { ExpenseCategory, LunchEntryWithProfile } from '@/lib/database.types';
+import type { DateRangeValue } from '@/lib/date-ranges';
+import { DateRangeFilter } from '@/components/filters/date-range-filter';
 
 export function EntriesPageContent({
   entries,
@@ -15,6 +17,7 @@ export function EntriesPageContent({
   recentCategoryIds = [],
   canEdit,
   defaultLunchDate,
+  dateRange,
 }: {
   entries: LunchEntryWithProfile[];
   members: { user_id: string; name: string }[];
@@ -22,6 +25,7 @@ export function EntriesPageContent({
   recentCategoryIds?: string[];
   canEdit: boolean;
   defaultLunchDate: string;
+  dateRange: DateRangeValue;
 }) {
   const { open, setOpen } = useLunchEntryModal();
   const [editEntry, setEditEntry] = useState<LunchEntryWithProfile | null>(null);
@@ -55,15 +59,18 @@ export function EntriesPageContent({
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Manage team expense records with filters and export.
+              Manage team expense records for {dateRange.label}.
             </p>
           </div>
-          {canEdit && (
-            <Button onClick={openAdd} className="w-full sm:w-auto shrink-0">
-              <Plus className="size-4" />
-              Add entry
-            </Button>
-          )}
+          <div className="flex flex-col gap-2 sm:items-end">
+            <DateRangeFilter range={dateRange} />
+            {canEdit && (
+              <Button onClick={openAdd} className="w-full sm:w-auto shrink-0">
+                <Plus className="size-4" />
+                Add entry
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

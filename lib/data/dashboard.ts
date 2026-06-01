@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import type { DateRangeValue } from "@/lib/date-ranges"
 import type {
   ActivityLog,
   LunchEntry,
@@ -26,31 +27,29 @@ async function attachProfiles<T extends { user_id: string }>(
   }))
 }
 
-export async function getDashboardData(teamId: string) {
+export async function getDashboardData(teamId: string, range?: Pick<DateRangeValue, "from" | "to">) {
   const supabase = await createClient()
   const now = new Date()
-  const monthStart = getMonthStart(now)
-  const monthEnd = getMonthEnd(monthStart)
+  const monthStart = range?.from ?? getMonthStart(now)
+  const monthEnd = range?.to ?? getMonthEnd(monthStart)
 
-  const [entriesRes, monthEntriesRes, summariesRes, membersRes, activityRes] =
+  const [entriesRes, rangeEntriesRes, membersRes, activityRes] =
     await Promise.all([
       supabase
         .from("lunch_entries")
         .select("*, expense_categories(id, name, icon, color, slug)")
         .eq("team_id", teamId)
+        .gte("lunch_date", monthStart)
+        .lte("lunch_date", monthEnd)
         .order("created_at", { ascending: false })
         .limit(8),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, category_id, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .gte("lunch_date", monthStart)
-        .lte("lunch_date", monthEnd),
-      supabase
-        .from("monthly_summaries")
-        .select("*")
-        .eq("team_id", teamId)
-        .eq("month", monthStart),
+        .lte("lunch_date", monthEnd)
+        .order("lunch_date", { ascending: true }),
       supabase.from("team_members").select("*").eq("team_id", teamId),
       supabase
         .from("team_activity_log")
@@ -67,27 +66,38 @@ export async function getDashboardData(teamId: string) {
     attachProfiles(membersRaw),
   ])
 
-  const summaries = summariesRes.data ?? []
-  const totalPending = summaries.reduce(
-    (s, r) => s + Number(r.pending_amount),
-    0,
-  )
-  const totalPaid = summaries.reduce((s, r) => s + Number(r.paid_amount), 0)
-  const totalAmount = summaries.reduce((s, r) => s + Number(r.total_amount), 0)
+  const rangeEntries = rangeEntriesRes.data ?? []
+  const totalPending = rangeEntries
+    .filter((e) => e.payment_status === "unpaid")
+    .reduce((s, r) => s + Number(r.amount), 0)
+  const totalPaid = rangeEntries
+    .filter((e) => e.payment_status === "paid")
+    .reduce((s, r) => s + Number(r.amount), 0)
+  const totalAmount = rangeEntries.reduce((s, r) => s + Number(r.amount), 0)
 
-  const leaderboard = [...summaries]
-    .sort((a, b) => Number(b.total_amount) - Number(a.total_amount))
-    .slice(0, 5)
-    .map((s) => {
-      const member = members.find((m) => m.user_id === s.user_id)
+  const byUser = new Map<string, { total: number; pending: number; paid: number }>()
+  rangeEntries.forEach((entry) => {
+    const row = byUser.get(entry.user_id) ?? { total: 0, pending: 0, paid: 0 }
+    const amount = Number(entry.amount)
+    row.total += amount
+    if (entry.payment_status === "paid") row.paid += amount
+    else row.pending += amount
+    byUser.set(entry.user_id, row)
+  })
+
+  const leaderboard = Array.from(byUser.entries())
+    .map(([userId, row]) => {
+      const member = members.find((m) => m.user_id === userId)
       return {
-        userId: s.user_id,
+        userId,
         name: member?.profiles?.full_name ?? "Member",
-        total: Number(s.total_amount),
-        pending: Number(s.pending_amount),
-        paid: Number(s.paid_amount),
+        total: row.total,
+        pending: row.pending,
+        paid: row.paid,
       }
     })
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
 
   const activityIds = (activityRes.data ?? [])
     .map((a) => a.user_id)
@@ -107,8 +117,8 @@ export async function getDashboardData(teamId: string) {
 
   return {
     recentEntries: recentEntries as LunchEntryWithProfile[],
-    monthlyEntries: monthEntriesRes.data ?? [],
-    summaries: summaries as MonthlySummary[],
+    monthlyEntries: rangeEntriesRes.data ?? [],
+    summaries: [] as MonthlySummary[],
     members: members as TeamMemberWithProfile[],
     activity,
     stats: {
@@ -399,18 +409,20 @@ export async function getPublicUserSummary(userId: string) {
 
 export async function getAnalyticsData(
   teamId: string,
-  opts?: { categoryIds?: string[] },
+  opts?: { categoryIds?: string[]; from?: string; to?: string },
 ) {
   const supabase = await createClient()
   const sixMonthsAgo = new Date()
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-  const from = getMonthStart(sixMonthsAgo)
+  const from = opts?.from ?? getMonthStart(sixMonthsAgo)
 
   let query = supabase
     .from("lunch_entries")
     .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
     .eq("team_id", teamId)
     .gte("lunch_date", from)
+
+  if (opts?.to) query = query.lte("lunch_date", opts.to)
 
   if (opts?.categoryIds?.length) {
     query = query.in("category_id", opts.categoryIds)
@@ -436,9 +448,59 @@ export async function getAnalyticsData(
   }
 }
 
-export async function getDashboardBalance(teamId: string, userId: string) {
+export async function getDashboardBalance(
+  teamId: string,
+  userId: string,
+  range?: { from: string; to: string },
+) {
   const { getBalanceContext } = await import("@/lib/data/settlements")
-  return getBalanceContext(teamId, userId)
+  return getBalanceContext(teamId, userId, range)
+}
+
+export async function getDashboardHistoricalStats(teamId: string) {
+  const supabase = await createClient()
+  const now = new Date()
+  const currentMonth = getMonthStart(now)
+  const lastMonthDate = new Date(now)
+  lastMonthDate.setMonth(lastMonthDate.getMonth() - 1)
+  const lastMonth = getMonthStart(lastMonthDate)
+  const yearAgo = new Date(now)
+  yearAgo.setMonth(yearAgo.getMonth() - 11)
+  const from = getMonthStart(yearAgo)
+
+  const { data } = await supabase
+    .from("lunch_entries")
+    .select("amount, lunch_date")
+    .eq("team_id", teamId)
+    .gte("lunch_date", from)
+    .lte("lunch_date", getMonthEnd(currentMonth))
+
+  const totals = new Map<string, number>()
+  ;(data ?? []).forEach((entry) => {
+    const month = getMonthStart(new Date(entry.lunch_date))
+    totals.set(month, (totals.get(month) ?? 0) + Number(entry.amount))
+  })
+
+  const currentMonthTotal = totals.get(currentMonth) ?? 0
+  const lastMonthTotal = totals.get(lastMonth) ?? 0
+  const monthsWithSpend = Array.from(totals.values()).filter((v) => v > 0)
+  const averageMonthlySpend =
+    monthsWithSpend.length > 0
+      ? monthsWithSpend.reduce((sum, value) => sum + value, 0) / monthsWithSpend.length
+      : 0
+  const differencePercent =
+    lastMonthTotal > 0
+      ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100
+      : currentMonthTotal > 0
+        ? 100
+        : 0
+
+  return {
+    currentMonthTotal,
+    lastMonthTotal,
+    differencePercent,
+    averageMonthlySpend,
+  }
 }
 
 export async function getNotifications(userId: string, teamId?: string, limit = 8) {

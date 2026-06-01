@@ -41,6 +41,8 @@ import { EmptyState } from '@/components/ui/empty-states';
 import { useCurrency } from '@/hooks/use-currency';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { getCategoryIcon } from '@/lib/categories/icons';
+import type { DateRangeValue } from '@/lib/date-ranges';
+import { DateRangeFilter } from '@/components/filters/date-range-filter';
 
 export function BudgetsContent({
   budgets,
@@ -48,12 +50,14 @@ export function BudgetsContent({
   categories,
   canEdit,
   monthStart,
+  dateRange,
 }: {
   budgets: TeamBudget[];
   usages: BudgetWithUsage[];
   categories: ExpenseCategory[];
   canEdit: boolean;
   monthStart: string;
+  dateRange: DateRangeValue;
 }) {
   const { format: fmt } = useCurrency();
   const [search, setSearch] = useState('');
@@ -96,12 +100,15 @@ export function BudgetsContent({
             Track spending against limits for {monthLabel}.
           </p>
         </div>
-        {canEdit && (
-          <Button onClick={() => { setEdit(null); setOpen(true); }}>
-            <Plus className="size-4" />
-            Create budget
-          </Button>
-        )}
+        <div className="flex flex-col gap-2 sm:items-end">
+          <DateRangeFilter range={dateRange} />
+          {canEdit && (
+            <Button onClick={() => { setEdit(null); setOpen(true); }}>
+              <Plus className="size-4" />
+              Create budget
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex max-w-2xl flex-col gap-3 sm:flex-row">

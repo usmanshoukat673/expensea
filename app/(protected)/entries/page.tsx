@@ -5,14 +5,21 @@ import { getTeamCategories } from "@/lib/data/categories"
 import { formatDateYMD } from "@/lib/budget/engine"
 import { EntriesPageContent } from "@/components/entries/entries-page-content"
 import { EntriesPageSkeleton } from "@/components/entries/entries-page-skeleton"
+import { getDateRange } from "@/lib/date-ranges"
 
 export const metadata = { title: "Entries" }
 
-export default async function EntriesPage() {
+export default async function EntriesPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ dateRange?: string; from?: string; to?: string }>
+}) {
+  const params = await searchParams
+  const range = getDateRange(params?.dateRange, params?.from, params?.to)
   const session = await requireTeam()
   const [{ entries }, { members }, { categories }] = await Promise.all([
-    getLunchEntries(session.teamId, { limit: 200 }),
-    getDashboardData(session.teamId),
+    getLunchEntries(session.teamId, { limit: 200, from: range.from, to: range.to }),
+    getDashboardData(session.teamId, range),
     getTeamCategories(session.teamId),
   ])
 
@@ -40,6 +47,7 @@ export default async function EntriesPage() {
         recentCategoryIds={recentCategoryIds}
         canEdit={canEdit(session.role)}
         defaultLunchDate={defaultLunchDate}
+        dateRange={range}
       />
     </Suspense>
   )
