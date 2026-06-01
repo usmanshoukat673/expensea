@@ -1,6 +1,7 @@
 import { requireTeam } from "@/lib/auth/session"
 import { getDashboardData, getDashboardBalance, getDashboardHistoricalStats } from "@/lib/data/dashboard"
 import { getDashboardBudgetSummary } from "@/lib/data/budgets"
+import { getUpcomingRecurringExpenses } from "@/lib/data/recurring-expenses"
 import { DashboardContent } from "@/components/dashboard-content"
 import { getDateRange, monthStartFromYMD } from "@/lib/date-ranges"
 
@@ -12,11 +13,12 @@ export default async function DashboardPage({
   const params = await searchParams
   const range = getDateRange(params?.dateRange, params?.from, params?.to)
   const session = await requireTeam()
-  const [data, balance, budgetSummary, historicalStats] = await Promise.all([
+  const [data, balance, budgetSummary, historicalStats, upcomingRecurringExpenses] = await Promise.all([
     getDashboardData(session.teamId, range),
     getDashboardBalance(session.teamId, session.user.id, range),
     getDashboardBudgetSummary(session.teamId, monthStartFromYMD(range.from)),
     getDashboardHistoricalStats(session.teamId),
+    getUpcomingRecurringExpenses(session.teamId, 5),
   ])
 
   const categoryEntries = data.monthlyEntries.map((e) => ({
@@ -43,6 +45,7 @@ export default async function DashboardPage({
       budgetSummary={budgetSummary}
       dateRange={range}
       historicalStats={historicalStats}
+      upcomingRecurringExpenses={upcomingRecurringExpenses}
     />
   )
 }

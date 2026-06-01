@@ -6,6 +6,7 @@ export type ProfileStatus = 'active' | 'inactive';
 export type SettlementStatus = 'pending' | 'completed' | 'cancelled';
 export type ExpenseSplitType = 'none' | 'equal' | 'selected';
 export type BudgetType = 'monthly' | 'category';
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -223,6 +224,7 @@ export interface Database {
           notes: string | null;
           payment_status: PaymentStatus;
           category_id: string | null;
+          recurring_expense_id: string | null;
           is_shared: boolean;
           split_type: ExpenseSplitType;
           created_by: string;
@@ -237,6 +239,7 @@ export interface Database {
           notes?: string | null;
           payment_status?: PaymentStatus;
           category_id?: string | null;
+          recurring_expense_id?: string | null;
           is_shared?: boolean;
           split_type?: ExpenseSplitType;
           created_by: string;
@@ -248,6 +251,56 @@ export interface Database {
             columns: ['team_id'];
             isOneToOne: true;
             referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      recurring_expenses: {
+        Row: {
+          id: string;
+          team_id: string;
+          created_by: string;
+          title: string;
+          amount: number;
+          category_id: string;
+          frequency: RecurringFrequency;
+          interval_value: number;
+          start_date: string;
+          end_date: string | null;
+          next_run_date: string;
+          is_active: boolean;
+          last_generated_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          team_id: string;
+          created_by: string;
+          title: string;
+          amount: number;
+          category_id: string;
+          frequency: RecurringFrequency;
+          interval_value?: number;
+          start_date: string;
+          end_date?: string | null;
+          next_run_date: string;
+          is_active?: boolean;
+          last_generated_at?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['recurring_expenses']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'recurring_expenses_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'recurring_expenses_category_id_fkey';
+            columns: ['category_id'];
+            isOneToOne: false;
+            referencedRelation: 'expense_categories';
             referencedColumns: ['id'];
           },
         ];
@@ -451,6 +504,17 @@ export interface Database {
         Args: { p_team_id: string; p_user_id: string };
         Returns: boolean;
       };
+      process_due_recurring_expenses: {
+        Args: { p_team_id?: string | null; p_run_date?: string };
+        Returns: {
+          recurring_expense_id: string;
+          expense_id: string;
+          team_id: string;
+          title: string;
+          amount: number;
+          generated_for: string;
+        }[];
+      };
     };
     Enums: {
       team_role: TeamRole;
@@ -461,6 +525,7 @@ export interface Database {
       settlement_status: SettlementStatus;
       expense_split_type: ExpenseSplitType;
       budget_type: BudgetType;
+      recurring_frequency: RecurringFrequency;
     };
   };
 }
@@ -471,6 +536,7 @@ export type TeamMember = Database['public']['Tables']['team_members']['Row'];
 export type TeamInvitation = Database['public']['Tables']['team_invitations']['Row'];
 export type TeamInvite = Database['public']['Tables']['team_invites']['Row'];
 export type LunchEntry = Database['public']['Tables']['lunch_entries']['Row'];
+export type RecurringExpense = Database['public']['Tables']['recurring_expenses']['Row'];
 export type MonthlySummary = Database['public']['Tables']['monthly_summaries']['Row'];
 export type TeamActivity = Database['public']['Tables']['team_activity_log']['Row'];
 export type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
@@ -486,6 +552,10 @@ export type LunchEntryWithProfile = LunchEntry & {
   profiles?: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'> | null;
   expense_categories?: Pick<ExpenseCategory, 'id' | 'name' | 'icon' | 'color' | 'slug'> | null;
   lunch_entry_participants?: { user_id: string; share_amount: number | null }[];
+};
+
+export type RecurringExpenseWithCategory = RecurringExpense & {
+  expense_categories?: Pick<ExpenseCategory, 'id' | 'name' | 'icon' | 'color' | 'slug'> | null;
 };
 
 export type SettlementWithProfiles = Settlement & {

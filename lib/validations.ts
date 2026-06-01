@@ -53,6 +53,21 @@ export const lunchEntrySchema = z.object({
   participantIds: z.array(z.string().uuid()).optional(),
 });
 
+export const recurringExpenseSchema = z
+  .object({
+    title: z.string().min(2, 'Title is required').max(120),
+    amount: z.coerce.number().positive('Amount must be positive'),
+    categoryId: z.string().uuid('Select a category'),
+    frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
+    intervalValue: z.coerce.number().int().positive('Interval must be at least 1').max(365),
+    startDate: z.string().min(1, 'Start date is required'),
+    endDate: z.string().optional().nullable(),
+  })
+  .refine((d) => !d.endDate || d.endDate >= d.startDate, {
+    message: 'End date must be after the start date',
+    path: ['endDate'],
+  });
+
 export const categorySchema = z.object({
   name: z.string().min(2, 'Name is required').max(50),
   icon: z.string().min(1).max(30),
@@ -79,6 +94,7 @@ export const joinTeamSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LunchEntryInput = z.infer<typeof lunchEntrySchema>;
+export type RecurringExpenseInput = z.infer<typeof recurringExpenseSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
 export const budgetSchema = z
   .object({
