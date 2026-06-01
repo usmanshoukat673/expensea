@@ -24,6 +24,8 @@ import { useCurrency } from '@/hooks/use-currency';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { SettlementDialog } from '@/components/settlements/settlement-dialog';
 import { EmptyState } from '@/components/ui/empty-states';
+import type { DateRangeValue } from '@/lib/date-ranges';
+import { DateRangeFilter } from '@/components/filters/date-range-filter';
 
 type MemberName = { userId: string; name: string };
 
@@ -37,6 +39,7 @@ export function SettlementsContent({
   personal,
   members,
   canEdit,
+  dateRange,
 }: {
   settlements: SettlementWithProfiles[];
   pendingSettlements: SettlementWithProfiles[];
@@ -47,6 +50,7 @@ export function SettlementsContent({
   personal: { youOwe: number; youReceive: number };
   members: MemberName[];
   canEdit: boolean;
+  dateRange: DateRangeValue;
 }) {
   const { format } = useCurrency();
   const [search, setSearch] = useState('');
@@ -107,12 +111,15 @@ export function SettlementsContent({
             Track balances and settle up with teammates.
           </p>
         </div>
-        {canEdit && (
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="size-4" />
-            Record settlement
-          </Button>
-        )}
+        <div className="flex flex-col gap-2 sm:items-end">
+          <DateRangeFilter range={dateRange} />
+          {canEdit && (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus className="size-4" />
+              Record settlement
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

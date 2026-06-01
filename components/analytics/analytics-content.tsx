@@ -28,6 +28,8 @@ import type { ExpenseCategory } from '@/lib/database.types';
 import { getCategoryIcon } from '@/lib/categories/icons';
 import { AnalyticsBudgetSection } from '@/components/analytics/analytics-budget-section';
 import type { BudgetWithUsage } from '@/lib/budget/engine';
+import type { DateRangeValue } from '@/lib/date-ranges';
+import { DateRangeFilter } from '@/components/filters/date-range-filter';
 
 const ExpensesByCategoryChart = dynamic(
   () => import('@/components/charts/category-charts').then((m) => m.ExpensesByCategoryChart),
@@ -59,9 +61,11 @@ export function AnalyticsContent({
   budgetComparison = [],
   budgetCategoryBreakdown = [],
   hasMonthlyBudget = false,
+  dateRange,
 }: {
   entries: Entry[];
   categories: ExpenseCategory[];
+  dateRange: DateRangeValue;
   budgetComparison?: { month: string; spent: number; budget: number; label: string }[];
   budgetCategoryBreakdown?: BudgetWithUsage[];
   hasMonthlyBudget?: boolean;
@@ -105,9 +109,16 @@ export function AnalyticsContent({
 
   return (
     <div className="min-w-0 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
-        <p className="text-muted-foreground mt-1">Spending trends and category breakdown</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 sm:max-w-[min(100%,22rem)] lg:max-w-md">
+          <h1 className="text-3xl font-bold tracking-tight">Analytics</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Spending trends and category breakdown for {dateRange.label}
+          </p>
+        </div>
+        <div className="flex min-w-0 flex-col gap-2 sm:shrink-0 sm:items-end">
+          <DateRangeFilter range={dateRange} singleRow />
+        </div>
       </div>
 
       {categories.length > 0 && (
@@ -147,7 +158,7 @@ export function AnalyticsContent({
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>6-month spend</CardDescription>
+            <CardDescription>Total spending</CardDescription>
             <CardTitle className="text-2xl">{format(total)}</CardTitle>
           </CardHeader>
         </Card>
@@ -225,6 +236,7 @@ export function AnalyticsContent({
         comparison={budgetComparison}
         categoryBreakdown={budgetCategoryBreakdown}
         hasMonthlyBudget={hasMonthlyBudget}
+        rangeLabel={dateRange.label}
       />
 
       <Card>

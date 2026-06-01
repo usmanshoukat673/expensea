@@ -12,7 +12,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="min-h-0"
+      className="min-h-0 min-w-0 max-w-full overflow-x-hidden"
     >
       {children}
     </motion.div>

@@ -12,6 +12,7 @@ import {
   Users,
   Wallet,
   PiggyBank,
+  CalendarDays,
 } from "lucide-react"
 import {
   Card,
@@ -33,6 +34,8 @@ import {
   BudgetAlertToasts,
 } from "@/components/budgets/budget-alerts"
 import type { DashboardBudgetSummary } from "@/lib/budget/engine"
+import type { DateRangeValue } from "@/lib/date-ranges"
+import { DateRangeFilter } from "@/components/filters/date-range-filter"
 
 const DashboardMonthlyChart = dynamic(
   () =>
@@ -92,6 +95,13 @@ type DashboardProps = {
     pending: number
     paid: number
   }[]
+  dateRange: DateRangeValue
+  historicalStats: {
+    currentMonthTotal: number
+    lastMonthTotal: number
+    differencePercent: number
+    averageMonthlySpend: number
+  }
 }
 
 export function DashboardContent({
@@ -103,6 +113,8 @@ export function DashboardContent({
   leaderboard,
   balance,
   budgetSummary,
+  dateRange,
+  historicalStats,
 }: DashboardProps) {
   const { format } = useCurrency()
 
@@ -141,6 +153,7 @@ export function DashboardContent({
     { href: "/categories", label: "Categories", icon: BookOpen },
     { href: "/budgets", label: "Budgets", icon: PiggyBank },
     { href: "/analytics", label: "Analytics", icon: TrendingUp },
+    { href: "/reports", label: "Reports", icon: CalendarDays },
   ]
 
   return (
@@ -148,7 +161,9 @@ export function DashboardContent({
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{dateRange.label}</p>
         </div>
+        <DateRangeFilter range={dateRange} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => {
@@ -177,6 +192,34 @@ export function DashboardContent({
                 </CardContent>
               </Card>
             </motion.div>
+          )
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { title: "Last month spending", value: format(historicalStats.lastMonthTotal), icon: CalendarDays },
+          { title: "Current month spending", value: format(historicalStats.currentMonthTotal), icon: TrendingUp },
+          {
+            title: "Difference",
+            value: `${historicalStats.differencePercent >= 0 ? "+" : ""}${Math.round(historicalStats.differencePercent)}%`,
+            icon: historicalStats.differencePercent >= 0 ? ArrowUpRight : ArrowDownLeft,
+            sub: historicalStats.differencePercent >= 0 ? "Increased spending" : "Reduced spending",
+          },
+          { title: "Average monthly spend", value: format(historicalStats.averageMonthlySpend), icon: Wallet },
+        ].map((stat) => {
+          const Icon = stat.icon
+          return (
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardDescription>{stat.title}</CardDescription>
+                <Icon className="size-4 shrink-0 text-accent" />
+              </CardHeader>
+              <CardContent>
+                <div className="break-words text-2xl font-bold">{stat.value}</div>
+                {stat.sub && <p className="mt-1 text-xs text-muted-foreground">{stat.sub}</p>}
+              </CardContent>
+            </Card>
           )
         })}
       </div>

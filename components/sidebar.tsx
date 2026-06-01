@@ -14,6 +14,7 @@ import {
   Scale,
   PiggyBank,
   Bell,
+  FileText,
 } from "lucide-react"
 import { useCurrency } from "@/hooks/use-currency"
 import { cn } from "@/lib/utils"
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/categories", icon: Tag, label: "Categories" },
   { href: "/budgets", icon: PiggyBank, label: "Budgets" },
   { href: "/settlements", icon: Scale, label: "Settlements" },
+  { href: "/reports", icon: FileText, label: "Reports" },
   { href: "/activity", icon: Bell, label: "Activity" },
   { href: "/team", icon: Users, label: "Team" },
   { href: "/analytics", icon: BarChart3, label: "Analytics" },
