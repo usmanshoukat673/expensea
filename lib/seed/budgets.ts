@@ -5,7 +5,7 @@ import {
   BUDGETS_BY_TEAM,
   type DemoTeamSlug,
 } from '@/lib/seed/config';
-import { log } from '@/lib/seed/utils';
+import { log, monthStart } from '@/lib/seed/utils';
 
 export async function seedDemoBudgets(
   admin: SeedAdmin,
@@ -24,6 +24,10 @@ export async function seedDemoBudgets(
     month: string | null;
     created_by: string;
   }[] = [];
+  const currentMonth = monthStart(new Date());
+  const currentMonthEnd = new Date();
+  currentMonthEnd.setMonth(currentMonthEnd.getMonth() + 1, 0);
+  const monthEnd = currentMonthEnd.toISOString().slice(0, 10);
 
   for (const [slug, configs] of Object.entries(BUDGETS_BY_TEAM) as [
     DemoTeamSlug,
@@ -43,12 +47,17 @@ export async function seedDemoBudgets(
     );
     if (!ctx || !creator) continue;
 
+    const spend = await getCurrentSpend(admin, ctx.id, currentMonth, monthEnd);
+
     for (const cfg of configs) {
+      const monthlyAmount =
+        cfg.month == null ? demoMonthlyBudgetAmount(slug, cfg.monthly, spend.total) : cfg.monthly;
+
       inserts.push({
         team_id: ctx.id,
         type: 'monthly',
         category_id: null,
-        amount: cfg.monthly,
+        amount: monthlyAmount,
         currency: ctx.currency,
         month: cfg.month ?? null,
         created_by: creator,
@@ -58,11 +67,15 @@ export async function seedDemoBudgets(
         for (const [catSlug, cap] of Object.entries(cfg.categories)) {
           const categoryId = ctx.categories.get(catSlug);
           if (!categoryId || cap == null) continue;
+          const amount =
+            cfg.month == null
+              ? demoCategoryBudgetAmount(slug, catSlug, cap, spend.byCategory.get(categoryId) ?? 0)
+              : cap;
           inserts.push({
             team_id: ctx.id,
             type: 'category',
             category_id: categoryId,
-            amount: cap,
+            amount,
             currency: ctx.currency,
             month: cfg.month ?? null,
             created_by: creator,
@@ -75,4 +88,56 @@ export async function seedDemoBudgets(
   const { error } = await admin.from('team_budgets').insert(inserts);
   if (error) throw new Error(`Budgets: ${error.message}`);
   log('budgets', `${inserts.length} budget rows`);
+}
+
+async function getCurrentSpend(
+  admin: SeedAdmin,
+  teamId: string,
+  from: string,
+  to: string,
+): Promise<{ total: number; byCategory: Map<string, number> }> {
+  const { data, error } = await admin
+    .from('lunch_entries')
+    .select('amount, category_id')
+    .eq('team_id', teamId)
+    .gte('lunch_date', from)
+    .lte('lunch_date', to);
+
+  if (error) throw new Error(`Budget spend lookup: ${error.message}`);
+
+  const byCategory = new Map<string, number>();
+  let total = 0;
+  for (const row of data ?? []) {
+    const amount = Number(row.amount);
+    total += amount;
+    if (row.category_id) {
+      byCategory.set(row.category_id, (byCategory.get(row.category_id) ?? 0) + amount);
+    }
+  }
+
+  return { total, byCategory };
+}
+
+function demoMonthlyBudgetAmount(slug: DemoTeamSlug, fallback: number, spent: number): number {
+  if (spent <= 0) return fallback;
+  if (slug === 'expensea-hq') return Math.max(fallback, Math.ceil(spent / 0.55));
+  if (slug === 'startup-operations') return Math.max(1000, Math.ceil(spent * 0.82));
+  if (slug === 'friends-trip') return Math.max(1000, Math.ceil(spent / 0.88));
+  return fallback;
+}
+
+function demoCategoryBudgetAmount(
+  slug: DemoTeamSlug,
+  categorySlug: string,
+  fallback: number,
+  spent: number,
+): number {
+  if (spent <= 0) return fallback;
+  if (slug === 'expensea-hq' && categorySlug === 'food') {
+    return Math.max(1000, Math.ceil(spent / 0.9));
+  }
+  if (slug === 'friends-trip' && categorySlug === 'travel') {
+    return Math.max(1000, Math.ceil(spent * 0.75));
+  }
+  return fallback;
 }

@@ -5,6 +5,7 @@ import { seedDemoTeams, seedPendingInvitations } from '@/lib/seed/teams';
 import { seedDemoExpenses } from '@/lib/seed/expenses';
 import { seedDemoSettlements } from '@/lib/seed/settlements';
 import { seedDemoBudgets } from '@/lib/seed/budgets';
+import { seedDemoRecurringExpenses } from '@/lib/seed/recurring-expenses';
 import { seedDemoActivity } from '@/lib/seed/activity';
 import { seedDemoNotifications } from '@/lib/seed/notifications';
 import { initFaker, log } from '@/lib/seed/utils';
@@ -59,6 +60,7 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
   const { entryCount } = await seedDemoExpenses(admin, users, teams);
   await seedDemoSettlements(admin, users, teams);
   await seedDemoBudgets(admin, users, teams);
+  await seedDemoRecurringExpenses(admin, users, teams);
   await seedDemoActivity(admin, users, teams);
   await seedDemoNotifications(admin, users, teams);
 

@@ -130,6 +130,7 @@ export async function seedPendingInvitations(
   if (!hq || !remote || !inviter) return;
 
   await admin.from('team_invitations').delete().in('team_id', [hq.id, remote.id]);
+  await admin.from('team_invites').delete().in('team_id', [hq.id, remote.id]);
 
   await admin.from('team_invitations').insert([
     {
@@ -147,6 +148,29 @@ export async function seedPendingInvitations(
       invited_by: inviter,
       status: 'pending',
       expires_at: toIso(daysAgo(-3)),
+    },
+  ]);
+
+  await admin.from('team_invites').insert([
+    {
+      team_id: hq.id,
+      invited_email: 'new.hire@expensea.app',
+      role: 'viewer',
+      created_by: inviter,
+      usage_limit: 5,
+      usage_count: 0,
+      is_active: true,
+      expires_at: toIso(daysAgo(-14)),
+    },
+    {
+      team_id: remote.id,
+      invited_email: null,
+      role: 'admin',
+      created_by: inviter,
+      usage_limit: 2,
+      usage_count: 1,
+      is_active: true,
+      expires_at: toIso(daysAgo(-10)),
     },
   ]);
 

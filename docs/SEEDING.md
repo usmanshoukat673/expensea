@@ -1,63 +1,99 @@
-# Demo data seeding
+# Demo Data Seeding
 
-Populate Expensea with realistic multi-team demo data for development, screenshots, and testing.
+Expensea includes a complete demo workspace for development, onboarding, screenshots, and analytics testing.
 
 ## Prerequisites
 
-1. Run all SQL migrations in `supabase/migrations/` (001–008).
-2. Set in `.env.local`:
+1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `011_recurring_expenses.sql`.
+2. Set these variables in `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (required for seed scripts)
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `NEXT_PUBLIC_APP_URL`
+3. Install dependencies with `npm install`.
 
 ## Commands
 
 | Command | Description |
-| -------- | ------------- |
-| `npm run db:seed` | Create demo users, teams, ~270 expenses, budgets, settlements, activity, notifications |
-| `npm run db:seed -- --force` | Replace existing demo data |
-| `npm run db:seed -- --reset` | Clear demo data first, then seed |
-| `npm run db:reset` | Remove demo teams and related rows (keeps auth users) |
-| `npm run db:reset -- --delete-users` | Also delete demo auth accounts |
-| `npm run db:reseed` | Full reset + seed |
+| --- | --- |
+| `npm run seed` | Seed demo data. Skips a populated demo workspace unless forced. |
+| `npm run seed -- --force` | Replace existing demo rows for known demo teams where seeders own the rows. |
+| `npm run seed -- --reset` | Clear demo data first, then seed. |
+| `npm run seed:demo` | Single command for a fresh, fully populated demo workspace. |
+| `npm run db:seed` | Backward-compatible alias for `npm run seed`. |
+| `npm run db:reset` | Remove demo teams and related rows, keeping auth users. |
+| `npm run db:reset -- --delete-users` | Also delete demo auth accounts. |
+| `npm run db:refresh` | Reset demo data, then seed again. |
+| `npm run db:reseed` | Backward-compatible alias for `db:refresh`. |
 
-## Demo logins
+## What Gets Seeded
+
+- Users: owner, admin, viewer, and additional realistic members.
+- Teams: multiple teams with public and private sharing settings.
+- Memberships: owner/admin/viewer role coverage.
+- Categories: Food, Travel, Office, Internet, Utilities, Entertainment, Miscellaneous.
+- Expenses: current month, previous month, and historical expenses across categories.
+- Shared expenses: equal participant splits and participant rows.
+- Budgets: team and category budgets with healthy, near-limit, and over-budget examples.
+- Settlements: pending, completed, and cancelled records.
+- Invites: legacy email invites and shareable invite links.
+- Recurring expenses: active, paused, and completed monthly rules.
+- Notifications: expense, budget, settlement, and invite examples.
+- Activity: team, member, expense, budget, invite, and settlement history.
+- Reports/analytics: generated from seeded expenses, budgets, settlements, and activity.
+
+## Demo Logins
 
 Password for all accounts: `password123`
 
-| Email | Role (primary team) |
-| ----- | ------------------- |
-| `owner@expensea.app` | Owner — Expensea HQ |
-| `admin@expensea.app` | Admin |
-| `viewer@expensea.app` | Viewer |
-| `ahmed.khan@expensea.app` | Member |
-| `hamza.malik@expensea.app` | Member |
-| `fatima.noor@expensea.app` | Member |
-| `bilal.hassan@expensea.app` | Member |
+| Email | Primary role |
+| --- | --- |
+| `owner@expensea.app` | Owner on Expensea HQ |
+| `admin@expensea.app` | Admin on Expensea HQ, owner on Remote Team |
+| `viewer@expensea.app` | Viewer/Admin coverage across teams |
+| `ahmed.khan@expensea.app` | Owner/Admin coverage |
+| `hamza.malik@expensea.app` | Owner/Viewer coverage |
+| `fatima.noor@expensea.app` | Owner/Viewer coverage |
+| `bilal.hassan@expensea.app` | Admin/Viewer coverage |
 
-## Demo teams
+## Demo Teams
 
-| Slug | Public | Currency |
-| ---- | ------ | -------- |
-| `expensea-hq` | Yes | PKR |
-| `remote-team` | No | USD |
-| `family-budget` | No | PKR |
-| `startup-operations` | Yes | PKR |
-| `friends-trip` | Yes | PKR |
+| Slug | Public | Currency | Notes |
+| --- | --- | --- | --- |
+| `expensea-hq` | Yes | PKR | Main team with healthy and near-limit budget states. |
+| `remote-team` | No | USD | Private remote operations team. |
+| `family-budget` | No | PKR | Smaller private household-style workspace. |
+| `startup-operations` | Yes | PKR | Public team with over-budget monthly example. |
+| `friends-trip` | Yes | PKR | Public trip budget with over-budget travel category. |
 
-Public share URLs: `/share/expensea-hq`, `/share/startup-operations`, `/share/friends-trip`
+Public share URLs:
 
-## Idempotency
+- `/share/expensea-hq`
+- `/share/startup-operations`
+- `/share/friends-trip`
 
-Demo teams use fixed slugs (`expensea-hq`, etc.). Re-running `db:seed` skips if data already exists unless you pass `--force` or use `db:reseed`.
+## Seeder Architecture
 
-## Architecture
-
+```text
+scripts/seed.ts                    -> lib/seed/index.ts
+scripts/reset.ts                   -> lib/seed/reset.ts
+lib/seed/config.ts                 -> deterministic users, teams, budgets
+lib/seed/auth.ts                   -> Supabase auth users and profiles
+lib/seed/teams.ts                  -> teams, memberships, invites
+lib/seed/expenses.ts               -> expenses and participants
+lib/seed/budgets.ts                -> dynamic budget states from current spend
+lib/seed/settlements.ts            -> settlement records
+lib/seed/recurring-expenses.ts     -> recurring rules
+lib/seed/notifications.ts          -> notification examples
+lib/seed/activity.ts               -> activity history
 ```
-scripts/seed.ts      → lib/seed/index.ts
-scripts/reset.ts     → lib/seed/reset.ts
-lib/seed/config.ts   → users, teams, budgets constants
-lib/seed/*.ts        → auth, teams, expenses, settlements, budgets, activity, notifications
-```
 
-Uses `@faker-js/faker` (seeded) for varied notes; amounts and dates use weighted random helpers for chart-friendly trends.
+The seeders use fixed team slugs for idempotency and a seeded Faker instance for repeatable realistic notes.
+
+## Seeder Audit Notes
+
+- Current seeders are complete for the implemented product surface.
+- The recurring-expense seeder covers active, paused, and completed rules.
+- Reset now clears all demo-owned relational tables, including `recurring_expenses`, `team_invites`, normalized `activity_logs`, and legacy `team_activity_log`.
+- The app stores expenses in `lunch_entries`; documentation may refer to these as expenses for product clarity.
+- `activity_logs` is populated through the mirror trigger when seeders write `team_activity_log`.
