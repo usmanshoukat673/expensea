@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTeam, canEdit } from '@/lib/auth/session';
 import { categorySchema } from '@/lib/validations';
 import { categorySlugify } from '@/lib/categories/defaults';
+import { recordActivity } from '@/lib/activity';
 
 export type ActionResult = { error?: string; success?: boolean };
 
@@ -28,7 +29,7 @@ export async function createExpenseCategory(formData: FormData): Promise<ActionR
 
   const slug = categorySlugify(parsed.data.name);
   const supabase = await createClient();
-  const { error } = await supabase.from('expense_categories').insert({
+  const { data: category, error } = await supabase.from('expense_categories').insert({
     team_id: session.teamId,
     name: parsed.data.name,
     slug,
@@ -36,9 +37,20 @@ export async function createExpenseCategory(formData: FormData): Promise<ActionR
     color: parsed.data.color,
     description: parsed.data.description ?? null,
     created_by: session.user.id,
-  });
+  }).select('id').single();
 
   if (error) return { error: error.message };
+  if (category) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'category_created',
+      entityType: 'category',
+      entityId: category.id,
+      message: `Category created: ${parsed.data.name}`,
+      metadata: { name: parsed.data.name, color: parsed.data.color },
+    });
+  }
   revalidateCategoryPaths();
   return { success: true };
 }
@@ -69,6 +81,15 @@ export async function updateExpenseCategory(id: string, formData: FormData): Pro
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'category_updated',
+    entityType: 'category',
+    entityId: id,
+    message: `Category updated: ${parsed.data.name}`,
+    metadata: { name: parsed.data.name, color: parsed.data.color },
+  });
   revalidateCategoryPaths();
   return { success: true };
 }

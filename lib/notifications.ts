@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { notifyTeamMembers as notifyMembers } from '@/lib/activity';
 
 export async function notifyTeamMembers(opts: {
   teamId: string;
@@ -9,28 +10,22 @@ export async function notifyTeamMembers(opts: {
   metadata?: Record<string, unknown>;
   memberIds?: string[];
 }) {
-  const supabase = await createClient();
-  let ids = opts.memberIds;
+  const legacyType = opts.type;
+  const type =
+    legacyType.includes('warning') || legacyType.includes('exceeded')
+      ? 'warning'
+      : legacyType.includes('completed')
+        ? 'success'
+        : 'info';
 
-  if (!ids) {
-    const { data } = await supabase
-      .from('team_members')
-      .select('user_id')
-      .eq('team_id', opts.teamId);
-    ids = (data ?? []).map((m) => m.user_id);
-  }
-
-  const targets = ids.filter((id) => id !== opts.excludeUserId);
-  if (!targets.length) return;
-
-  await supabase.from('notifications').insert(
-    targets.map((userId) => ({
-      user_id: userId,
-      team_id: opts.teamId,
-      type: opts.type,
-      title: opts.title,
-      body: opts.body ?? null,
-      metadata: opts.metadata ?? {},
-    })),
-  );
+  await notifyMembers({
+    supabase: await createClient(),
+    teamId: opts.teamId,
+    excludeUserId: opts.excludeUserId,
+    type,
+    title: opts.title,
+    message: opts.body ?? opts.title,
+    metadata: { ...(opts.metadata ?? {}), event_type: legacyType },
+    memberIds: opts.memberIds,
+  });
 }

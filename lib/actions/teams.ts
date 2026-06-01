@@ -7,6 +7,7 @@ import { clearActiveTeamIfRemoved, persistActiveTeam } from '@/lib/auth/teams';
 import { teamNameSchema } from '@/lib/validations';
 import { normalizeCurrencyCode, type CurrencyCode } from '@/lib/currency';
 import type { TeamRole } from '@/lib/database.types';
+import { notifyTeamMembers, recordActivity } from '@/lib/activity';
 
 export type ActionResult<T = void> = { error?: string; success?: boolean; data?: T };
 
@@ -65,10 +66,13 @@ export async function createTeam(formData: FormData): Promise<ActionResult<{ tea
   const { error: activeError } = await persistActiveTeam(supabase, session.user.id, team.id);
   if (activeError) return { error: activeError };
 
-  await supabase.from('team_activity_log').insert({
-    team_id: team.id,
-    user_id: session.user.id,
-    action: 'team_created',
+  await recordActivity(supabase, {
+    teamId: team.id,
+    userId: session.user.id,
+    actionType: 'team_created',
+    entityType: 'team',
+    entityId: team.id,
+    message: `Team created: ${team.name}`,
     metadata: { name: team.name },
   });
 
@@ -111,11 +115,24 @@ export async function joinTeamByToken(formData: FormData): Promise<ActionResult>
   const { error: activeError } = await persistActiveTeam(supabase, session.user.id, invite.team_id);
   if (activeError) return { error: activeError };
 
-  await supabase.from('team_activity_log').insert({
-    team_id: invite.team_id,
-    user_id: session.user.id,
-    action: 'member_joined',
-    metadata: { via: 'invitation' },
+  await recordActivity(supabase, {
+    teamId: invite.team_id,
+    userId: session.user.id,
+    actionType: 'invite_accepted',
+    entityType: 'team',
+    entityId: invite.team_id,
+    message: 'Invite accepted and member joined',
+    metadata: { via: 'invitation', invitationId: invite.id },
+  });
+
+  await notifyTeamMembers({
+    supabase,
+    teamId: invite.team_id,
+    excludeUserId: session.user.id,
+    type: 'success',
+    title: 'New member joined',
+    message: `${session.profile.full_name ?? session.user.email ?? 'A member'} joined the team.`,
+    metadata: { event_type: 'member_joined', invitationId: invite.id },
   });
 
   revalidatePath('/', 'layout');
@@ -319,11 +336,24 @@ export async function addMemberByEmail(formData: FormData): Promise<ActionResult
     await persistActiveTeam(supabase, profile.id, session.teamId);
   }
 
-  await supabase.from('team_activity_log').insert({
-    team_id: session.teamId,
-    user_id: session.user.id,
-    action: 'member_added_manually',
-    metadata: { email, role },
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'member_joined',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: `${email} joined the team`,
+    metadata: { email, role, via: 'manual' },
+  });
+
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'success',
+    title: 'New member joined',
+    message: `${email} joined the team.`,
+    metadata: { event_type: 'member_joined', userId: profile.id },
   });
 
   revalidatePath('/team');

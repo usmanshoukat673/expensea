@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireTeam, canEdit } from '@/lib/auth/session';
 import { budgetSchema } from '@/lib/validations';
+import { notifyTeamMembers, recordActivity } from '@/lib/activity';
+import { notifyBudgetThresholds } from '@/lib/budget-alerts';
 export type ActionResult = { error?: string; success?: boolean };
 
 const BUDGET_PATHS = ['/', '/budgets', '/analytics'] as const;
@@ -66,7 +68,7 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
     .eq('id', session.teamId)
     .single();
 
-  const { error } = await supabase.from('team_budgets').insert({
+  const { data: budget, error } = await supabase.from('team_budgets').insert({
     team_id: session.teamId,
     type: parsed.data.type,
     category_id: parsed.data.type === 'category' ? parsed.data.categoryId : null,
@@ -74,9 +76,34 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
     currency: team?.currency ?? 'PKR',
     month: parseMonth(parsed.data.month),
     created_by: session.user.id,
-  });
+  }).select('id').single();
 
   if (error) return { error: error.message };
+  if (budget) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'budget_updated',
+      entityType: 'budget',
+      entityId: budget.id,
+      message: `Budget created for ${parsed.data.amount}`,
+      metadata: { amount: parsed.data.amount, type: parsed.data.type },
+    });
+    await notifyTeamMembers({
+      supabase,
+      teamId: session.teamId,
+      excludeUserId: session.user.id,
+      type: 'info',
+      title: 'Budget updated',
+      message: `A ${parsed.data.type} budget was created.`,
+      metadata: { event_type: 'budget_updated', budgetId: budget.id },
+    });
+    await notifyBudgetThresholds(supabase, {
+      teamId: session.teamId,
+      actorId: session.user.id,
+      excludeUserId: session.user.id,
+    });
+  }
   revalidateBudgetPaths();
   return { success: true };
 }
@@ -117,6 +144,29 @@ export async function updateTeamBudget(
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'budget_updated',
+    entityType: 'budget',
+    entityId: id,
+    message: `Budget updated to ${parsed.data.amount}`,
+    metadata: { amount: parsed.data.amount, type: parsed.data.type },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Budget updated',
+    message: `A ${parsed.data.type} budget was updated.`,
+    metadata: { event_type: 'budget_updated', budgetId: id },
+  });
+  await notifyBudgetThresholds(supabase, {
+    teamId: session.teamId,
+    actorId: session.user.id,
+    excludeUserId: session.user.id,
+  });
   revalidateBudgetPaths();
   return { success: true };
 }

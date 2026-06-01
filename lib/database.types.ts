@@ -343,8 +343,10 @@ export interface Database {
           type: string;
           title: string;
           body: string | null;
+          message: string | null;
           metadata: Record<string, unknown>;
           read_at: string | null;
+          read: boolean;
           created_at: string;
         };
         Insert: {
@@ -353,9 +355,16 @@ export interface Database {
           type: string;
           title: string;
           body?: string | null;
+          message?: string | null;
           metadata?: Record<string, unknown>;
+          read?: boolean;
         };
-        Update: { read_at?: string | null };
+        Update: {
+          read_at?: string | null;
+          read?: boolean;
+          message?: string | null;
+          body?: string | null;
+        };
         Relationships: [];
       };
       monthly_summaries: {
@@ -396,6 +405,31 @@ export interface Database {
           metadata?: Record<string, unknown>;
         };
         Update: Partial<Database['public']['Tables']['team_activity_log']['Insert']>;
+        Relationships: [];
+      };
+      activity_logs: {
+        Row: {
+          id: string;
+          team_id: string;
+          user_id: string | null;
+          action_type: string;
+          entity_type: string;
+          entity_id: string | null;
+          message: string;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          team_id: string;
+          user_id?: string | null;
+          action_type: string;
+          entity_type: string;
+          entity_id?: string | null;
+          message: string;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['activity_logs']['Insert']>;
         Relationships: [];
       };
     };
@@ -439,6 +473,7 @@ export type TeamInvite = Database['public']['Tables']['team_invites']['Row'];
 export type LunchEntry = Database['public']['Tables']['lunch_entries']['Row'];
 export type MonthlySummary = Database['public']['Tables']['monthly_summaries']['Row'];
 export type TeamActivity = Database['public']['Tables']['team_activity_log']['Row'];
+export type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
 
 export type ExpenseCategory = Database['public']['Tables']['expense_categories']['Row'];
 export type TeamBudget = Database['public']['Tables']['team_budgets']['Row'] & {

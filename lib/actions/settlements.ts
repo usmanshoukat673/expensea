@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTeam, canEdit } from '@/lib/auth/session';
 import { settlementSchema } from '@/lib/validations';
 import { notifyTeamMembers } from '@/lib/notifications';
+import { recordActivity } from '@/lib/activity';
 
 export type ActionResult = { error?: string; success?: boolean };
 
@@ -56,7 +57,7 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
   );
   if (memberError) return { error: memberError };
 
-  const { error } = await supabase.from('settlements').insert({
+  const { data: settlement, error } = await supabase.from('settlements').insert({
     team_id: session.teamId,
     payer_user_id: parsed.data.payerUserId,
     receiver_user_id: parsed.data.receiverUserId,
@@ -65,9 +66,25 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
     proof_url: parsed.data.proofUrl ?? null,
     status: 'pending',
     created_by: session.user.id,
-  });
+  }).select('id').single();
 
   if (error) return { error: error.message };
+
+  if (settlement) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'settlement_created',
+      entityType: 'settlement',
+      entityId: settlement.id,
+      message: `Settlement created for ${parsed.data.amount}`,
+      metadata: {
+        amount: parsed.data.amount,
+        payer: parsed.data.payerUserId,
+        receiver: parsed.data.receiverUserId,
+      },
+    });
+  }
 
   await notifyTeamMembers({
     teamId: session.teamId,
@@ -121,6 +138,16 @@ export async function updateSettlementStatus(
   if (error) return { error: error.message };
 
   if (status === 'completed') {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'settlement_completed',
+      entityType: 'settlement',
+      entityId: id,
+      message: `Settlement completed for ${existing.amount}`,
+      metadata: { amount: existing.amount },
+    });
+
     await notifyTeamMembers({
       teamId: session.teamId,
       excludeUserId: session.user.id,

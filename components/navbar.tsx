@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Home, BookOpen, Users, BarChart3, Settings } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Users, BarChart3, Settings, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/branding/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -15,11 +16,20 @@ const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
   { href: '/entries', icon: BookOpen, label: 'Entries' },
   { href: '/team', icon: Users, label: 'Team' },
+  { href: '/activity', icon: Bell, label: 'Activity' },
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/settings/profile', icon: Settings, label: 'Settings' },
 ];
 
-export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: string }) {
+export function Navbar({
+  user,
+  teamName,
+  notificationBell,
+}: {
+  user: AppLayoutUser;
+  teamName: string;
+  notificationBell?: ReactNode;
+}) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const initials = user.name
@@ -38,6 +48,7 @@ export function Navbar({ user, teamName }: { user: AppLayoutUser; teamName: stri
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
+          {notificationBell}
           <Avatar className="h-8 w-8">
             <AvatarImage src={user.avatar ?? undefined} />
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
