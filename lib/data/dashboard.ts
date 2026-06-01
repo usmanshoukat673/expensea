@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import type {
+  ActivityLog,
   LunchEntry,
   LunchEntryWithProfile,
   MonthlySummary,
@@ -440,13 +441,58 @@ export async function getDashboardBalance(teamId: string, userId: string) {
   return getBalanceContext(teamId, userId)
 }
 
-export async function getNotifications(userId: string, limit = 8) {
+export async function getNotifications(userId: string, teamId?: string, limit = 8) {
   const supabase = await createClient()
-  const { data } = await supabase
+  let query = supabase
     .from("notifications")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit)
+  if (teamId) query = query.eq("team_id", teamId)
+  const { data } = await query
   return data ?? []
+}
+
+export async function getActivityLogs(
+  teamId: string,
+  opts?: { type?: string; page?: number; limit?: number },
+) {
+  const supabase = await createClient()
+  const page = opts?.page ?? 1
+  const limit = opts?.limit ?? 20
+  const from = (page - 1) * limit
+
+  let query = supabase
+    .from("activity_logs")
+    .select("*", { count: "exact" })
+    .eq("team_id", teamId)
+    .order("created_at", { ascending: false })
+
+  if (opts?.type && opts.type !== "all") {
+    query = query.eq("entity_type", opts.type)
+  }
+
+  const { data, count } = await query.range(from, from + limit - 1)
+  const rows = (data ?? []) as ActivityLog[]
+  const userIds = [...new Set(rows.map((a) => a.user_id).filter(Boolean))] as string[]
+  let profiles = new Map<string, Pick<Profile, "full_name" | "avatar_url">>()
+
+  if (userIds.length) {
+    const { data: profileRows } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", userIds)
+    profiles = new Map((profileRows ?? []).map((p) => [p.id, p]))
+  }
+
+  return {
+    activity: rows.map((a) => ({
+      ...a,
+      profiles: a.user_id ? (profiles.get(a.user_id) ?? null) : null,
+    })),
+    total: count ?? 0,
+    page,
+    limit,
+  }
 }

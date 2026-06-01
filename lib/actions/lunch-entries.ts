@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTeam, canEdit } from '@/lib/auth/session';
 import { lunchEntrySchema } from '@/lib/validations';
 import { notifyTeamMembers } from '@/lib/notifications';
+import { recordActivity } from '@/lib/activity';
+import { notifyBudgetThresholds } from '@/lib/budget-alerts';
 
 export type ActionResult = { error?: string; success?: boolean };
 
@@ -142,11 +144,23 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     await syncParticipants(supabase, row.id, ids, parsed.data.amount, splitType);
   }
 
-  await supabase.from('team_activity_log').insert({
-    team_id: session.teamId,
-    user_id: session.user.id,
-    action: 'lunch_entry_created',
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_created',
+    entityType: 'expense',
+    entityId: row.id,
+    message: `Expense created for ${parsed.data.amount}`,
     metadata: { amount: parsed.data.amount, shared: isShared },
+  });
+
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'new_expense',
+    title: 'New expense added',
+    body: `An expense of ${parsed.data.amount} was added`,
+    metadata: { entryId: row.id },
   });
 
   if (isShared) {
@@ -159,6 +173,12 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
       metadata: { entryId: row.id },
     });
   }
+
+  await notifyBudgetThresholds(supabase, {
+    teamId: session.teamId,
+    actorId: session.user.id,
+    excludeUserId: session.user.id,
+  });
 
   revalidatePath('/');
   revalidatePath('/entries');
@@ -230,6 +250,31 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     await supabase.from('lunch_entry_participants').delete().eq('entry_id', id);
   }
 
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_updated',
+    entityType: 'expense',
+    entityId: id,
+    message: `Expense updated to ${parsed.data.amount}`,
+    metadata: { amount: parsed.data.amount, shared: isShared },
+  });
+
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Expense updated',
+    body: `An expense was updated to ${parsed.data.amount}`,
+    metadata: { entryId: id },
+  });
+
+  await notifyBudgetThresholds(supabase, {
+    teamId: session.teamId,
+    actorId: session.user.id,
+    excludeUserId: session.user.id,
+  });
+
   revalidatePath('/');
   revalidatePath('/entries');
   revalidatePath('/settlements');
@@ -243,6 +288,13 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
   if (!canEdit(session.role)) return { error: 'Viewers cannot delete entries' };
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('lunch_entries')
+    .select('amount, notes')
+    .eq('id', id)
+    .eq('team_id', session.teamId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('lunch_entries')
     .delete()
@@ -250,6 +302,31 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_deleted',
+    entityType: 'expense',
+    entityId: id,
+    message: `Expense deleted${existing?.amount ? ` (${existing.amount})` : ''}`,
+    metadata: { amount: existing?.amount ?? null, notes: existing?.notes ?? null },
+  });
+
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Expense deleted',
+    body: existing?.amount ? `An expense of ${existing.amount} was deleted` : 'An expense was deleted',
+    metadata: { entryId: id },
+  });
+
+  await notifyBudgetThresholds(supabase, {
+    teamId: session.teamId,
+    actorId: session.user.id,
+    excludeUserId: session.user.id,
+  });
   revalidatePath('/');
   revalidatePath('/entries');
   revalidatePath('/settlements');

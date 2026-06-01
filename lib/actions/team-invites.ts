@@ -11,6 +11,7 @@ import {
   buildTeamInviteUrl,
   type InviteExpiryOption,
 } from '@/lib/invites/utils';
+import { notifyTeamMembers, recordActivity } from '@/lib/activity';
 
 export type ActionResult<T = void> = { error?: string; success?: boolean; data?: T };
 
@@ -137,10 +138,13 @@ export async function generateShareableInvite(formData: FormData): Promise<
 
   if (error || !data) return { error: error?.message ?? 'Failed to generate link' };
 
-  await supabase.from('team_activity_log').insert({
-    team_id: session.teamId,
-    user_id: session.user.id,
-    action: 'invite_link_generated',
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'invite_link_generated',
+    entityType: 'invite',
+    entityId: data.id,
+    message: 'Invite link generated',
     metadata: { role, expiry },
   });
 
@@ -205,10 +209,13 @@ export async function sendEmailInvite(formData: FormData): Promise<ActionResult<
 
   if (error || !data) return { error: error?.message ?? 'Failed to send invitation' };
 
-  await supabase.from('team_activity_log').insert({
-    team_id: session.teamId,
-    user_id: session.user.id,
-    action: 'invitation_sent',
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'invitation_sent',
+    entityType: 'invite',
+    entityId: data.id,
+    message: `Invitation sent to ${email}`,
     metadata: { email, role: parsed.data.role },
   });
 
@@ -276,11 +283,24 @@ export async function acceptTeamInvite(token: string): Promise<ActionResult> {
   const { error: activeError } = await persistActiveTeam(supabase, session.user.id, invite.team_id);
   if (activeError) return { error: activeError };
 
-  await supabase.from('team_activity_log').insert({
-    team_id: invite.team_id,
-    user_id: session.user.id,
-    action: 'member_joined',
-    metadata: { via: 'team_invite' },
+  await recordActivity(supabase, {
+    teamId: invite.team_id,
+    userId: session.user.id,
+    actionType: 'invite_accepted',
+    entityType: 'team',
+    entityId: invite.team_id,
+    message: 'Invite accepted and member joined',
+    metadata: { via: 'team_invite', inviteId: invite.id },
+  });
+
+  await notifyTeamMembers({
+    supabase,
+    teamId: invite.team_id,
+    excludeUserId: session.user.id,
+    type: 'success',
+    title: 'Invite accepted',
+    message: `${session.profile.full_name ?? session.user.email ?? 'A member'} joined the team.`,
+    metadata: { event_type: 'invite_accepted', inviteId: invite.id },
   });
 
   revalidatePath('/', 'layout');

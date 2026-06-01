@@ -6,7 +6,6 @@ import { RealtimeProvider } from "@/components/providers/realtime-provider"
 import { CurrencyProvider } from "@/components/providers/currency-provider"
 import { TeamProvider } from "@/components/providers/team-provider"
 import { CommandPalette } from "@/components/command-palette"
-import { NotificationsBell } from "@/components/notifications/notifications-bell"
 import { getNotifications } from "@/lib/data/dashboard"
 import { NavigationProgress } from "@/components/layout/navigation-progress"
 import { normalizeCurrencyCode } from "@/lib/currency"
@@ -28,7 +27,7 @@ export default async function ProtectedLayout({
       .select("name, slug, currency")
       .eq("id", session.teamId)
       .single(),
-    getNotifications(session.user.id),
+    getNotifications(session.user.id, session.teamId),
   ])
   const team = teamRes.data
 
@@ -55,11 +54,10 @@ export default async function ProtectedLayout({
           role={session.role}
           teamId={session.teamId}
           teamSlug={team?.slug}
+          initialNotifications={notifications}
+          userId={session.user.id}
         >
           <RealtimeProvider teamId={session.teamId} />
-          <div className="fixed right-5 top-4 z-30 hidden md:block">
-            <NotificationsBell initialNotifications={notifications} />
-          </div>
           <CommandPalette canEdit={userCanEdit} />
           {children}
         </AppLayout>
