@@ -89,13 +89,48 @@ export async function seedDemoNotifications(
     rows.push({
       user_id: adminUser,
       team_id: hq.id,
-      type: 'new_expense',
-      title: 'New expense recorded',
-      body: 'Ahmed Khan logged Office Supplies — Rs 4,200',
-      metadata: {},
+      type: 'expense_submitted',
+      title: 'Expense submitted',
+      body: 'Ahmed Khan submitted Office Supplies — Rs 4,200 for approval',
+      metadata: { event_type: 'expense_submitted', amount: 4200 },
       read_at: null,
       created_at: toIso(daysAgo(0)),
     });
+  }
+
+  if (viewer) {
+    rows.push(
+      {
+        user_id: viewer,
+        team_id: hq.id,
+        type: 'expense_approved',
+        title: 'Expense approved',
+        body: 'Your travel reimbursement claim was approved.',
+        metadata: { event_type: 'expense_approved', amount: 8500 },
+        read_at: null,
+        created_at: toIso(daysAgo(1)),
+      },
+      {
+        user_id: viewer,
+        team_id: hq.id,
+        type: 'expense_rejected',
+        title: 'Expense rejected',
+        body: 'Missing receipt for the client lunch claim.',
+        metadata: { event_type: 'expense_rejected', reason: 'Missing receipt' },
+        read_at: null,
+        created_at: toIso(daysAgo(3)),
+      },
+      {
+        user_id: viewer,
+        team_id: hq.id,
+        type: 'reimbursement_completed',
+        title: 'Reimbursement completed',
+        body: 'Rs 6,400 was reimbursed by payroll.',
+        metadata: { event_type: 'reimbursement_completed', amount: 6400 },
+        read_at: toIso(daysAgo(0)),
+        created_at: toIso(daysAgo(0)),
+      },
+    );
   }
 
   if (friends) {

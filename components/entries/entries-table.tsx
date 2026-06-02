@@ -11,10 +11,11 @@ import {
 } from "@tanstack/react-table"
 import { format as formatDate, parseISO } from "date-fns"
 import { toast } from "sonner"
-import { Pencil, Trash2, Download, BookOpen } from "lucide-react"
+import { Pencil, Trash2, Download, BookOpen, Send } from "lucide-react"
 import {
   bulkDeleteLunchEntries,
   deleteLunchEntry,
+  submitExpenseForApproval,
 } from "@/lib/actions/lunch-entries"
 import { useCurrency } from "@/hooks/use-currency"
 import { useDebouncedValue } from "@/hooks/use-debounced-value"
@@ -62,14 +63,16 @@ import {
 export function EntriesTable({
   entries: initialEntries,
   categories = [],
-  canEdit,
+  canManageEntries,
+  currentUserId,
   onOpenChange,
   onAddEntry,
   onEditEntry,
 }: {
   entries: LunchEntryWithProfile[]
   categories?: ExpenseCategory[]
-  canEdit: boolean
+  canManageEntries: boolean
+  currentUserId: string
   onOpenChange: (open: boolean) => void
   onAddEntry?: () => void
   onEditEntry?: (entry: LunchEntryWithProfile) => void
@@ -107,7 +110,7 @@ export function EntriesTable({
 
   const columns = useMemo<ColumnDef<LunchEntryWithProfile>[]>(
     () => [
-      ...(canEdit
+      ...(canManageEntries
         ? [
             {
               id: "select",
@@ -165,7 +168,7 @@ export function EntriesTable({
       },
       {
         accessorKey: "payment_status",
-        header: "Status",
+        header: "Payment",
         cell: ({ row }) => (
           <Badge
             variant={
@@ -176,7 +179,24 @@ export function EntriesTable({
           </Badge>
         ),
       },
-      ...(canEdit
+      {
+        accessorKey: "approval_status",
+        header: "Approval",
+        cell: ({ row }) => (
+          <Badge
+            variant={
+              row.original.approval_status === "approved" || row.original.approval_status === "reimbursed"
+                ? "default"
+                : row.original.approval_status === "rejected"
+                  ? "destructive"
+                  : "secondary"
+            }
+          >
+            {row.original.approval_status.replace(/_/g, " ")}
+          </Badge>
+        ),
+      },
+      ...(canManageEntries
         ? [
             {
               id: "actions",
@@ -231,9 +251,45 @@ export function EntriesTable({
               ),
             } as ColumnDef<LunchEntryWithProfile>,
           ]
-        : []),
+        : [
+            {
+              id: "submit",
+              header: "",
+              cell: ({ row }) => {
+                const canSubmit =
+                  row.original.created_by === currentUserId &&
+                  ["draft", "rejected"].includes(row.original.approval_status)
+                if (!canSubmit) return null
+                return (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={pending}
+                    onClick={() => {
+                      startTransition(async () => {
+                        const r = await submitExpenseForApproval(row.original.id)
+                        if (r?.error) toast.error(r.error)
+                        else {
+                          setEntries((prev) =>
+                            prev.map((entry) =>
+                              entry.id === row.original.id
+                                ? { ...entry, approval_status: "pending_approval" }
+                                : entry,
+                            ),
+                          )
+                          toast.success("Submitted for approval")
+                        }
+                      })
+                    }}
+                  >
+                    <Send className="size-4" />
+                  </Button>
+                )
+              },
+            } as ColumnDef<LunchEntryWithProfile>,
+          ]),
     ],
-    [canEdit, onOpenChange, onEditEntry, startTransition, formatCurrency],
+    [canManageEntries, currentUserId, onOpenChange, onEditEntry, pending, startTransition, formatCurrency],
   )
 
   const table = useReactTable({
@@ -313,7 +369,7 @@ export function EntriesTable({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {canEdit && selectedIds.length > 0 && (
+          {canManageEntries && selectedIds.length > 0 && (
             <Button
               variant="destructive"
               size="sm"
@@ -384,7 +440,7 @@ export function EntriesTable({
                           : "Record your first team expense to get started."}
                       </EmptyDescription>
                     </EmptyHeader>
-                    {canEdit &&
+                    {canManageEntries &&
                       onAddEntry &&
                       !search &&
                       statusFilter === "all" && (

@@ -9,6 +9,8 @@ import {
 import type { Settlement, SettlementWithProfiles } from '@/lib/database.types';
 import type { Profile } from '@/lib/database.types';
 
+const FINANCIAL_APPROVAL_STATUSES = ['approved', 'reimbursed'] as const;
+
 async function attachSettlementProfiles(
   items: Settlement[],
 ): Promise<SettlementWithProfiles[]> {
@@ -44,6 +46,7 @@ export async function getBalanceContext(
       .from('lunch_entries')
       .select('id, user_id, amount, is_shared, split_type')
       .eq('team_id', teamId)
+      .in('approval_status', FINANCIAL_APPROVAL_STATUSES)
       .eq('is_shared', true);
       if (range) query = query.gte('lunch_date', range.from).lte('lunch_date', range.to);
       return query;

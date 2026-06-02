@@ -18,6 +18,8 @@ Validation lives in `lib/validations.ts`.
 | `teamNameSchema` | Team name length 2-50. |
 | `inviteSchema` | Valid email, role `admin` or `viewer`. |
 | `lunchEntrySchema` | Member UUID, positive amount, date, paid/unpaid status, optional category, split mode, participants. |
+| `rejectionSchema` | Rejection or request-changes reason is required and capped at 500 characters. |
+| `reimbursementSchema` | Positive reimbursement amount, reimbursement date, optional notes up to 500 characters. |
 | `categorySchema` | Name length 2-50, icon, hex color, optional description up to 200 chars. |
 | `budgetSchema` | Type `monthly` or `category`, positive amount, category required for category budgets. |
 | `settlementSchema` | Payer/receiver UUIDs, positive amount, optional note and proof URL. |
@@ -118,6 +120,11 @@ Actions:
 - `updateLunchEntry(id, formData)`
 - `deleteLunchEntry(id)`
 - `bulkDeleteLunchEntries(ids)`
+- `submitExpenseForApproval(id)`
+- `approveExpense(id)`
+- `rejectExpense(id, formData)`
+- `requestExpenseChanges(id, formData)`
+- `recordExpenseReimbursement(id, formData)`
 
 Example create request:
 
@@ -131,6 +138,7 @@ categoryId=<food-category-id>
 isShared=true
 splitType=equal
 participantIds=<member-id>,<member-id>
+intent=draft|submit
 ```
 
 Response:
@@ -139,7 +147,34 @@ Response:
 { "success": true }
 ```
 
-The action writes `lunch_entries` and, for shared expenses, `lunch_entry_participants`.
+The action writes `lunch_entries` and, for shared expenses, `lunch_entry_participants`. New expenses are drafts unless `intent=submit`, which sets `approval_status=pending_approval` and `submitted_by` to the current user.
+
+### Approval actions
+
+Viewers can submit their own draft or rejected expenses. Admins and owners can approve, reject, request changes, and reimburse.
+
+```ts
+await submitExpenseForApproval(expenseId)
+await approveExpense(expenseId)
+```
+
+Reject and request-changes require a reason:
+
+```text
+reason=Missing receipt
+```
+
+Reimbursement input:
+
+```text
+amount=6400
+reimbursedAt=2026-06-02
+notes=Payroll transfer
+```
+
+Approval actions write notifications and activity. Approving an expense revalidates budgets, analytics, reports, settlements, the dashboard, entries, and the approval queue.
+
+Financial data helpers count only `approval_status IN ('approved', 'reimbursed')`; pending, draft, and rejected expenses remain visible in operational views but do not affect budgets, reports, analytics, settlements, or public totals.
 
 ## Category Actions
 

@@ -12,6 +12,8 @@ import {
   type ExpenseRow,
 } from '@/lib/budget/engine';
 
+const FINANCIAL_APPROVAL_STATUSES = ['approved', 'reimbursed'] as const;
+
 async function fetchMonthEntries(teamId: string, monthStart: string) {
   const supabase = await createClient();
   const monthEnd = getMonthEnd(monthStart);
@@ -20,6 +22,7 @@ async function fetchMonthEntries(teamId: string, monthStart: string) {
     .from('lunch_entries')
     .select('team_id, amount, lunch_date, category_id')
     .eq('team_id', teamId)
+    .in('approval_status', FINANCIAL_APPROVAL_STATUSES)
     .gte('lunch_date', monthStart)
     .lte('lunch_date', monthEnd);
 
@@ -33,6 +36,7 @@ async function fetchRangeEntries(teamId: string, from: string, to: string) {
     .from('lunch_entries')
     .select('team_id, amount, lunch_date, category_id')
     .eq('team_id', teamId)
+    .in('approval_status', FINANCIAL_APPROVAL_STATUSES)
     .gte('lunch_date', from)
     .lte('lunch_date', to);
 
@@ -124,6 +128,7 @@ export async function getAnalyticsBudgetData(
       .from('lunch_entries')
       .select('team_id, amount, lunch_date, category_id')
       .eq('team_id', teamId)
+      .in('approval_status', FINANCIAL_APPROVAL_STATUSES)
       .gte('lunch_date', rangeStart)
       .lte('lunch_date', range?.to ?? getMonthEnd(monthStart)),
     supabase.from('expense_categories').select('*').eq('team_id', teamId),

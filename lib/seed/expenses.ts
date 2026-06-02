@@ -23,6 +23,15 @@ type EntryInsert = {
   lunch_date: string;
   notes: string | null;
   payment_status: 'paid' | 'unpaid';
+  approval_status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'reimbursed';
+  submitted_by: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
+  reimbursement_status: 'not_reimbursed' | 'partially_reimbursed' | 'fully_reimbursed';
+  amount_reimbursed: number;
+  reimbursed_at: string | null;
+  reimbursement_notes: string | null;
   category_id: string | null;
   is_shared: boolean;
   split_type: 'none' | 'equal' | 'selected';
@@ -71,6 +80,30 @@ export async function seedDemoExpenses(
 
       const isShared = Math.random() < 0.32 && ctx.memberIds.length >= 3;
       const splitType: 'none' | 'equal' = isShared ? 'equal' : 'none';
+      const approvalRoll = Math.random();
+      const approvalStatus =
+        approvalRoll < 0.12
+          ? 'pending_approval'
+          : approvalRoll < 0.2
+            ? 'rejected'
+            : approvalRoll < 0.32
+              ? 'reimbursed'
+              : 'approved';
+      const submittedBy = approvalStatus === 'approved' ? (Math.random() < 0.7 ? payerId : editorId) : payerId;
+      const approvedBy = ['approved', 'rejected', 'reimbursed'].includes(approvalStatus) ? editorId : null;
+      const approvedAt = approvedBy ? toDateString(date) : null;
+      const reimbursementStatus =
+        approvalStatus === 'reimbursed'
+          ? 'fully_reimbursed'
+          : approvalStatus === 'approved' && Math.random() < 0.18
+            ? 'partially_reimbursed'
+            : 'not_reimbursed';
+      const amountReimbursed =
+        reimbursementStatus === 'fully_reimbursed'
+          ? amount
+          : reimbursementStatus === 'partially_reimbursed'
+            ? Math.round(amount * (0.35 + Math.random() * 0.4) * 100) / 100
+            : 0;
 
       allEntries.push({
         team_id: ctx.id,
@@ -81,6 +114,18 @@ export async function seedDemoExpenses(
           pick(EXPENSE_NOTES) +
           (Math.random() < 0.25 ? ` — ${faker.commerce.productName()}` : ''),
         payment_status: Math.random() < 0.55 ? 'paid' : 'unpaid',
+        approval_status: approvalStatus,
+        submitted_by: submittedBy,
+        approved_by: approvedBy,
+        approved_at: approvedAt ? new Date(`${approvedAt}T10:00:00Z`).toISOString() : null,
+        rejection_reason:
+          approvalStatus === 'rejected'
+            ? pick(['Missing receipt', 'Outside policy limit', 'Duplicate claim', 'Needs project code'])
+            : null,
+        reimbursement_status: reimbursementStatus,
+        amount_reimbursed: amountReimbursed,
+        reimbursed_at: amountReimbursed > 0 ? toDateString(date) : null,
+        reimbursement_notes: amountReimbursed > 0 ? pick(['Bank transfer processed', 'Payroll reimbursement', 'Petty cash reimbursement']) : null,
         category_id: categoryId,
         is_shared: isShared,
         split_type: splitType,

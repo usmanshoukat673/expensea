@@ -112,7 +112,7 @@ export function LunchEntryDialog({
     );
   };
 
-  const onSubmit = handleSubmit((data) => {
+  const submitExpense = (intent: 'draft' | 'submit') => handleSubmit((data) => {
     const fd = new FormData();
     fd.set('userId', data.userId);
     fd.set('amount', String(data.amount));
@@ -123,19 +123,20 @@ export function LunchEntryDialog({
     fd.set('isShared', String(!!data.isShared));
     fd.set('splitType', data.isShared ? (data.splitType ?? 'equal') : 'none');
     fd.set('participantIds', JSON.stringify(participantIds));
+    fd.set('intent', intent);
     startTransition(async () => {
       const result = isEdit
         ? await updateLunchEntry(entry!.id, fd)
         : await createLunchEntry(fd);
       if (result?.error) toast.error(result.error);
       else {
-        toast.success(isEdit ? 'Entry updated' : 'Entry added');
+        toast.success(isEdit ? 'Entry updated' : intent === 'submit' ? 'Submitted for approval' : 'Draft saved');
         onOpenChange(false);
         reset();
         setParticipantIds([]);
       }
     });
-  });
+  })();
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
 
@@ -145,7 +146,7 @@ export function LunchEntryDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit expense' : 'Add expense'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={(event) => event.preventDefault()} className="space-y-4">
           <div className="space-y-2">
             <Label>Paid by</Label>
             <Select value={payerId} onValueChange={(v) => setValue('userId', v)}>
@@ -271,10 +272,18 @@ export function LunchEntryDialog({
               {selectedCategory.name}
             </p>
           )}
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? <Spinner /> : null}
-            {isEdit ? 'Save changes' : 'Add entry'}
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button type="button" variant="outline" disabled={pending} onClick={() => submitExpense('draft')}>
+              {pending ? <Spinner /> : null}
+              {isEdit ? 'Save changes' : 'Save draft'}
+            </Button>
+            {!isEdit && (
+              <Button type="button" disabled={pending} onClick={() => submitExpense('submit')}>
+                {pending ? <Spinner /> : null}
+                Submit
+              </Button>
+            )}
+          </div>
         </form>
       </DialogContent>
     </Dialog>

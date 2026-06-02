@@ -15,7 +15,9 @@ export function EntriesPageContent({
   members,
   categories,
   recentCategoryIds = [],
-  canEdit,
+  canCreateEntry,
+  canManageEntries,
+  currentUserId,
   defaultLunchDate,
   dateRange,
 }: {
@@ -23,7 +25,9 @@ export function EntriesPageContent({
   members: { user_id: string; name: string }[];
   categories: ExpenseCategory[];
   recentCategoryIds?: string[];
-  canEdit: boolean;
+  canCreateEntry: boolean;
+  canManageEntries: boolean;
+  currentUserId: string;
   defaultLunchDate: string;
   dateRange: DateRangeValue;
 }) {
@@ -33,14 +37,14 @@ export function EntriesPageContent({
   const router = useRouter();
 
   useEffect(() => {
-    if (searchParams.get('add') === '1' && canEdit) {
+    if (searchParams.get('add') === '1' && canCreateEntry) {
       setOpen(true);
       const params = new URLSearchParams(searchParams.toString());
       params.delete('add');
       const qs = params.toString();
       router.replace(qs ? `/entries?${qs}` : '/entries', { scroll: false });
     }
-  }, [searchParams, canEdit, setOpen, router]);
+  }, [searchParams, canCreateEntry, setOpen, router]);
 
   const openAdd = () => {
     setEditEntry(null);
@@ -64,7 +68,7 @@ export function EntriesPageContent({
           </div>
           <div className="flex flex-col gap-2 sm:items-end">
             <DateRangeFilter range={dateRange} />
-            {canEdit && (
+            {canCreateEntry && (
               <Button onClick={openAdd} className="w-full sm:w-auto shrink-0">
                 <Plus className="size-4" />
                 Add entry
@@ -77,13 +81,14 @@ export function EntriesPageContent({
       <EntriesTable
         entries={entries}
         categories={categories}
-        canEdit={canEdit}
+        canManageEntries={canManageEntries}
+        currentUserId={currentUserId}
         onOpenChange={handleOpenChange}
         onAddEntry={openAdd}
         onEditEntry={setEditEntry}
       />
 
-      {canEdit && (
+      {canCreateEntry && (
         <LunchEntryDialog
           members={members}
           categories={categories}

@@ -33,6 +33,7 @@ team_members
   |
 teams
   |-- lunch_entries
+  |   |-- approval + reimbursement workflow
   |-- expense_categories
   |-- team_budgets
   |-- settlements
@@ -58,9 +59,38 @@ Roles live on `team_members.role`:
 
 - `owner`: team owner, can update/delete the team and transfer ownership.
 - `admin`: editor role, can manage expenses, categories, budgets, settlements, invites, and members.
-- `viewer`: read-only team member.
+- `viewer`: can read team data, create draft expenses, and submit their own expenses for approval.
 
 The role checks are enforced in both server actions and RLS. Server actions provide friendly validation and redirects; RLS remains the final database boundary.
+
+## Expense Approval Workflow
+
+Expenses remain in `lunch_entries` for compatibility, but now carry workflow fields:
+
+- `approval_status`: `draft`, `pending_approval`, `approved`, `rejected`, or `reimbursed`.
+- `submitted_by`: user who submitted the expense for review.
+- `approved_by` / `approved_at`: reviewer and review timestamp for approved or rejected records.
+- `rejection_reason`: required reason when rejecting or requesting changes.
+
+Workflow:
+
+1. Viewers, admins, and owners create drafts.
+2. The submitter sends a draft or rejected expense to `pending_approval`.
+3. Admins and owners approve, reject, or request changes from `/approvals`.
+4. Approved expenses can be reimbursed partially or fully.
+
+Only `approved` and `reimbursed` expenses are treated as financial facts. Budgets, analytics, reports, public totals, monthly summaries, and settlement balances all filter to those statuses. Pending and rejected rows remain auditable but do not affect spend or debt calculations.
+
+## Reimbursement Workflow
+
+Reimbursements are tracked on the expense row with:
+
+- `reimbursement_status`: `not_reimbursed`, `partially_reimbursed`, or `fully_reimbursed`.
+- `amount_reimbursed`: cumulative reimbursed amount.
+- `reimbursed_at`: latest reimbursement date.
+- `reimbursement_notes`: latest reimbursement note.
+
+When an approved expense becomes fully reimbursed, `approval_status` moves to `reimbursed`. Reimbursed expenses still count in financial reporting because the expense was approved and incurred; reimbursement metrics separately show outstanding and completed reimbursement activity.
 
 ## Active Team Context
 
@@ -86,11 +116,11 @@ The budget engine in `lib/budget/engine.ts` builds a spend index from expenses, 
 - status: `safe`, `warning`, or `over`
 - alert level: `none`, `warning80`, or `exceeded`
 
-Budget views, dashboard cards, reports, analytics, and demo seeders all rely on this engine's assumptions.
+Budget views, dashboard cards, reports, analytics, and demo seeders all rely on this engine's assumptions. All budget data helpers pass only approved or reimbursed expenses into the engine.
 
 ## Settlement Engine
 
-Shared expenses are recorded in `lunch_entries` with participant rows in `lunch_entry_participants`. The balance engine in `lib/balance/engine.ts`:
+Shared expenses are recorded in approved/reimbursed `lunch_entries` with participant rows in `lunch_entry_participants`. The balance engine in `lib/balance/engine.ts`:
 
 1. Calculates participant shares for equal or selected splits.
 2. Creates raw debts from participants to payers.
@@ -110,3 +140,5 @@ The Next.js route `/api/cron/recurring-expenses` invokes that function with the 
 `team_activity_log` is the legacy activity stream. Migration `010_smart_notifications_activity.sql` creates normalized `activity_logs` and mirrors new legacy rows into it. The app reads normalized activity data while seeders still insert the legacy stream to exercise the mirror trigger.
 
 Notifications are stored in `notifications`. Compatibility columns `body/message` and `read/read_at` are synchronized by trigger so old and new UI paths remain aligned.
+
+Approval notifications are generated for `expense_submitted`, `expense_approved`, `expense_rejected`, and `reimbursement_completed`. Activity entries use `expense_submitted`, `expense_approved`, `expense_rejected`, and `expense_reimbursed`.

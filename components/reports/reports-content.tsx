@@ -110,6 +110,19 @@ export function ReportsContent({ data }: { data: ReportsData }) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Approval metrics</CardTitle>
+          <CardDescription>Workflow health for the selected date range</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-4">
+          <div><p className="text-sm text-muted-foreground">Approval rate</p><p className="text-2xl font-bold">{Math.round(data.approvalMetrics.approvalRate)}%</p></div>
+          <div><p className="text-sm text-muted-foreground">Rejection rate</p><p className="text-2xl font-bold">{Math.round(data.approvalMetrics.rejectionRate)}%</p></div>
+          <div><p className="text-sm text-muted-foreground">Pending approvals</p><p className="text-2xl font-bold">{data.approvalMetrics.pendingApprovals}</p></div>
+          <div><p className="text-sm text-muted-foreground">Reimbursements outstanding</p><p className="text-2xl font-bold">{format(data.approvalMetrics.reimbursementOutstanding)}</p></div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendIcon className={increased ? "size-4 text-amber-600" : "size-4 text-green-600"} />
             Previous month comparison
@@ -154,6 +167,15 @@ export function ReportsContent({ data }: { data: ReportsData }) {
         <ReportTable title="Category comparison" headers={["Category", "Current", "Previous", "Change"]} rows={data.categoryComparison.map((c) => [c.name, format(c.current), format(c.previous), `${c.changePercent >= 0 ? "+" : ""}${Math.round(c.changePercent)}%`])} />
         <ReportTable title="Top spenders by month" headers={["Member", "Total", "Paid", "Pending"]} rows={data.topSpenders.map((m) => [m.name, format(m.total), format(m.paid), format(m.pending)])} />
       </div>
+
+      <ReportTable
+        title="Reimbursement trends"
+        headers={["Month", "Amount reimbursed"]}
+        rows={data.approvalMetrics.reimbursementTrend.map((row) => [
+          formatDate(new Date(row.month), "MMM yyyy"),
+          format(row.total),
+        ])}
+      />
 
       <Card>
         <CardHeader>
