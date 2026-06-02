@@ -3,12 +3,22 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { requireTeam, canEdit } from '@/lib/auth/session';
-import { lunchEntrySchema } from '@/lib/validations';
+import { lunchEntrySchema, rejectionSchema, reimbursementSchema } from '@/lib/validations';
 import { notifyTeamMembers } from '@/lib/notifications';
 import { recordActivity } from '@/lib/activity';
 import { notifyBudgetThresholds } from '@/lib/budget-alerts';
 
 export type ActionResult = { error?: string; success?: boolean };
+
+function revalidateExpenseSurfaces() {
+  revalidatePath('/');
+  revalidatePath('/entries');
+  revalidatePath('/approvals');
+  revalidatePath('/settlements');
+  revalidatePath('/analytics');
+  revalidatePath('/reports');
+  revalidatePath('/budgets');
+}
 
 function parseParticipants(formData: FormData): string[] {
   const raw = formData.get('participantIds');
@@ -83,9 +93,9 @@ async function validateEntryTeamRefs(
 
 export async function createLunchEntry(formData: FormData): Promise<ActionResult> {
   const session = await requireTeam();
-  if (!canEdit(session.role)) return { error: 'Viewers cannot add entries' };
 
   const participantIds = parseParticipants(formData);
+  const intent = formData.get('intent') === 'submit' ? 'submit' : 'draft';
   const parsed = lunchEntrySchema.safeParse({
     userId: formData.get('userId'),
     amount: formData.get('amount'),
@@ -131,6 +141,10 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
       is_shared: isShared,
       split_type: splitType,
       created_by: session.user.id,
+      approval_status: intent === 'submit' ? 'pending_approval' : 'draft',
+      submitted_by: intent === 'submit' ? session.user.id : null,
+      approved_by: null,
+      approved_at: null,
     })
     .select('id')
     .single();
@@ -147,19 +161,23 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
-    actionType: 'expense_created',
+    actionType: intent === 'submit' ? 'expense_submitted' : 'expense_created',
     entityType: 'expense',
     entityId: row.id,
-    message: `Expense created for ${parsed.data.amount}`,
-    metadata: { amount: parsed.data.amount, shared: isShared },
+    message: intent === 'submit'
+      ? `Expense submitted for approval (${parsed.data.amount})`
+      : `Expense created for ${parsed.data.amount}`,
+    metadata: { amount: parsed.data.amount, shared: isShared, approval_status: intent === 'submit' ? 'pending_approval' : 'draft' },
   });
 
   await notifyTeamMembers({
     teamId: session.teamId,
     excludeUserId: session.user.id,
-    type: 'new_expense',
-    title: 'New expense added',
-    body: `An expense of ${parsed.data.amount} was added`,
+    type: intent === 'submit' ? 'expense_submitted' : 'new_expense',
+    title: intent === 'submit' ? 'Expense submitted' : 'New expense added',
+    body: intent === 'submit'
+      ? `An expense of ${parsed.data.amount} is waiting for approval`
+      : `An expense of ${parsed.data.amount} was added`,
     metadata: { entryId: row.id },
   });
 
@@ -174,23 +192,20 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     });
   }
 
-  await notifyBudgetThresholds(supabase, {
-    teamId: session.teamId,
-    actorId: session.user.id,
-    excludeUserId: session.user.id,
-  });
+  if (intent !== 'submit') {
+    await notifyBudgetThresholds(supabase, {
+      teamId: session.teamId,
+      actorId: session.user.id,
+      excludeUserId: session.user.id,
+    });
+  }
 
-  revalidatePath('/');
-  revalidatePath('/entries');
-  revalidatePath('/settlements');
-  revalidatePath('/analytics');
-  revalidatePath('/budgets');
+  revalidateExpenseSurfaces();
   return { success: true };
 }
 
 export async function updateLunchEntry(id: string, formData: FormData): Promise<ActionResult> {
   const session = await requireTeam();
-  if (!canEdit(session.role)) return { error: 'Viewers cannot edit entries' };
 
   const participantIds = parseParticipants(formData);
   const parsed = lunchEntrySchema.safeParse({
@@ -210,6 +225,20 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   const splitType = isShared ? (parsed.data.splitType ?? 'equal') : 'none';
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('lunch_entries')
+    .select('created_by, approval_status')
+    .eq('id', id)
+    .eq('team_id', session.teamId)
+    .maybeSingle();
+
+  const canUpdateOwnDraft =
+    existing?.created_by === session.user.id &&
+    ['draft', 'rejected'].includes(String(existing.approval_status));
+  if (!canEdit(session.role) && !canUpdateOwnDraft) {
+    return { error: 'Only admins and owners can edit submitted expenses' };
+  }
+
   const participants =
     isShared && participantIds.length > 0
       ? participantIds.includes(parsed.data.userId)
@@ -238,6 +267,11 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
       category_id: parsed.data.categoryId ?? null,
       is_shared: isShared,
       split_type: splitType,
+      approval_status: canUpdateOwnDraft ? 'draft' : existing?.approval_status,
+      submitted_by: canUpdateOwnDraft ? null : undefined,
+      approved_by: canUpdateOwnDraft ? null : undefined,
+      approved_at: canUpdateOwnDraft ? null : undefined,
+      rejection_reason: canUpdateOwnDraft ? null : undefined,
     })
     .eq('id', id)
     .eq('team_id', session.teamId);
@@ -269,17 +303,15 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     metadata: { entryId: id },
   });
 
-  await notifyBudgetThresholds(supabase, {
-    teamId: session.teamId,
-    actorId: session.user.id,
-    excludeUserId: session.user.id,
-  });
+  if (existing?.approval_status === 'approved' || existing?.approval_status === 'reimbursed') {
+    await notifyBudgetThresholds(supabase, {
+      teamId: session.teamId,
+      actorId: session.user.id,
+      excludeUserId: session.user.id,
+    });
+  }
 
-  revalidatePath('/');
-  revalidatePath('/entries');
-  revalidatePath('/settlements');
-  revalidatePath('/analytics');
-  revalidatePath('/budgets');
+  revalidateExpenseSurfaces();
   return { success: true };
 }
 
@@ -327,11 +359,7 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
     actorId: session.user.id,
     excludeUserId: session.user.id,
   });
-  revalidatePath('/');
-  revalidatePath('/entries');
-  revalidatePath('/settlements');
-  revalidatePath('/analytics');
-  revalidatePath('/budgets');
+  revalidateExpenseSurfaces();
   return { success: true };
 }
 
@@ -348,10 +376,217 @@ export async function bulkDeleteLunchEntries(ids: string[]): Promise<ActionResul
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
-  revalidatePath('/');
-  revalidatePath('/entries');
-  revalidatePath('/settlements');
-  revalidatePath('/analytics');
-  revalidatePath('/budgets');
+  revalidateExpenseSurfaces();
+  return { success: true };
+}
+
+async function getEntryForWorkflow(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string,
+  id: string,
+) {
+  const { data, error } = await supabase
+    .from('lunch_entries')
+    .select('id, team_id, created_by, submitted_by, user_id, amount, approval_status, reimbursement_status, amount_reimbursed')
+    .eq('id', id)
+    .eq('team_id', teamId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function submitExpenseForApproval(id: string): Promise<ActionResult> {
+  const session = await requireTeam();
+  const supabase = await createClient();
+  const entry = await getEntryForWorkflow(supabase, session.teamId, id);
+  if (!entry) return { error: 'Expense not found' };
+  if (entry.created_by !== session.user.id && !canEdit(session.role)) {
+    return { error: 'Only the creator can submit this expense' };
+  }
+  if (!['draft', 'rejected'].includes(entry.approval_status)) {
+    return { error: 'Only draft or rejected expenses can be submitted' };
+  }
+
+  const { error } = await supabase
+    .from('lunch_entries')
+    .update({
+      approval_status: 'pending_approval',
+      submitted_by: session.user.id,
+      approved_by: null,
+      approved_at: null,
+      rejection_reason: null,
+    })
+    .eq('id', id)
+    .eq('team_id', session.teamId);
+  if (error) return { error: error.message };
+
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_submitted',
+    entityType: 'expense',
+    entityId: id,
+    message: `Expense submitted for approval (${entry.amount})`,
+    metadata: { amount: entry.amount },
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'expense_submitted',
+    title: 'Expense submitted',
+    body: `An expense of ${entry.amount} is waiting for approval`,
+    metadata: { entryId: id },
+  });
+  revalidateExpenseSurfaces();
+  return { success: true };
+}
+
+export async function approveExpense(id: string): Promise<ActionResult> {
+  const session = await requireTeam();
+  if (!canEdit(session.role)) return { error: 'Only admins and owners can approve expenses' };
+  const supabase = await createClient();
+  const entry = await getEntryForWorkflow(supabase, session.teamId, id);
+  if (!entry) return { error: 'Expense not found' };
+
+  const now = new Date().toISOString();
+  const { error } = await supabase
+    .from('lunch_entries')
+    .update({
+      approval_status: 'approved',
+      approved_by: session.user.id,
+      approved_at: now,
+      rejection_reason: null,
+    })
+    .eq('id', id)
+    .eq('team_id', session.teamId);
+  if (error) return { error: error.message };
+
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_approved',
+    entityType: 'expense',
+    entityId: id,
+    message: `Expense approved (${entry.amount})`,
+    metadata: { amount: entry.amount },
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'expense_approved',
+    title: 'Expense approved',
+    body: `An expense of ${entry.amount} was approved`,
+    metadata: { entryId: id },
+    memberIds: entry.submitted_by ? [entry.submitted_by] : undefined,
+  });
+  await notifyBudgetThresholds(supabase, {
+    teamId: session.teamId,
+    actorId: session.user.id,
+    excludeUserId: session.user.id,
+  });
+  revalidateExpenseSurfaces();
+  return { success: true };
+}
+
+export async function rejectExpense(id: string, formData: FormData): Promise<ActionResult> {
+  const session = await requireTeam();
+  if (!canEdit(session.role)) return { error: 'Only admins and owners can reject expenses' };
+  const parsed = rejectionSchema.safeParse({ reason: formData.get('reason') });
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Reason is required' };
+
+  const supabase = await createClient();
+  const entry = await getEntryForWorkflow(supabase, session.teamId, id);
+  if (!entry) return { error: 'Expense not found' };
+
+  const { error } = await supabase
+    .from('lunch_entries')
+    .update({
+      approval_status: 'rejected',
+      approved_by: session.user.id,
+      approved_at: new Date().toISOString(),
+      rejection_reason: parsed.data.reason,
+    })
+    .eq('id', id)
+    .eq('team_id', session.teamId);
+  if (error) return { error: error.message };
+
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_rejected',
+    entityType: 'expense',
+    entityId: id,
+    message: `Expense rejected: ${parsed.data.reason}`,
+    metadata: { amount: entry.amount, reason: parsed.data.reason },
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'expense_rejected',
+    title: 'Expense rejected',
+    body: parsed.data.reason,
+    metadata: { entryId: id, reason: parsed.data.reason },
+    memberIds: entry.submitted_by ? [entry.submitted_by] : undefined,
+  });
+  revalidateExpenseSurfaces();
+  return { success: true };
+}
+
+export async function requestExpenseChanges(id: string, formData: FormData): Promise<ActionResult> {
+  return rejectExpense(id, formData);
+}
+
+export async function recordExpenseReimbursement(id: string, formData: FormData): Promise<ActionResult> {
+  const session = await requireTeam();
+  if (!canEdit(session.role)) return { error: 'Only admins and owners can record reimbursements' };
+  const parsed = reimbursementSchema.safeParse({
+    amount: formData.get('amount'),
+    reimbursedAt: formData.get('reimbursedAt'),
+    notes: formData.get('notes') || undefined,
+  });
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid reimbursement' };
+
+  const supabase = await createClient();
+  const entry = await getEntryForWorkflow(supabase, session.teamId, id);
+  if (!entry) return { error: 'Expense not found' };
+  if (!['approved', 'reimbursed'].includes(entry.approval_status)) {
+    return { error: 'Only approved expenses can be reimbursed' };
+  }
+
+  const amount = Number(entry.amount);
+  const reimbursed = Math.min(amount, Number(entry.amount_reimbursed ?? 0) + parsed.data.amount);
+  const reimbursementStatus = reimbursed >= amount ? 'fully_reimbursed' : 'partially_reimbursed';
+  const { error } = await supabase
+    .from('lunch_entries')
+    .update({
+      approval_status: reimbursementStatus === 'fully_reimbursed' ? 'reimbursed' : 'approved',
+      reimbursement_status: reimbursementStatus,
+      amount_reimbursed: reimbursed,
+      reimbursed_at: parsed.data.reimbursedAt,
+      reimbursement_notes: parsed.data.notes ?? null,
+    })
+    .eq('id', id)
+    .eq('team_id', session.teamId);
+  if (error) return { error: error.message };
+
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_reimbursed',
+    entityType: 'expense',
+    entityId: id,
+    message: `Expense reimbursement recorded (${parsed.data.amount})`,
+    metadata: { amount: parsed.data.amount, total_reimbursed: reimbursed, reimbursement_status: reimbursementStatus },
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'reimbursement_completed',
+    title: reimbursementStatus === 'fully_reimbursed' ? 'Reimbursement completed' : 'Reimbursement recorded',
+    body: `Reimbursed ${parsed.data.amount} for an approved expense`,
+    metadata: { entryId: id, amount: parsed.data.amount, reimbursementStatus },
+    memberIds: entry.submitted_by ? [entry.submitted_by] : undefined,
+  });
+  revalidateExpenseSurfaces();
   return { success: true };
 }

@@ -5,7 +5,8 @@
 --
 --   npm run db:seed
 --
--- See docs/SEEDING.md for credentials, teams, and reset commands.
+-- See docs/SEEDING.md for credentials, teams, reset commands, approval
+-- workflow coverage, and reimbursement demo data.
 --
 -- To clear demo teams manually (no auth users):
 -- DELETE FROM teams WHERE slug IN (

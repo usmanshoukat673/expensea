@@ -10,6 +10,8 @@ import type {
 } from "@/lib/database.types"
 import { getMonthEnd, getMonthStart } from "@/lib/budget/engine"
 
+const FINANCIAL_APPROVAL_STATUSES = ["approved", "reimbursed"] as const
+
 async function attachProfiles<T extends { user_id: string }>(
   items: T[],
 ): Promise<(T & { profiles: Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> | null })[]> {
@@ -45,8 +47,9 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
         .limit(8),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, reimbursement_status, amount_reimbursed, user_id, category_id, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
+        .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", monthStart)
         .lte("lunch_date", monthEnd)
         .order("lunch_date", { ascending: true }),
@@ -67,6 +70,12 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
   ])
 
   const rangeEntries = rangeEntriesRes.data ?? []
+  const pendingApprovals = entriesRaw.filter((e) => e.approval_status === "pending_approval").length
+  const approvedThisMonth = rangeEntries.length
+  const rejectedExpenses = entriesRaw.filter((e) => e.approval_status === "rejected").length
+  const reimbursementsOutstanding = rangeEntries
+    .filter((e) => e.reimbursement_status !== "fully_reimbursed")
+    .reduce((s, r) => s + Math.max(0, Number(r.amount) - Number((r as { amount_reimbursed?: number }).amount_reimbursed ?? 0)), 0)
   const totalPending = rangeEntries
     .filter((e) => e.payment_status === "unpaid")
     .reduce((s, r) => s + Number(r.amount), 0)
@@ -126,6 +135,10 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
       totalPaid,
       totalPending,
       memberCount: members.length,
+      pendingApprovals,
+      approvedThisMonth,
+      rejectedExpenses,
+      reimbursementsOutstanding,
     },
     leaderboard,
   }
@@ -279,6 +292,7 @@ export async function getPublicTeamById(teamId: string) {
       .from("lunch_entries")
       .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
       .eq("team_id", team.id)
+      .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
       .order("lunch_date", { ascending: false })
       .limit(100),
     supabase.from("monthly_summaries").select("*").eq("team_id", team.id),
@@ -332,6 +346,7 @@ export async function getPublicTeamBySlug(slug: string) {
       .from("lunch_entries")
       .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
       .eq("team_id", team.id)
+      .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
       .order("lunch_date", { ascending: false })
       .limit(100),
     supabase.from("monthly_summaries").select("*").eq("team_id", team.id),
@@ -401,6 +416,7 @@ export async function getPublicUserSummary(userId: string) {
     .select("amount, lunch_date, payment_status, notes")
     .eq("user_id", userId)
     .eq("team_id", team.id)
+    .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
     .order("lunch_date", { ascending: false })
     .limit(20)
 
@@ -420,6 +436,7 @@ export async function getAnalyticsData(
     .from("lunch_entries")
     .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
     .eq("team_id", teamId)
+    .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
     .gte("lunch_date", from)
 
   if (opts?.to) query = query.lte("lunch_date", opts.to)
@@ -472,6 +489,7 @@ export async function getDashboardHistoricalStats(teamId: string) {
     .from("lunch_entries")
     .select("amount, lunch_date")
     .eq("team_id", teamId)
+    .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
     .gte("lunch_date", from)
     .lte("lunch_date", getMonthEnd(currentMonth))
 

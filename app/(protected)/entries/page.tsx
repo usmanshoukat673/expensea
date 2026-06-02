@@ -37,6 +37,7 @@ export default async function EntriesPage({
   }))
 
   const defaultLunchDate = formatDateYMD(new Date())
+  const canManageEntries = canEdit(session.role)
 
   return (
     <Suspense fallback={<EntriesPageSkeleton />}>
@@ -45,7 +46,9 @@ export default async function EntriesPage({
         members={memberList}
         categories={categories}
         recentCategoryIds={recentCategoryIds}
-        canEdit={canEdit(session.role)}
+        canCreateEntry
+        canManageEntries={canManageEntries}
+        currentUserId={session.user.id}
         defaultLunchDate={defaultLunchDate}
         dateRange={range}
       />

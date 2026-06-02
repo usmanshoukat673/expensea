@@ -51,9 +51,30 @@ export async function seedDemoActivity(
     {
       team_id: hq.id,
       user_id: adminUser ?? owner,
-      action: 'lunch_entry_created',
-      metadata: { amount: 5000, shared: true, note: 'Team lunch' },
+      action: 'expense_submitted',
+      metadata: { amount: 5000, shared: true, note: 'Team lunch', entity_type: 'expense' },
       created_at: toIso(daysAgo(3)),
+    },
+    {
+      team_id: hq.id,
+      user_id: owner,
+      action: 'expense_approved',
+      metadata: { amount: 5000, entity_type: 'expense' },
+      created_at: toIso(daysAgo(2)),
+    },
+    {
+      team_id: hq.id,
+      user_id: adminUser ?? owner,
+      action: 'expense_rejected',
+      metadata: { amount: 2400, reason: 'Missing receipt', entity_type: 'expense' },
+      created_at: toIso(daysAgo(4)),
+    },
+    {
+      team_id: hq.id,
+      user_id: owner,
+      action: 'expense_reimbursed',
+      metadata: { amount: 6400, reimbursement_status: 'fully_reimbursed', entity_type: 'expense' },
+      created_at: toIso(daysAgo(1)),
     },
     {
       team_id: hq.id,

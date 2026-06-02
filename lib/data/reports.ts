@@ -5,10 +5,15 @@ import type { ExpenseCategory, Profile, Settlement, TeamBudget } from "@/lib/dat
 import { getHistoricalBudgetData, getTeamBudgets } from "@/lib/data/budgets"
 import { getMonthEnd, getMonthStart } from "@/lib/budget/engine"
 
+const FINANCIAL_APPROVAL_STATUSES = ["approved", "reimbursed"] as const
+
 type ReportEntry = {
   amount: number
   lunch_date: string
   payment_status: string
+  approval_status?: string
+  reimbursement_status?: string
+  amount_reimbursed?: number
   user_id: string
   category_id?: string | null
   notes?: string | null
@@ -101,27 +106,31 @@ export async function getReportsData(teamId: string, range: DateRangeValue) {
     await Promise.all([
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
+        .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", range.from)
         .lte("lunch_date", range.to)
         .order("lunch_date", { ascending: false }),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
+        .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", previousRange.from)
         .lte("lunch_date", previousRange.to),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
+        .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", currentMonth)
         .lte("lunch_date", getMonthEnd(currentMonth)),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
+        .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", previousMonth)
         .lte("lunch_date", getMonthEnd(previousMonth)),
       supabase
@@ -133,6 +142,13 @@ export async function getReportsData(teamId: string, range: DateRangeValue) {
       getTeamBudgets(teamId),
       getHistoricalBudgetData(teamId, range.from, range.to),
     ])
+
+  const { data: workflowRows } = await supabase
+    .from("lunch_entries")
+    .select("amount, lunch_date, approval_status, reimbursement_status, amount_reimbursed")
+    .eq("team_id", teamId)
+    .gte("lunch_date", range.from)
+    .lte("lunch_date", range.to)
 
   const entries = await attachProfiles((entriesRes.data ?? []) as ReportEntry[])
   const previousEntries = await attachProfiles((previousEntriesRes.data ?? []) as ReportEntry[])
@@ -170,6 +186,24 @@ export async function getReportsData(teamId: string, range: DateRangeValue) {
   }
   const activeBudgets = (budgets as TeamBudget[]).length
   const overspendingHistory = budgetHistory.filter((month) => month.exceeded)
+  const workflow = workflowRows ?? []
+  const approvedCount = workflow.filter((entry) => ["approved", "reimbursed"].includes(entry.approval_status)).length
+  const rejectedCount = workflow.filter((entry) => entry.approval_status === "rejected").length
+  const pendingCount = workflow.filter((entry) => entry.approval_status === "pending_approval").length
+  const decidedCount = approvedCount + rejectedCount
+  const reimbursementOutstanding = workflow
+    .filter((entry) => ["approved", "reimbursed"].includes(entry.approval_status))
+    .reduce((total, entry) => total + Math.max(0, Number(entry.amount) - Number(entry.amount_reimbursed ?? 0)), 0)
+  const reimbursementTrend = summarizeByMonth(
+    workflow
+      .filter((entry) => Number(entry.amount_reimbursed ?? 0) > 0)
+      .map((entry) => ({
+        amount: Number(entry.amount_reimbursed ?? 0),
+        lunch_date: entry.lunch_date,
+        payment_status: "paid",
+        user_id: "",
+      })),
+  )
 
   return {
     range,
@@ -195,6 +229,15 @@ export async function getReportsData(teamId: string, range: DateRangeValue) {
       activeBudgets,
       history: budgetHistory,
       overspendingHistory,
+    },
+    approvalMetrics: {
+      approvalRate: decidedCount ? (approvedCount / decidedCount) * 100 : 0,
+      rejectionRate: decidedCount ? (rejectedCount / decidedCount) * 100 : 0,
+      pendingApprovals: pendingCount,
+      approvedCount,
+      rejectedCount,
+      reimbursementOutstanding,
+      reimbursementTrend,
     },
   }
 }

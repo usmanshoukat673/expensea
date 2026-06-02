@@ -1,12 +1,12 @@
 # Expensea — Smarter Expense Tracking
 
-Expensea is a free, open-source expense tracker for teams that need shared spending, budgets, settlements, reporting, recurring expenses, and public read-only sharing in one Supabase-backed workspace.
+Expensea is a free, open-source expense tracker for teams that need shared spending, approvals, reimbursements, budgets, settlements, reporting, recurring expenses, and public read-only sharing in one Supabase-backed workspace.
 
 ## Overview
 
 Expensea uses a multi-team architecture where each user can belong to several teams and switch an active team context from their profile. Each team owns its expenses, categories, budgets, settlements, invites, notifications, recurring rules, and activity logs. Owners and admins can manage data; viewers can inspect team spending without changing it.
 
-The app supports individual and shared expenses, equal or selected participant splits, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, realtime notifications, activity history, team invite links, and public share pages for teams that opt in.
+The app supports individual and shared expenses, equal or selected participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, realtime notifications, activity history, team invite links, and public share pages for teams that opt in.
 
 ## Features
 
@@ -29,10 +29,22 @@ The app supports individual and shared expenses, equal or selected participant s
 
 - CRUD for team-scoped expense entries stored in `lunch_entries`.
 - Paid/unpaid status, notes, expense date, payer, category, and created-by tracking.
+- Approval statuses: draft, pending approval, approved, rejected, and reimbursed.
+- Viewers can create drafts and submit expenses; admins and owners review, approve, reject, request changes, and record reimbursements.
+- Only approved and reimbursed expenses affect budgets, analytics, reports, public financial totals, and settlement balances.
 - Shared expenses with `none`, `equal`, or `selected` split modes.
 - Participant shares stored in `lunch_entry_participants`.
 - Bulk delete for selected expenses.
 - Realtime refresh support for expense and team updates.
+
+### Approvals And Reimbursements
+
+- Approval queue at `/approvals` with pending, approved, and rejected tabs.
+- Filters for active team context, date range, category, and submitter.
+- Reject and request-changes actions require a reason.
+- Reimbursement status tracks not reimbursed, partially reimbursed, and fully reimbursed expenses.
+- Reimbursement records store amount reimbursed, reimbursement date, and notes.
+- Notifications and activity feed entries are created for submitted, approved, rejected, and reimbursed expenses.
 
 ### Categories
 
@@ -59,6 +71,7 @@ The app supports individual and shared expenses, equal or selected participant s
 - Reports by date range with current/previous comparisons.
 - Monthly summary totals, paid/pending totals, member spending, category breakdowns, and settlement summary.
 - Historical budget data for trend and overspending analysis.
+- Approval metrics include approval rate, rejection rate, pending approvals, and reimbursement trends.
 
 ### Recurring Expenses
 
@@ -129,7 +142,7 @@ Fill in:
 
 4. Run database migrations in order.
 
-Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `011_recurring_expenses.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
+Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `012_expense_approvals_reimbursements.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
 
 5. Configure Supabase Auth.
 
@@ -190,7 +203,7 @@ Joins users to teams with a role and status. Key fields: `team_id`, `user_id`, `
 
 ### expenses
 
-The app stores expenses in `lunch_entries` for historical compatibility. Key fields: `team_id`, `user_id`, `amount`, `lunch_date`, `notes`, `payment_status`, `category_id`, `is_shared`, `split_type`, `created_by`, `recurring_expense_id`. Shared participant rows live in `lunch_entry_participants`.
+The app stores expenses in `lunch_entries` for historical compatibility. Key fields: `team_id`, `user_id`, `amount`, `lunch_date`, `notes`, `payment_status`, `approval_status`, `submitted_by`, `approved_by`, `approved_at`, `rejection_reason`, `reimbursement_status`, `amount_reimbursed`, `reimbursed_at`, `reimbursement_notes`, `category_id`, `is_shared`, `split_type`, `created_by`, `recurring_expense_id`. Shared participant rows live in `lunch_entry_participants`.
 
 ### expense_categories
 
@@ -224,12 +237,13 @@ Normalized activity audit table mirrored from `team_activity_log`. Key fields: `
 
 - [Architecture](docs/architecture.md)
 - [API and Server Actions](docs/api.md)
+- [Database](docs/database.md)
 - [Seeding Guide](docs/SEEDING.md)
 - [Deployment Notes](DEPLOYMENT.md)
 
 ## Demo Data
 
-`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, notifications, pending invites, public teams, and activity history.
+`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, notifications, pending invites, public teams, and activity history.
 
 Primary demo login:
 

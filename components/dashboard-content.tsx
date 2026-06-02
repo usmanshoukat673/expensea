@@ -13,6 +13,9 @@ import {
   Wallet,
   PiggyBank,
   CalendarDays,
+  ClipboardCheck,
+  CircleX,
+  CircleCheck,
 } from "lucide-react"
 import {
   Card,
@@ -73,6 +76,10 @@ type DashboardProps = {
     totalPaid: number
     totalPending: number
     memberCount: number
+    pendingApprovals: number
+    approvedThisMonth: number
+    rejectedExpenses: number
+    reimbursementsOutstanding: number
   }
   recentEntries: LunchEntryWithProfile[]
   monthlyEntries: { amount: number; lunch_date: string }[]
@@ -151,6 +158,13 @@ export function DashboardContent({
     },
   ]
 
+  const workflowCards = [
+    { title: "Pending approvals", value: String(stats.pendingApprovals), icon: ClipboardCheck },
+    { title: "Approved this month", value: String(stats.approvedThisMonth), icon: CircleCheck },
+    { title: "Rejected expenses", value: String(stats.rejectedExpenses), icon: CircleX },
+    { title: "Reimbursements outstanding", value: format(stats.reimbursementsOutstanding), icon: Wallet },
+  ]
+
   const quickActions = [
     { href: "/entries", label: "All entries", icon: BookOpen },
     { href: "/recurring-expenses", label: "Recurring", icon: CalendarDays },
@@ -197,6 +211,23 @@ export function DashboardContent({
                 </CardContent>
               </Card>
             </motion.div>
+          )
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {workflowCards.map((stat) => {
+          const Icon = stat.icon
+          return (
+            <Card key={stat.title}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardDescription>{stat.title}</CardDescription>
+                <Icon className="size-4 shrink-0 text-accent" />
+              </CardHeader>
+              <CardContent>
+                <div className="break-words text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
           )
         })}
       </div>

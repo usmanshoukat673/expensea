@@ -7,6 +7,8 @@ import {
 } from '@/lib/seed/config';
 import { log, monthStart } from '@/lib/seed/utils';
 
+const FINANCIAL_APPROVAL_STATUSES = ['approved', 'reimbursed'] as const;
+
 export async function seedDemoBudgets(
   admin: SeedAdmin,
   users: UserMap,
@@ -100,6 +102,7 @@ async function getCurrentSpend(
     .from('lunch_entries')
     .select('amount, category_id')
     .eq('team_id', teamId)
+    .in('approval_status', FINANCIAL_APPROVAL_STATUSES)
     .gte('lunch_date', from)
     .lte('lunch_date', to);
 

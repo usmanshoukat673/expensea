@@ -53,6 +53,16 @@ export const lunchEntrySchema = z.object({
   participantIds: z.array(z.string().uuid()).optional(),
 });
 
+export const rejectionSchema = z.object({
+  reason: z.string().min(3, 'Reason is required').max(500),
+});
+
+export const reimbursementSchema = z.object({
+  amount: z.coerce.number().positive('Amount must be positive'),
+  reimbursedAt: z.string().min(1, 'Date is required'),
+  notes: z.string().max(500).optional(),
+});
+
 export const recurringExpenseSchema = z
   .object({
     title: z.string().min(2, 'Title is required').max(120),
@@ -94,6 +104,7 @@ export const joinTeamSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LunchEntryInput = z.infer<typeof lunchEntrySchema>;
+export type ReimbursementInput = z.infer<typeof reimbursementSchema>;
 export type RecurringExpenseInput = z.infer<typeof recurringExpenseSchema>;
 export type CategoryInput = z.infer<typeof categorySchema>;
 export const budgetSchema = z

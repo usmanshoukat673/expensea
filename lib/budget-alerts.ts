@@ -7,6 +7,7 @@ import {
 import type { createClient } from '@/lib/supabase/server';
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
+const FINANCIAL_APPROVAL_STATUSES = ['approved', 'reimbursed'] as const;
 
 export async function notifyBudgetThresholds(
   supabase: SupabaseServer,
@@ -20,6 +21,7 @@ export async function notifyBudgetThresholds(
       .from('lunch_entries')
       .select('team_id, amount, lunch_date, category_id')
       .eq('team_id', opts.teamId)
+      .in('approval_status', FINANCIAL_APPROVAL_STATUSES)
       .gte('lunch_date', monthStart)
       .lte('lunch_date', monthEnd),
     supabase.from('expense_categories').select('id, name, color').eq('team_id', opts.teamId),

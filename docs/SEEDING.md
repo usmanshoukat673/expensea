@@ -4,7 +4,7 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 
 ## Prerequisites
 
-1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `011_recurring_expenses.sql`.
+1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `012_expense_approvals_reimbursements.sql`.
 2. Set these variables in `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -33,13 +33,15 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 - Memberships: owner/admin/viewer role coverage.
 - Categories: Food, Travel, Office, Internet, Utilities, Entertainment, Miscellaneous.
 - Expenses: current month, previous month, and historical expenses across categories.
+- Approvals: pending approvals, approved expenses, rejected expenses, and draft/submitted workflow coverage.
+- Reimbursements: not reimbursed, partially reimbursed, and fully reimbursed expense examples.
 - Shared expenses: equal participant splits and participant rows.
 - Budgets: team and category budgets with healthy, near-limit, and over-budget examples.
 - Settlements: pending, completed, and cancelled records.
 - Invites: legacy email invites and shareable invite links.
 - Recurring expenses: active, paused, and completed monthly rules.
-- Notifications: expense, budget, settlement, and invite examples.
-- Activity: team, member, expense, budget, invite, and settlement history.
+- Notifications: expense submission, approval, rejection, reimbursement, budget, settlement, and invite examples.
+- Activity: team, member, submitted/approved/rejected/reimbursed expense, budget, invite, and settlement history.
 - Reports/analytics: generated from seeded expenses, budgets, settlements, and activity.
 
 ## Demo Logins
@@ -80,7 +82,7 @@ scripts/reset.ts                   -> lib/seed/reset.ts
 lib/seed/config.ts                 -> deterministic users, teams, budgets
 lib/seed/auth.ts                   -> Supabase auth users and profiles
 lib/seed/teams.ts                  -> teams, memberships, invites
-lib/seed/expenses.ts               -> expenses and participants
+lib/seed/expenses.ts               -> expenses, participants, approvals, reimbursements
 lib/seed/budgets.ts                -> dynamic budget states from current spend
 lib/seed/settlements.ts            -> settlement records
 lib/seed/recurring-expenses.ts     -> recurring rules
@@ -93,6 +95,7 @@ The seeders use fixed team slugs for idempotency and a seeded Faker instance for
 ## Seeder Audit Notes
 
 - Current seeders are complete for the implemented product surface.
+- Expense seeders now cover approval statuses and reimbursement statuses.
 - The recurring-expense seeder covers active, paused, and completed rules.
 - Reset now clears all demo-owned relational tables, including `recurring_expenses`, `team_invites`, normalized `activity_logs`, and legacy `team_activity_log`.
 - The app stores expenses in `lunch_entries`; documentation may refer to these as expenses for product clarity.
