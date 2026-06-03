@@ -13,6 +13,8 @@ import {
   Wallet,
   PiggyBank,
   CalendarDays,
+  Bell,
+  CheckCheck,
   ClipboardCheck,
   CircleX,
   CircleCheck,
@@ -29,7 +31,7 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useCurrency } from "@/hooks/use-currency"
 import { EmptyState } from "@/components/ui/empty-states"
-import type { LunchEntryWithProfile, SettlementWithProfiles } from "@/lib/database.types"
+import type { LunchEntryWithProfile, Notification, SettlementWithProfiles } from "@/lib/database.types"
 import type { RecurringExpenseWithCategory } from "@/lib/database.types"
 import { getCategoryIcon } from "@/lib/categories/icons"
 import { DashboardBalanceWidgets } from "@/components/dashboard/balance-widgets"
@@ -65,7 +67,11 @@ const TopCategoriesList = dynamic(
 
 type Activity = {
   id: string
-  action: string
+  action?: string
+  action_type?: string
+  entity_type?: string
+  description?: string
+  message?: string
   created_at: string
   profiles?: { full_name: string | null } | null
 }
@@ -90,6 +96,11 @@ type DashboardProps = {
     expense_categories?: { id: string; name: string; color: string } | null
   }[]
   activity: Activity[]
+  notificationSummary: {
+    unreadCount: number
+    pendingActions: number
+    latest: Notification[]
+  }
   balance: {
     pendingTotal: number
     youOwe: number
@@ -120,6 +131,7 @@ export function DashboardContent({
   monthlyEntries,
   categoryEntries,
   activity,
+  notificationSummary,
   leaderboard,
   balance,
   budgetSummary,
@@ -454,8 +466,11 @@ export function DashboardContent({
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
               <CardTitle>Recent activity</CardTitle>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/activity">View</Link>
+              </Button>
             </CardHeader>
             <CardContent className="space-y-2 max-h-[220px] overflow-y-auto">
               {activity.length === 0 ? (
@@ -471,7 +486,7 @@ export function DashboardContent({
                     </span>
                     <span className="text-muted-foreground">
                       {" "}
-                      · {a.action.replace(/_/g, " ")}
+                      · {(a.description ?? a.message ?? a.action_type ?? "updated").replace(/_/g, " ")}
                     </span>
                     <span className="text-xs text-muted-foreground block">
                       {formatDistanceToNow(new Date(a.created_at), {
@@ -479,6 +494,46 @@ export function DashboardContent({
                       })}
                     </span>
                   </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="size-4 shrink-0 text-accent" />
+                Notifications
+              </CardTitle>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/notifications">View</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">Unread</p>
+                  <p className="mt-1 text-2xl font-bold">{notificationSummary.unreadCount}</p>
+                </div>
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs text-muted-foreground">Pending actions</p>
+                  <p className="mt-1 text-2xl font-bold">{notificationSummary.pendingActions}</p>
+                </div>
+              </div>
+              {notificationSummary.latest.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No notifications</p>
+              ) : (
+                notificationSummary.latest.slice(0, 3).map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.link ?? "/notifications"}
+                    className="block rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                  >
+                    <span className="block truncate font-medium">{item.title}</span>
+                    <span className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                      {item.message ?? item.body}
+                    </span>
+                  </Link>
                 ))
               )}
             </CardContent>

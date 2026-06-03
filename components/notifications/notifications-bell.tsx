@@ -37,7 +37,7 @@ export function NotificationsBell({
   const [loading, setLoading] = useState(false);
   const [, startTransition] = useTransition();
   const channelId = useId().replace(/:/g, '');
-  const unread = items.filter((n) => n.team_id === teamId && n.user_id === userId && !n.read_at).length;
+  const unread = items.filter((n) => n.team_id === teamId && n.user_id === userId && !n.is_read).length;
   const orderedItems = useMemo(
     () =>
       [...items]
@@ -88,7 +88,7 @@ export function NotificationsBell({
       await markNotificationRead(id);
       setItems((prev) =>
         prev.map((n) =>
-          n.id === id ? { ...n, read_at: new Date().toISOString() } : n,
+          n.id === id ? { ...n, read_at: new Date().toISOString(), is_read: true, read: true } : n,
         ),
       );
     });
@@ -101,7 +101,7 @@ export function NotificationsBell({
       const now = new Date().toISOString();
       setItems((prev) =>
         prev.map((n) =>
-          n.team_id === teamId && n.user_id === userId ? { ...n, read_at: now, read: true } : n,
+          n.team_id === teamId && n.user_id === userId ? { ...n, read_at: now, read: true, is_read: true } : n,
         ),
       );
       setLoading(false);
@@ -156,15 +156,15 @@ export function NotificationsBell({
                 type="button"
                 className={cn(
                   'w-full border-b border-border px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-muted/50',
-                  !n.read_at && 'bg-muted/30',
+                  !n.is_read && 'bg-muted/30',
                 )}
-                onClick={() => !n.read_at && markRead(n.id)}
+                onClick={() => !n.is_read && markRead(n.id)}
               >
                 <div className="flex gap-2">
                   <Icon className={cn('mt-0.5 size-4 shrink-0', style.className)} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      {!n.read_at && <Circle className="size-2 fill-current text-accent" />}
+                      {!n.is_read && <Circle className="size-2 fill-current text-accent" />}
                       <p className="truncate text-sm font-medium">{n.title}</p>
                     </div>
                     {(n.message ?? n.body) && (
@@ -183,7 +183,7 @@ export function NotificationsBell({
         </div>
         <div className="border-t border-border p-2">
           <Button variant="ghost" size="sm" className="w-full" asChild>
-            <Link href="/activity">View all</Link>
+            <Link href="/notifications">View all</Link>
           </Button>
         </div>
       </PopoverContent>

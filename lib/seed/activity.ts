@@ -10,6 +10,7 @@ export async function seedDemoActivity(
 ): Promise<void> {
   const teamIds = [...teams.values()].map((t) => t.id);
   await admin.from('team_activity_log').delete().in('team_id', teamIds);
+  await admin.from('activity_logs').delete().in('team_id', teamIds);
 
   const owner = users.get('owner@expensea.app');
   const adminUser = users.get('admin@expensea.app');
@@ -154,5 +155,30 @@ export async function seedDemoActivity(
 
   const { error } = await admin.from('team_activity_log').insert(rows);
   if (error) throw new Error(`Activity: ${error.message}`);
-  log('activity', `${rows.length} log entries`);
+  await admin.from('activity_logs').delete().in('team_id', teamIds);
+
+  const normalizedRows = rows.map((row) => {
+    const entityType = String(row.metadata.entity_type ?? (row.action.startsWith('expense') || row.action.startsWith('lunch') ? 'expense' : row.action.startsWith('budget') ? 'budget' : row.action.startsWith('settlement') ? 'settlement' : row.action.startsWith('invite') || row.action.startsWith('invitation') ? 'team' : row.action.startsWith('recurring') ? 'recurring_expense' : 'team'));
+    const description = String(
+      row.metadata.description ??
+        row.metadata.message ??
+        row.metadata.note ??
+        row.action.replace(/_/g, ' '),
+    );
+    return {
+      team_id: row.team_id,
+      user_id: row.user_id,
+      action_type: row.action,
+      entity_type: entityType,
+      entity_id: (row.metadata.entity_id as string | undefined) ?? null,
+      message: description,
+      description,
+      metadata: row.metadata,
+      created_at: row.created_at,
+    };
+  });
+
+  const { error: normalizedError } = await admin.from('activity_logs').insert(normalizedRows);
+  if (normalizedError) throw new Error(`Activity logs: ${normalizedError.message}`);
+  log('activity', `${rows.length} legacy entries, ${normalizedRows.length} activity logs`);
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Home, BookOpen, Users, BarChart3, Settings, Bell } from 'lucide-react';
+import { Menu, X, Home, BookOpen, Users, BarChart3, Settings, Bell, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BrandLogo } from '@/components/branding/brand-logo';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -15,8 +15,9 @@ import type { AppLayoutUser } from '@/components/app-layout';
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
   { href: '/entries', icon: BookOpen, label: 'Entries' },
+  { href: '/notifications', icon: Bell, label: 'Notifications' },
   { href: '/team', icon: Users, label: 'Team' },
-  { href: '/activity', icon: Bell, label: 'Activity' },
+  { href: '/activity', icon: Activity, label: 'Activity' },
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/settings/profile', icon: Settings, label: 'Settings' },
 ];

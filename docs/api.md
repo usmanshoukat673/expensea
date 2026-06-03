@@ -275,6 +275,27 @@ Actions:
 
 - `markNotificationRead(id)`
 - `markAllNotificationsRead()`
+- `deleteNotification(id)`
+- `bulkUpdateNotifications(ids, action)`
+
+Bulk action values:
+
+```ts
+'read' | 'archive' | 'delete'
+```
+
+Notification reads use `lib/data/notifications.ts`:
+
+- `getNotificationsPage(userId, teamId, { status, search, page, limit })`
+- `getNotificationSummary(userId, teamId)`
+
+The `/notifications` page filters by `status=all|unread|read|archived`, searches with `q`, and paginates with `page`. Notification rows include `link` so alerts can open the related expense, budget, settlement, team, or approval page.
+
+## Activity Reads
+
+Activity reads use `getActivityLogs(teamId, { type, page, limit, search })` from `lib/data/dashboard.ts`.
+
+The `/activity` page filters by `type=expense|budget|team|settlement|approval|recurring_expense`, searches with `q`, and paginates with `page`. Supabase Realtime subscriptions are team-scoped and listen for new `activity_logs` inserts only.
 
 ## API Routes
 

@@ -135,10 +135,43 @@ Recurring rules live in `recurring_expenses`. The database function `process_due
 
 The Next.js route `/api/cron/recurring-expenses` invokes that function with the service-role client. If `CRON_SECRET` is set, callers must send `Authorization: Bearer <CRON_SECRET>`.
 
-## Activity And Notifications
+## Notification Architecture
 
-`team_activity_log` is the legacy activity stream. Migration `010_smart_notifications_activity.sql` creates normalized `activity_logs` and mirrors new legacy rows into it. The app reads normalized activity data while seeders still insert the legacy stream to exercise the mirror trigger.
+Notifications are stored in `notifications` and scoped by `team_id` plus `user_id`. Producers use `notifyTeamMembers` from `lib/activity.ts` or the compatibility wrapper in `lib/notifications.ts`.
 
-Notifications are stored in `notifications`. Compatibility columns `body/message` and `read/read_at` are synchronized by trigger so old and new UI paths remain aligned.
+The notification flow is:
 
-Approval notifications are generated for `expense_submitted`, `expense_approved`, `expense_rejected`, and `reimbursement_completed`. Activity entries use `expense_submitted`, `expense_approved`, `expense_rejected`, and `expense_reimbursed`.
+```text
+server action / cron
+  -> notifyTeamMembers(...)
+  -> notifications insert with type, title, message, link, metadata
+  -> Supabase Realtime streams row to matching user
+  -> bell preview and /notifications update without refresh
+```
+
+The `/notifications` inbox supports all/unread/read/archived filters, search, pagination, mark read, mark all read, delete, archive, and selected bulk actions. Notification links deep-link to the related product surface, such as `/entries`, `/budgets`, `/settlements`, `/team`, or `/approvals`.
+
+Role-aware audience selection happens before insert:
+
+- `personal`: explicit member ids, usually for viewer-owned events.
+- `admins`: owners and admins.
+- `owners`: team owners only.
+- `team`: all active members, optionally excluding the actor.
+
+Migration `013_notifications_activity_center.sql` keeps compatibility columns aligned. `body/message` and `read/read_at/is_read` are synchronized by trigger so old and new paths remain consistent.
+
+## Activity Architecture
+
+`team_activity_log` is the legacy activity stream. Normalized `activity_logs` stores the current activity center fields: `action_type`, `entity_type`, `entity_id`, `description`, `metadata`, and `created_at`. Migration `013_notifications_activity_center.sql` mirrors new legacy rows into `activity_logs` and keeps `message/description` synchronized.
+
+The activity flow is:
+
+```text
+server action / cron
+  -> recordActivity(...)
+  -> activity_logs insert
+  -> Supabase Realtime streams team-scoped inserts
+  -> /activity and dashboard recent activity update without refresh
+```
+
+Activity filters use `entity_type` and cover expense, budget, team, settlement, approval, and recurring expense events. Search runs against description, message, and action type. Pages load in bounded ranges and realtime subscriptions are scoped to the active team to avoid large payloads and excessive channel usage.

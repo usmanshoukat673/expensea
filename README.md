@@ -6,7 +6,7 @@ Expensea is a free, open-source expense tracker for teams that need shared spend
 
 Expensea uses a multi-team architecture where each user can belong to several teams and switch an active team context from their profile. Each team owns its expenses, categories, budgets, settlements, invites, notifications, recurring rules, and activity logs. Owners and admins can manage data; viewers can inspect team spending without changing it.
 
-The app supports individual and shared expenses, equal or selected participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, realtime notifications, activity history, team invite links, and public share pages for teams that opt in.
+The app supports individual and shared expenses, equal or selected participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, realtime notifications, a searchable activity center, team invite links, and public share pages for teams that opt in.
 
 ## Features
 
@@ -82,10 +82,18 @@ The app supports individual and shared expenses, equal or selected participant s
 
 ### Notifications
 
-- Notification bell backed by `notifications`.
-- Read/read-all server actions.
-- Demo data includes expense notifications, budget alerts, settlement reminders, and invite notifications.
+- Notification bell backed by `notifications` with unread badge, realtime dropdown preview, and quick mark-all action.
+- Full inbox at `/notifications` with all/unread/read/archived filters, search, pagination, deep links, mark-read, mark-all-read, delete, archive, and bulk actions.
+- Role-aware producers send personal notifications to viewers and team/admin/owner notifications for operational events.
+- Demo data includes expense notifications, budget alerts, settlement reminders, recurring events, and invite notifications.
 - Recurring generation can create notifications for team members.
+
+### Activity Center
+
+- Team-wide realtime timeline at `/activity`.
+- Activity filters cover expenses, budgets, team events, settlements, approvals, and recurring expenses.
+- Search and pagination keep large timelines usable while Supabase Realtime streams new events for the active team.
+- Dashboard includes a recent activity widget and notification summary widget.
 
 ### Public Sharing
 
@@ -142,7 +150,7 @@ Fill in:
 
 4. Run database migrations in order.
 
-Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `012_expense_approvals_reimbursements.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
+Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `013_notifications_activity_center.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
 
 5. Configure Supabase Auth.
 
@@ -227,11 +235,11 @@ Recurring expense rules. Key fields: `team_id`, `created_by`, `title`, `amount`,
 
 ### notifications
 
-User notifications scoped to a team. Key fields: `user_id`, `team_id`, `type`, `title`, `body`, `message`, `metadata`, `read`, `read_at`.
+User notifications scoped to a team. Key fields: `user_id`, `team_id`, `type`, `title`, `body`, `message`, `link`, `metadata`, `read`, `read_at`, `is_read`, `archived_at`, `created_at`.
 
 ### activity_logs
 
-Normalized activity audit table mirrored from `team_activity_log`. Key fields: `team_id`, `user_id`, `action_type`, `entity_type`, `entity_id`, `message`, `metadata`, `created_at`.
+Normalized activity audit table mirrored from `team_activity_log`. Key fields: `team_id`, `user_id`, `action_type`, `entity_type`, `entity_id`, `description`, `message`, `metadata`, `created_at`.
 
 ## Documentation
 
@@ -243,7 +251,7 @@ Normalized activity audit table mirrored from `team_activity_log`. Key fields: `
 
 ## Demo Data
 
-`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, notifications, pending invites, public teams, and activity history.
+`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, and normalized activity history.
 
 Primary demo login:
 

@@ -8,6 +8,8 @@ export type ActivityEntityType =
   | 'team'
   | 'invite'
   | 'settlement'
+  | 'approval'
+  | 'recurring_expense'
   | 'category';
 
 export type NotificationKind = 'info' | 'warning' | 'success' | 'error';
@@ -29,12 +31,17 @@ export async function recordActivity(
     entity_type: opts.entityType,
     entity_id: opts.entityId ?? null,
     message: opts.message,
+    description: opts.message,
   };
 
-  await supabase.from('team_activity_log').insert({
+  await supabase.from('activity_logs').insert({
     team_id: opts.teamId,
     user_id: opts.userId ?? null,
-    action: opts.actionType,
+    action_type: opts.actionType,
+    entity_type: opts.entityType,
+    entity_id: opts.entityId ?? null,
+    message: opts.message,
+    description: opts.message,
     metadata,
   });
 }
@@ -46,18 +53,25 @@ export async function notifyTeamMembers(opts: {
   type: NotificationKind;
   title: string;
   message: string;
+  link?: string | null;
   metadata?: Record<string, unknown>;
   memberIds?: string[];
+  audience?: 'personal' | 'admins' | 'owners' | 'team';
 }) {
   const supabase = opts.supabase ?? (await createClient());
   let ids = opts.memberIds;
 
   if (!ids) {
-    const { data } = await supabase
+    let query = supabase
       .from('team_members')
-      .select('user_id')
+      .select('user_id, role')
       .eq('team_id', opts.teamId)
       .eq('status', 'active');
+
+    if (opts.audience === 'admins') query = query.in('role', ['owner', 'admin']);
+    if (opts.audience === 'owners') query = query.eq('role', 'owner');
+
+    const { data } = await query;
     ids = (data ?? []).map((m) => m.user_id);
   }
 
@@ -72,7 +86,8 @@ export async function notifyTeamMembers(opts: {
       title: opts.title,
       body: opts.message,
       message: opts.message,
-      metadata: opts.metadata ?? {},
+      link: opts.link ?? null,
+      metadata: { ...(opts.metadata ?? {}), audience: opts.audience ?? 'team' },
     })),
   );
 }

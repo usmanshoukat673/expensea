@@ -14,7 +14,7 @@ export default async function DashboardPage({
   const range = getDateRange(params?.dateRange, params?.from, params?.to)
   const session = await requireTeam()
   const [data, balance, budgetSummary, historicalStats, upcomingRecurringExpenses] = await Promise.all([
-    getDashboardData(session.teamId, range),
+    getDashboardData(session.teamId, range, session.user.id),
     getDashboardBalance(session.teamId, session.user.id, range),
     getDashboardBudgetSummary(session.teamId, monthStartFromYMD(range.from)),
     getDashboardHistoricalStats(session.teamId),
@@ -35,6 +35,7 @@ export default async function DashboardPage({
       monthlyEntries={data.monthlyEntries}
       categoryEntries={categoryEntries}
       activity={data.activity}
+      notificationSummary={data.notificationSummary}
       leaderboard={data.leaderboard}
       balance={{
         pendingTotal: balance.pendingTotal,
