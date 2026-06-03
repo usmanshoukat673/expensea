@@ -2,11 +2,15 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Bell,
   BookOpen,
   CircleDollarSign,
+  ClipboardCheck,
+  Search,
+  CalendarClock,
   PiggyBank,
   Scale,
   Tag,
@@ -18,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-states';
 
 type ActivityRow = ActivityLog & {
@@ -30,7 +35,8 @@ const filters = [
   { value: 'budget', label: 'Budgets' },
   { value: 'team', label: 'Team' },
   { value: 'settlement', label: 'Settlements' },
-  { value: 'category', label: 'Categories' },
+  { value: 'approval', label: 'Approvals' },
+  { value: 'recurring_expense', label: 'Recurring' },
 ] as const;
 
 const iconMap = {
@@ -39,6 +45,8 @@ const iconMap = {
   team: Users,
   invite: Users,
   settlement: Scale,
+  approval: ClipboardCheck,
+  recurring_expense: CalendarClock,
   category: Tag,
 } as const;
 
@@ -48,8 +56,19 @@ const colorMap: Record<string, string> = {
   team: 'text-green-600 bg-green-500/10 dark:text-green-400',
   invite: 'text-green-600 bg-green-500/10 dark:text-green-400',
   settlement: 'text-red-600 bg-red-500/10 dark:text-red-400',
+  approval: 'text-violet-600 bg-violet-500/10 dark:text-violet-400',
+  recurring_expense: 'text-cyan-600 bg-cyan-500/10 dark:text-cyan-400',
   category: 'text-primary bg-primary/10',
 };
+
+function activityHref(type: string, search: string, page = 1) {
+  const params = new URLSearchParams();
+  if (type !== 'all') params.set('type', type);
+  if (search.trim()) params.set('q', search.trim());
+  if (page > 1) params.set('page', String(page));
+  const qs = params.toString();
+  return qs ? `/activity?${qs}` : '/activity';
+}
 
 export function ActivityContent({
   initialActivity,
@@ -57,6 +76,7 @@ export function ActivityContent({
   page,
   limit,
   activeType,
+  search,
   teamId,
 }: {
   initialActivity: ActivityRow[];
@@ -64,9 +84,12 @@ export function ActivityContent({
   page: number;
   limit: number;
   activeType: string;
+  search: string;
   teamId: string;
 }) {
+  const router = useRouter();
   const [activity, setActivity] = useState(initialActivity);
+  const [query, setQuery] = useState(search);
   const pages = Math.max(1, Math.ceil(total / limit));
 
   useEffect(() => {
@@ -87,7 +110,12 @@ export function ActivityContent({
         },
         (payload) => {
           const row = payload.new as ActivityLog;
-          if (activeType !== 'all' && row.entity_type !== activeType) return;
+          const matchesActiveType =
+            activeType === 'all' ||
+            row.entity_type === activeType ||
+            (activeType === 'approval' &&
+              ['expense_submitted', 'expense_approved', 'expense_rejected', 'expense_reimbursed', 'reimbursement_completed'].includes(row.action_type));
+          if (!matchesActiveType) return;
           setActivity((prev) => [row, ...prev.filter((a) => a.id !== row.id)].slice(0, limit));
         },
       )
@@ -102,7 +130,11 @@ export function ActivityContent({
     () =>
       activeType === 'all'
         ? activity
-        : activity.filter((item) => item.entity_type === activeType),
+        : activity.filter((item) =>
+            activeType === 'approval'
+              ? ['expense_submitted', 'expense_approved', 'expense_rejected', 'expense_reimbursed', 'reimbursement_completed'].includes(item.action_type)
+              : item.entity_type === activeType,
+          ),
     [activity, activeType],
   );
 
@@ -118,19 +150,40 @@ export function ActivityContent({
         <Badge variant="outline">{total} events</Badge>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {filters.map((filter) => (
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {filters.map((filter) => (
+            <Button
+              key={filter.value}
+              variant={activeType === filter.value ? 'default' : 'outline'}
+              size="sm"
+              asChild
+            >
+              <Link href={activityHref(filter.value, search)}>
+                {filter.label}
+              </Link>
+            </Button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') router.push(activityHref(activeType, query));
+            }}
+            placeholder="Search activity"
+            className="w-full sm:w-72"
+          />
           <Button
-            key={filter.value}
-            variant={activeType === filter.value ? 'default' : 'outline'}
-            size="sm"
-            asChild
+            variant="outline"
+            size="icon"
+            aria-label="Search activity"
+            onClick={() => router.push(activityHref(activeType, query))}
           >
-            <Link href={filter.value === 'all' ? '/activity' : `/activity?type=${filter.value}`}>
-              {filter.label}
-            </Link>
+            <Search className="size-4" />
           </Button>
-        ))}
+        </div>
       </div>
 
       <Card>
@@ -166,7 +219,7 @@ export function ActivityContent({
                     </span>
                     <div className="min-w-0 flex-1 border-b border-border pb-4 last:border-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium leading-tight">{item.message}</p>
+                        <p className="font-medium leading-tight">{item.description ?? item.message}</p>
                         <Badge variant="secondary" className="capitalize">
                           {item.entity_type}
                         </Badge>
@@ -188,7 +241,7 @@ export function ActivityContent({
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" size="sm" disabled={page <= 1} asChild={page > 1}>
             {page > 1 ? (
-              <Link href={`/activity?type=${activeType}&page=${page - 1}`}>Previous</Link>
+              <Link href={activityHref(activeType, search, page - 1)}>Previous</Link>
             ) : (
               <span>Previous</span>
             )}
@@ -198,7 +251,7 @@ export function ActivityContent({
           </span>
           <Button variant="outline" size="sm" disabled={page >= pages} asChild={page < pages}>
             {page < pages ? (
-              <Link href={`/activity?type=${activeType}&page=${page + 1}`}>Next</Link>
+              <Link href={activityHref(activeType, search, page + 1)}>Next</Link>
             ) : (
               <span>Next</span>
             )}

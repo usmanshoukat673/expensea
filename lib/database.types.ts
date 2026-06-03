@@ -417,9 +417,12 @@ export interface Database {
           title: string;
           body: string | null;
           message: string | null;
+          link: string | null;
           metadata: Record<string, unknown>;
           read_at: string | null;
           read: boolean;
+          is_read: boolean;
+          archived_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -429,14 +432,20 @@ export interface Database {
           title: string;
           body?: string | null;
           message?: string | null;
+          link?: string | null;
           metadata?: Record<string, unknown>;
           read?: boolean;
+          is_read?: boolean;
+          archived_at?: string | null;
         };
         Update: {
           read_at?: string | null;
           read?: boolean;
+          is_read?: boolean;
           message?: string | null;
           body?: string | null;
+          link?: string | null;
+          archived_at?: string | null;
         };
         Relationships: [];
       };
@@ -489,6 +498,7 @@ export interface Database {
           entity_type: string;
           entity_id: string | null;
           message: string;
+          description: string;
           metadata: Record<string, unknown>;
           created_at: string;
         };
@@ -499,6 +509,7 @@ export interface Database {
           entity_type: string;
           entity_id?: string | null;
           message: string;
+          description?: string;
           metadata?: Record<string, unknown>;
           created_at?: string;
         };

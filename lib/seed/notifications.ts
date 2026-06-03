@@ -31,7 +31,10 @@ export async function seedDemoNotifications(
     type: string;
     title: string;
     body: string | null;
+    message: string | null;
+    link: string | null;
     metadata: Record<string, unknown>;
+    is_read: boolean;
     read_at: string | null;
     created_at: string;
   }[] = [];
@@ -43,7 +46,10 @@ export async function seedDemoNotifications(
       type: 'budget_warning',
       title: 'Food budget at 92%',
       body: 'Team food spending is approaching the monthly category limit.',
+      message: 'Team food spending is approaching the monthly category limit.',
+      link: '/budgets',
       metadata: { category: 'food', utilization: 92 },
+      is_read: false,
       read_at: null,
       created_at: toIso(daysAgo(1)),
     });
@@ -57,7 +63,10 @@ export async function seedDemoNotifications(
         type: 'shared_expense',
         title: 'New shared expense',
         body: 'Usman added a shared expense of Rs 5,000 — your share is Rs 1,000',
+        message: 'Usman added a shared expense of Rs 5,000 — your share is Rs 1,000',
+        link: '/entries',
         metadata: { amount: 5000, share: 1000 },
+        is_read: false,
         read_at: null,
         created_at: toIso(daysAgo(2)),
       },
@@ -67,7 +76,10 @@ export async function seedDemoNotifications(
         type: 'settlement_reminder',
         title: 'Settlement reminder',
         body: 'You have a pending balance of Rs 1,200 with Usman Shoukat',
+        message: 'You have a pending balance of Rs 1,200 with Usman Shoukat',
+        link: '/settlements',
         metadata: { amount: 1200 },
+        is_read: true,
         read_at: toIso(daysAgo(0)),
         created_at: toIso(daysAgo(4)),
       },
@@ -80,7 +92,10 @@ export async function seedDemoNotifications(
     type: 'team_invite',
     title: 'Team invite sent',
     body: 'Invitation sent to new.hire@expensea.app',
+    message: 'Invitation sent to new.hire@expensea.app',
+    link: '/team/invite',
     metadata: { email: 'new.hire@expensea.app' },
+    is_read: true,
     read_at: toIso(daysAgo(6)),
     created_at: toIso(daysAgo(7)),
   });
@@ -92,7 +107,10 @@ export async function seedDemoNotifications(
       type: 'expense_submitted',
       title: 'Expense submitted',
       body: 'Ahmed Khan submitted Office Supplies — Rs 4,200 for approval',
+      message: 'Ahmed Khan submitted Office Supplies — Rs 4,200 for approval',
+      link: '/approvals',
       metadata: { event_type: 'expense_submitted', amount: 4200 },
+      is_read: false,
       read_at: null,
       created_at: toIso(daysAgo(0)),
     });
@@ -106,7 +124,10 @@ export async function seedDemoNotifications(
         type: 'expense_approved',
         title: 'Expense approved',
         body: 'Your travel reimbursement claim was approved.',
+        message: 'Your travel reimbursement claim was approved.',
+        link: '/entries',
         metadata: { event_type: 'expense_approved', amount: 8500 },
+        is_read: false,
         read_at: null,
         created_at: toIso(daysAgo(1)),
       },
@@ -116,7 +137,10 @@ export async function seedDemoNotifications(
         type: 'expense_rejected',
         title: 'Expense rejected',
         body: 'Missing receipt for the client lunch claim.',
+        message: 'Missing receipt for the client lunch claim.',
+        link: '/entries',
         metadata: { event_type: 'expense_rejected', reason: 'Missing receipt' },
+        is_read: false,
         read_at: null,
         created_at: toIso(daysAgo(3)),
       },
@@ -126,7 +150,10 @@ export async function seedDemoNotifications(
         type: 'reimbursement_completed',
         title: 'Reimbursement completed',
         body: 'Rs 6,400 was reimbursed by payroll.',
+        message: 'Rs 6,400 was reimbursed by payroll.',
+        link: '/entries',
         metadata: { event_type: 'reimbursement_completed', amount: 6400 },
+        is_read: true,
         read_at: toIso(daysAgo(0)),
         created_at: toIso(daysAgo(0)),
       },
@@ -143,7 +170,10 @@ export async function seedDemoNotifications(
         type: 'settlement_reminder',
         title: 'Pending settlement',
         body: 'Bilal owes you Rs 2,400 for trip fuel',
+        message: 'Bilal owes you Rs 2,400 for trip fuel',
+        link: '/settlements',
         metadata: { amount: 2400 },
+        is_read: false,
         read_at: null,
         created_at: toIso(daysAgo(1)),
       });
@@ -155,7 +185,10 @@ export async function seedDemoNotifications(
         type: 'budget_warning',
         title: 'Travel budget exceeded',
         body: 'Friends Trip travel category is over budget this month.',
+        message: 'Friends Trip travel category is over budget this month.',
+        link: '/budgets',
         metadata: { category: 'travel' },
+        is_read: false,
         read_at: null,
         created_at: toIso(daysAgo(2)),
       });

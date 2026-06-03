@@ -9,6 +9,7 @@ import type {
   TeamMemberWithProfile,
 } from "@/lib/database.types"
 import { getMonthEnd, getMonthStart } from "@/lib/budget/engine"
+import { attachActivityProfiles, getNotificationSummary } from "@/lib/data/notifications"
 
 const FINANCIAL_APPROVAL_STATUSES = ["approved", "reimbursed"] as const
 
@@ -29,7 +30,7 @@ async function attachProfiles<T extends { user_id: string }>(
   }))
 }
 
-export async function getDashboardData(teamId: string, range?: Pick<DateRangeValue, "from" | "to">) {
+export async function getDashboardData(teamId: string, range?: Pick<DateRangeValue, "from" | "to">, userId?: string) {
   const supabase = await createClient()
   const now = new Date()
   const monthStart = range?.from ?? getMonthStart(now)
@@ -55,7 +56,7 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
         .order("lunch_date", { ascending: true }),
       supabase.from("team_members").select("*").eq("team_id", teamId),
       supabase
-        .from("team_activity_log")
+        .from("activity_logs")
         .select("*")
         .eq("team_id", teamId)
         .order("created_at", { ascending: false })
@@ -108,21 +109,14 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
     .sort((a, b) => b.total - a.total)
     .slice(0, 5)
 
-  const activityIds = (activityRes.data ?? [])
-    .map((a) => a.user_id)
-    .filter(Boolean) as string[]
-  let activity = activityRes.data ?? []
-  if (activityIds.length) {
-    const { data: actProfiles } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", activityIds)
-    const pmap = new Map((actProfiles ?? []).map((p) => [p.id, p]))
-    activity = activity.map((a) => ({
-      ...a,
-      profiles: a.user_id ? (pmap.get(a.user_id) ?? null) : null,
-    }))
-  }
+  const [activity, notificationSummary] = await Promise.all([
+    attachActivityProfiles(activityRes.data ?? []),
+    userId ? getNotificationSummary(userId, teamId) : Promise.resolve({
+      unreadCount: 0,
+      pendingActions: 0,
+      latest: [],
+    }),
+  ])
 
   return {
     recentEntries: recentEntries as LunchEntryWithProfile[],
@@ -130,6 +124,7 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
     summaries: [] as MonthlySummary[],
     members: members as TeamMemberWithProfile[],
     activity,
+    notificationSummary,
     stats: {
       totalAmount,
       totalPaid,
@@ -536,7 +531,7 @@ export async function getNotifications(userId: string, teamId?: string, limit = 
 
 export async function getActivityLogs(
   teamId: string,
-  opts?: { type?: string; page?: number; limit?: number },
+  opts?: { type?: string; page?: number; limit?: number; search?: string },
 ) {
   const supabase = await createClient()
   const page = opts?.page ?? 1
@@ -549,28 +544,28 @@ export async function getActivityLogs(
     .eq("team_id", teamId)
     .order("created_at", { ascending: false })
 
-  if (opts?.type && opts.type !== "all") {
+  if (opts?.type === "approval") {
+    query = query.in("action_type", [
+      "expense_submitted",
+      "expense_approved",
+      "expense_rejected",
+      "expense_reimbursed",
+      "reimbursement_completed",
+    ])
+  } else if (opts?.type && opts.type !== "all") {
     query = query.eq("entity_type", opts.type)
+  }
+  if (opts?.search?.trim()) {
+    const q = opts.search.trim()
+    query = query.or(`description.ilike.%${q}%,message.ilike.%${q}%,action_type.ilike.%${q}%`)
   }
 
   const { data, count } = await query.range(from, from + limit - 1)
   const rows = (data ?? []) as ActivityLog[]
-  const userIds = [...new Set(rows.map((a) => a.user_id).filter(Boolean))] as string[]
-  let profiles = new Map<string, Pick<Profile, "full_name" | "avatar_url">>()
-
-  if (userIds.length) {
-    const { data: profileRows } = await supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url")
-      .in("id", userIds)
-    profiles = new Map((profileRows ?? []).map((p) => [p.id, p]))
-  }
+  const activity = await attachActivityProfiles(rows)
 
   return {
-    activity: rows.map((a) => ({
-      ...a,
-      profiles: a.user_id ? (profiles.get(a.user_id) ?? null) : null,
-    })),
+    activity,
     total: count ?? 0,
     page,
     limit,
