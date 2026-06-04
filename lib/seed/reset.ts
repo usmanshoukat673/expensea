@@ -31,6 +31,9 @@ export async function resetDemoData(
   }
 
   await admin.from('notifications').delete().in('team_id', teamIds);
+  await admin.from('dashboard_favorites').delete().in('team_id', teamIds);
+  await admin.from('user_dashboard_preferences').delete().in('team_id', teamIds);
+  await admin.from('dashboard_saved_views').delete().in('team_id', teamIds);
   await admin.from('settlements').delete().in('team_id', teamIds);
   await admin.from('recurring_expenses').delete().in('team_id', teamIds);
   await admin.from('lunch_entries').delete().in('team_id', teamIds);

@@ -516,6 +516,83 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['activity_logs']['Insert']>;
         Relationships: [];
       };
+      user_dashboard_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          layout_json: Json;
+          hidden_widgets: Json;
+          pinned_widgets: Json;
+          default_view_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          team_id: string;
+          layout_json?: Json;
+          hidden_widgets?: Json;
+          pinned_widgets?: Json;
+          default_view_id?: string | null;
+        };
+        Update: Partial<Database['public']['Tables']['user_dashboard_preferences']['Insert']>;
+        Relationships: [];
+      };
+      dashboard_saved_views: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          name: string;
+          layout_json: Json;
+          hidden_widgets: Json;
+          pinned_widgets: Json;
+          filters_json: Json;
+          is_default: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          team_id: string;
+          name: string;
+          layout_json?: Json;
+          hidden_widgets?: Json;
+          pinned_widgets?: Json;
+          filters_json?: Json;
+          is_default?: boolean;
+        };
+        Update: Partial<Database['public']['Tables']['dashboard_saved_views']['Insert']>;
+        Relationships: [];
+      };
+      dashboard_favorites: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          favorite_type: 'report' | 'category' | 'team' | 'dashboard';
+          favorite_id: string | null;
+          label: string;
+          href: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          team_id: string;
+          favorite_type: 'report' | 'category' | 'team' | 'dashboard';
+          favorite_id?: string | null;
+          label: string;
+          href?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Update: Partial<Database['public']['Tables']['dashboard_favorites']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -573,6 +650,9 @@ export type RecurringExpense = Database['public']['Tables']['recurring_expenses'
 export type MonthlySummary = Database['public']['Tables']['monthly_summaries']['Row'];
 export type TeamActivity = Database['public']['Tables']['team_activity_log']['Row'];
 export type ActivityLog = Database['public']['Tables']['activity_logs']['Row'];
+export type UserDashboardPreference = Database['public']['Tables']['user_dashboard_preferences']['Row'];
+export type DashboardSavedView = Database['public']['Tables']['dashboard_saved_views']['Row'];
+export type DashboardFavorite = Database['public']['Tables']['dashboard_favorites']['Row'];
 
 export type ExpenseCategory = Database['public']['Tables']['expense_categories']['Row'];
 export type TeamBudget = Database['public']['Tables']['team_budgets']['Row'] & {

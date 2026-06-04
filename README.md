@@ -6,7 +6,7 @@ Expensea is a free, open-source expense tracker for teams that need shared spend
 
 Expensea uses a multi-team architecture where each user can belong to several teams and switch an active team context from their profile. Each team owns its expenses, categories, budgets, settlements, invites, notifications, recurring rules, and activity logs. Owners and admins can manage data; viewers can inspect team spending without changing it.
 
-The app supports individual and shared expenses, equal or selected participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, realtime notifications, a searchable activity center, team invite links, and public share pages for teams that opt in.
+The app supports individual and shared expenses, equal or selected participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, personalized dashboards with saved views, realtime notifications, a searchable activity center, team invite links, and public share pages for teams that opt in.
 
 ## Features
 
@@ -106,6 +106,16 @@ The app supports individual and shared expenses, equal or selected participant s
 - Dashboard charts, category charts, budget charts, reporting trends, top spenders, budget status, and public spending charts.
 - Demo seed data includes current-month, previous-month, and historical expenses for realistic charts.
 
+### Dashboard Customization
+
+- Reorder dashboard widgets with drag/drop handles or mobile-friendly move controls.
+- Hide/show widgets including budgets, activity, settlements, approvals, categories, notifications, and quick actions.
+- Save, rename, duplicate, delete, import, and export dashboard views.
+- Set a default view per user and team so Team A and Team B can load different dashboards.
+- Save view filters for date range, category, budget, status, and team context.
+- Pin favorite reports, categories, teams, and dashboards into the quick actions area.
+- Role-aware defaults prioritize budgets/analytics/approvals for owners, approvals/activity/expenses for admins, and personal activity/expenses for viewers.
+
 ## Tech Stack
 
 - Next.js App Router, React, TypeScript
@@ -150,7 +160,7 @@ Fill in:
 
 4. Run database migrations in order.
 
-Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `013_notifications_activity_center.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
+Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `014_dashboard_customization_saved_views.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
 
 5. Configure Supabase Auth.
 
@@ -241,6 +251,10 @@ User notifications scoped to a team. Key fields: `user_id`, `team_id`, `type`, `
 
 Normalized activity audit table mirrored from `team_activity_log`. Key fields: `team_id`, `user_id`, `action_type`, `entity_type`, `entity_id`, `description`, `message`, `metadata`, `created_at`.
 
+### user_dashboard_preferences, dashboard_saved_views, dashboard_favorites
+
+Team-aware personalization tables. `user_dashboard_preferences` stores the current layout, hidden widgets, pinned widgets, and default view id for one user/team pair. `dashboard_saved_views` stores named layouts plus saved filters. `dashboard_favorites` pins reports, categories, teams, and dashboards into the dashboard quick actions experience.
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)
@@ -251,7 +265,7 @@ Normalized activity audit table mirrored from `team_activity_log`. Key fields: `
 
 ## Demo Data
 
-`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, and normalized activity history.
+`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, normalized activity history, role-aware dashboard layouts, saved views, and dashboard favorites.
 
 Primary demo login:
 

@@ -4,7 +4,7 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 
 ## Prerequisites
 
-1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `013_notifications_activity_center.sql`.
+1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `014_dashboard_customization_saved_views.sql`.
 2. Set these variables in `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -42,6 +42,7 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 - Recurring expenses: active, paused, and completed monthly rules.
 - Notifications: expense submission, approval, rejection, reimbursement, budget, settlement, recurring, and invite examples with deep links.
 - Activity: team, member, submitted/approved/rejected/reimbursed expense, budget, invite, settlement, approval, and recurring history in normalized `activity_logs`.
+- Dashboard customization: role-aware dashboard preferences, saved views, default views, saved filters, widget visibility settings, and favorites.
 - Reports/analytics: generated from seeded expenses, budgets, settlements, and activity.
 
 ## Demo Logins
@@ -88,6 +89,7 @@ lib/seed/settlements.ts            -> settlement records
 lib/seed/recurring-expenses.ts     -> recurring rules
 lib/seed/notifications.ts          -> notification examples
 lib/seed/activity.ts               -> activity history
+lib/seed/dashboard-customization.ts -> dashboard layouts, saved views, favorites
 ```
 
 The seeders use fixed team slugs for idempotency and a seeded Faker instance for repeatable realistic notes.
@@ -97,6 +99,7 @@ The seeders use fixed team slugs for idempotency and a seeded Faker instance for
 - Current seeders are complete for the implemented product surface.
 - Expense seeders now cover approval statuses and reimbursement statuses.
 - The recurring-expense seeder covers active, paused, and completed rules.
-- Reset now clears all demo-owned relational tables, including `recurring_expenses`, `team_invites`, normalized `activity_logs`, and legacy `team_activity_log`.
+- The dashboard customization seeder covers owner/admin/viewer default layouts, saved views, saved filters, hidden widgets, pinned widgets, and favorites.
+- Reset now clears all demo-owned relational tables, including dashboard preferences/views/favorites, `recurring_expenses`, `team_invites`, normalized `activity_logs`, and legacy `team_activity_log`.
 - The app stores expenses in `lunch_entries`; documentation may refer to these as expenses for product clarity.
 - `activity_logs` is populated explicitly after seeding legacy `team_activity_log`, avoiding duplicate mirrored rows while keeping legacy team views covered.

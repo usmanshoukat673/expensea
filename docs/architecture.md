@@ -37,6 +37,7 @@ teams
   |-- expense_categories
   |-- team_budgets
   |-- settlements
+  |-- user_dashboard_preferences / dashboard_saved_views / dashboard_favorites
   |-- team_invites / team_invitations
   |-- recurring_expenses
   |-- notifications
@@ -117,6 +118,20 @@ The budget engine in `lib/budget/engine.ts` builds a spend index from expenses, 
 - alert level: `none`, `warning80`, or `exceeded`
 
 Budget views, dashboard cards, reports, analytics, and demo seeders all rely on this engine's assumptions. All budget data helpers pass only approved or reimbursed expenses into the engine.
+
+## Dashboard Customization Architecture
+
+Dashboard personalization is scoped by both `user_id` and `team_id`, so a user can keep separate dashboard layouts for each team. `app/(protected)/page.tsx` loads dashboard metrics and `getDashboardCustomization()` in parallel before rendering the client dashboard, which prevents layout flashing on first paint.
+
+Persistence uses three tables:
+
+- `user_dashboard_preferences`: current widget order, hidden widgets, pinned widgets, and default view id for one user/team pair.
+- `dashboard_saved_views`: named snapshots containing layout, hidden widgets, pinned widgets, and saved filters for date range, category, budget, status, and team.
+- `dashboard_favorites`: pinned reports, categories, teams, and dashboards shown in the quick actions widget.
+
+The client component keeps a small local copy of widget order/visibility for immediate interaction, then calls `lib/actions/dashboard-customization.ts` actions to upsert changes. Drag/drop handles, explicit move buttons, and visibility switches all write through the same team-scoped server action. Saved views can be created, renamed, duplicated, deleted, set as default, imported, or exported without a page reload.
+
+Role-aware defaults are generated in `lib/dashboard-customization.ts`: owners prioritize budgets, analytics, and approvals; admins prioritize approvals, activity, and expenses; viewers prioritize personal expenses and activity. Saved default views override those defaults only for the matching user/team.
 
 ## Settlement Engine
 
