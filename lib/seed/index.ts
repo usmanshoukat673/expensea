@@ -8,6 +8,7 @@ import { seedDemoBudgets } from '@/lib/seed/budgets';
 import { seedDemoRecurringExpenses } from '@/lib/seed/recurring-expenses';
 import { seedDemoActivity } from '@/lib/seed/activity';
 import { seedDemoNotifications } from '@/lib/seed/notifications';
+import { seedDemoDashboardCustomization } from '@/lib/seed/dashboard-customization';
 import { initFaker, log } from '@/lib/seed/utils';
 import { DEMO_PASSWORD, DEMO_USERS } from '@/lib/seed/config';
 
@@ -63,6 +64,7 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
   await seedDemoRecurringExpenses(admin, users, teams);
   await seedDemoActivity(admin, users, teams);
   await seedDemoNotifications(admin, users, teams);
+  await seedDemoDashboardCustomization(admin, users, teams);
 
   log('done', `${entryCount} expenses across ${teams.size} teams`);
   printCredentials();

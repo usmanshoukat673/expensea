@@ -291,6 +291,42 @@ Notification reads use `lib/data/notifications.ts`:
 
 The `/notifications` page filters by `status=all|unread|read|archived`, searches with `q`, and paginates with `page`. Notification rows include `link` so alerts can open the related expense, budget, settlement, team, or approval page.
 
+## Dashboard Customization Actions
+
+File: `lib/actions/dashboard-customization.ts`
+
+Actions:
+
+- `saveDashboardPreference({ widgets, hiddenWidgets, pinnedWidgets })`
+- `createDashboardView(name, { widgets, hiddenWidgets, pinnedWidgets, filters })`
+- `renameDashboardView(id, name)`
+- `deleteDashboardView(id)`
+- `duplicateDashboardView(id)`
+- `setDefaultDashboardView(id | null)`
+- `importDashboardSettings(payload)`
+- `toggleDashboardFavorite({ favoriteType, favoriteId, label, href, metadata })`
+
+All actions require an authenticated active team. Writes are scoped to the current `user_id` and `team_id`; RLS also checks active membership. Widget ids are normalized against the supported dashboard registry before persistence.
+
+Example saved view payload:
+
+```json
+{
+  "widgets": ["summary", "budget", "monthly_overview", "activity"],
+  "hiddenWidgets": ["workflow"],
+  "pinnedWidgets": ["reports", "dashboards"],
+  "filters": {
+    "dateRange": "this_month",
+    "category": "food",
+    "budget": "active",
+    "status": "approved",
+    "team": "expensea-hq"
+  }
+}
+```
+
+Dashboard reads use `getDashboardCustomization(teamId, userId, role)` from `lib/data/dashboard-customization.ts`. The helper loads preferences, saved views, and favorites in parallel and applies role-aware defaults when no preference exists.
+
 ## Activity Reads
 
 Activity reads use `getActivityLogs(teamId, { type, page, limit, search })` from `lib/data/dashboard.ts`.

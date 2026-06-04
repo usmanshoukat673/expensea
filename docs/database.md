@@ -7,11 +7,12 @@ Apply migrations in `supabase/migrations/` in filename order. The current requir
 ```text
 001_initial_schema.sql
 ...
-013_notifications_activity_center.sql
+014_dashboard_customization_saved_views.sql
 ```
 
 Migration `012_expense_approvals_reimbursements.sql` introduces the approval and reimbursement workflow and updates summary behavior so only approved financial rows are aggregated.
 Migration `013_notifications_activity_center.sql` completes the notifications and activity center schema with deep links, archive/read state, search indexes, compatibility triggers, and normalized activity descriptions.
+Migration `014_dashboard_customization_saved_views.sql` adds team-aware dashboard preferences, saved dashboard views, and dashboard favorites.
 
 ## Expense Workflow Columns
 
@@ -61,7 +62,7 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 
 ## Demo Data
 
-The TypeScript seeders create pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Notification and activity seeders include submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events.
+The TypeScript seeders create pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Notification and activity seeders include submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
 
 ## Notifications
 
@@ -103,3 +104,31 @@ Indexes cover user/team/read queries, archive filtering, and text search over ti
 | `created_at` | Event time. |
 
 `team_activity_log` remains for compatibility. New legacy inserts are mirrored into `activity_logs`, while new feature code writes normalized activity directly through `recordActivity`.
+
+## Dashboard Customization
+
+`user_dashboard_preferences` stores the active dashboard personalization for one user/team pair.
+
+| Column | Purpose |
+| --- | --- |
+| `id` | Preference row id. |
+| `user_id` | Profile/auth user id. |
+| `team_id` | Team scope. |
+| `layout_json` | JSON object, currently `{ "widgets": [...] }`, storing widget order. |
+| `hidden_widgets` | JSON array of hidden widget ids. |
+| `pinned_widgets` | JSON array of pinned widget/favorite keys. |
+| `default_view_id` | Optional saved view loaded by default for this user/team. |
+| `created_at` / `updated_at` | Audit timestamps. |
+
+`dashboard_saved_views` stores named dashboard snapshots.
+
+| Column | Purpose |
+| --- | --- |
+| `name` | User-visible saved view name. |
+| `layout_json` | Widget order snapshot. |
+| `hidden_widgets` | Hidden widget snapshot. |
+| `pinned_widgets` | Pinned widget/favorite snapshot. |
+| `filters_json` | Saved date range, category, budget, status, and team filters. |
+| `is_default` | Marks the user's default view for that team. |
+
+`dashboard_favorites` stores quick-action pins for `report`, `category`, `team`, and `dashboard` favorites. All three dashboard tables use RLS policies that require `auth.uid() = user_id` and active membership in `team_id`.
