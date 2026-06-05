@@ -82,6 +82,7 @@ export function EntriesTable({
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [assignmentFilter, setAssignmentFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState<string[]>([])
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [pending, startTransition] = useTransition()
@@ -98,15 +99,20 @@ export function EntriesTable({
       const matchCategory =
         !categoryFilter.length ||
         (e.category_id && categoryFilter.includes(e.category_id))
+      const matchAssignment =
+        assignmentFilter === "all" ||
+        e.assignment_type === assignmentFilter ||
+        e.assigned_user_id === assignmentFilter
       const q = debouncedSearch.toLowerCase()
       const matchSearch =
         !q ||
         (e.notes?.toLowerCase().includes(q) ?? false) ||
         (e.profiles?.full_name?.toLowerCase().includes(q) ?? false) ||
+        (e.assigned_profile?.full_name?.toLowerCase().includes(q) ?? false) ||
         (e.expense_categories?.name?.toLowerCase().includes(q) ?? false)
-      return matchStatus && matchSearch && matchCategory
+      return matchStatus && matchSearch && matchCategory && matchAssignment
     })
-  }, [entries, debouncedSearch, statusFilter, categoryFilter])
+  }, [entries, debouncedSearch, statusFilter, categoryFilter, assignmentFilter])
 
   const columns = useMemo<ColumnDef<LunchEntryWithProfile>[]>(
     () => [
@@ -149,6 +155,13 @@ export function EntriesTable({
             </span>
           )
         },
+      },
+      {
+        id: "assignment",
+        header: "Assigned to",
+        cell: ({ row }) => row.original.assignment_type === "individual"
+          ? row.original.assigned_profile?.full_name ?? row.original.assigned_profile?.email ?? "Member"
+          : "Team",
       },
       {
         accessorKey: "amount",
@@ -308,9 +321,10 @@ export function EntriesTable({
     .rows.map((r) => r.original.id)
 
   const exportCsv = () => {
-    const headers = ["Member", "Amount", "Date", "Notes", "Status"]
+    const headers = ["Member", "Assigned To", "Amount", "Date", "Notes", "Status"]
     const rows = filtered.map((e) => [
       e.profiles?.full_name ?? "",
+      e.assignment_type === "individual" ? e.assigned_profile?.full_name ?? e.assigned_profile?.email ?? "" : "Team",
       formatCurrency(Number(e.amount)),
       e.lunch_date,
       e.notes ?? "",
@@ -345,6 +359,16 @@ export function EntriesTable({
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="unpaid">Unpaid</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="Assignment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All assignments</SelectItem>
+              <SelectItem value="team">Team expenses</SelectItem>
+              <SelectItem value="individual">Individual</SelectItem>
             </SelectContent>
           </Select>
           {categories.length > 0 && (

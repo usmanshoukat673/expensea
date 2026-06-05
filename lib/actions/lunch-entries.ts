@@ -13,6 +13,8 @@ export type ActionResult = { error?: string; success?: boolean };
 function revalidateExpenseSurfaces() {
   revalidatePath('/');
   revalidatePath('/entries');
+  revalidatePath('/my-expenses');
+  revalidatePath('/members');
   revalidatePath('/approvals');
   revalidatePath('/settlements');
   revalidatePath('/analytics');
@@ -59,8 +61,9 @@ async function validateEntryTeamRefs(
   userId: string,
   categoryId: string | null | undefined,
   participantIds: string[],
+  assignedUserId?: string | null,
 ) {
-  const userIds = [...new Set([userId, ...participantIds])];
+  const userIds = [...new Set([userId, ...participantIds, assignedUserId].filter(Boolean) as string[])];
   const { data: members, error: membersError } = await supabase
     .from('team_members')
     .select('user_id')
@@ -106,6 +109,8 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     isShared: formData.get('isShared') === 'true',
     splitType: formData.get('splitType') || 'none',
     participantIds,
+    assignmentType: formData.get('assignmentType') || 'team',
+    assignedUserId: formData.get('assignedUserId') || null,
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
 
@@ -125,6 +130,7 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     parsed.data.userId,
     parsed.data.categoryId,
     participants,
+    parsed.data.assignedUserId,
   );
   if (refError) return { error: refError };
 
@@ -138,6 +144,9 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
       notes: parsed.data.notes ?? null,
       payment_status: parsed.data.paymentStatus,
       category_id: parsed.data.categoryId ?? null,
+      assignment_type: parsed.data.assignmentType ?? 'team',
+      assigned_user_id: parsed.data.assignmentType === 'individual' ? parsed.data.assignedUserId : null,
+      assigned_by: parsed.data.assignmentType === 'individual' ? session.user.id : null,
       is_shared: isShared,
       split_type: splitType,
       created_by: session.user.id,
@@ -167,8 +176,26 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     message: intent === 'submit'
       ? `Expense submitted for approval (${parsed.data.amount})`
       : `Expense created for ${parsed.data.amount}`,
-    metadata: { amount: parsed.data.amount, shared: isShared, approval_status: intent === 'submit' ? 'pending_approval' : 'draft' },
+    metadata: {
+      amount: parsed.data.amount,
+      shared: isShared,
+      approval_status: intent === 'submit' ? 'pending_approval' : 'draft',
+      assignment_type: parsed.data.assignmentType ?? 'team',
+      assigned_user_id: parsed.data.assignmentType === 'individual' ? parsed.data.assignedUserId : null,
+    },
   });
+
+  if (parsed.data.assignmentType === 'individual' && parsed.data.assignedUserId) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'expense_assigned',
+      entityType: 'expense',
+      entityId: row.id,
+      message: `Expense assigned (${parsed.data.amount})`,
+      metadata: { amount: parsed.data.amount, assigned_user_id: parsed.data.assignedUserId },
+    });
+  }
 
   await notifyTeamMembers({
     teamId: session.teamId,
@@ -218,6 +245,8 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     isShared: formData.get('isShared') === 'true',
     splitType: formData.get('splitType') || 'none',
     participantIds,
+    assignmentType: formData.get('assignmentType') || 'team',
+    assignedUserId: formData.get('assignedUserId') || null,
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
 
@@ -253,6 +282,7 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     parsed.data.userId,
     parsed.data.categoryId,
     participants,
+    parsed.data.assignedUserId,
   );
   if (refError) return { error: refError };
 
@@ -265,6 +295,9 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
       notes: parsed.data.notes ?? null,
       payment_status: parsed.data.paymentStatus,
       category_id: parsed.data.categoryId ?? null,
+      assignment_type: parsed.data.assignmentType ?? 'team',
+      assigned_user_id: parsed.data.assignmentType === 'individual' ? parsed.data.assignedUserId : null,
+      assigned_by: parsed.data.assignmentType === 'individual' ? session.user.id : null,
       is_shared: isShared,
       split_type: splitType,
       approval_status: canUpdateOwnDraft ? 'draft' : existing?.approval_status,
@@ -291,8 +324,25 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     entityType: 'expense',
     entityId: id,
     message: `Expense updated to ${parsed.data.amount}`,
-    metadata: { amount: parsed.data.amount, shared: isShared },
+    metadata: {
+      amount: parsed.data.amount,
+      shared: isShared,
+      assignment_type: parsed.data.assignmentType ?? 'team',
+      assigned_user_id: parsed.data.assignmentType === 'individual' ? parsed.data.assignedUserId : null,
+    },
   });
+
+  if (parsed.data.assignmentType === 'individual' && parsed.data.assignedUserId) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'expense_assigned',
+      entityType: 'expense',
+      entityId: id,
+      message: `Expense assigned (${parsed.data.amount})`,
+      metadata: { amount: parsed.data.amount, assigned_user_id: parsed.data.assignedUserId },
+    });
+  }
 
   await notifyTeamMembers({
     teamId: session.teamId,

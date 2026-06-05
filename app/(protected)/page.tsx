@@ -31,6 +31,14 @@ export default async function DashboardPage({
     category_id: (e as { category_id?: string }).category_id,
     expense_categories: Array.isArray(category) ? category[0] ?? null : category ?? null,
   }})
+  const myEntries = data.monthlyEntries.filter((entry) => {
+    const row = entry as { user_id?: string; assigned_user_id?: string | null; submitted_by?: string | null; approval_status?: string }
+    return row.user_id === session.user.id || row.assigned_user_id === session.user.id || row.submitted_by === session.user.id
+  })
+  const myAssignedEntries = data.monthlyEntries.filter((entry) => {
+    const row = entry as { assigned_user_id?: string | null }
+    return row.assigned_user_id === session.user.id
+  })
 
   return (
     <DashboardContent
@@ -41,6 +49,15 @@ export default async function DashboardPage({
       activity={data.activity}
       notificationSummary={data.notificationSummary}
       leaderboard={data.leaderboard}
+      mostActiveMembers={data.mostActiveMembers}
+      highestAssignedExpenses={data.highestAssignedExpenses}
+      personalDashboard={{
+        monthlyExpenses: myEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
+        assignedExpenses: myAssignedEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
+        settlements: balance.personal.youOwe + balance.personal.youReceive,
+        pendingApprovals: myEntries.filter((entry) => (entry as { approval_status?: string }).approval_status === "pending_approval").length,
+        budgetImpact: myEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
+      }}
       balance={{
         pendingTotal: balance.pendingTotal,
         youOwe: balance.personal.youOwe,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import {
@@ -45,7 +46,7 @@ import { getInitials } from '@/lib/formatters';
 import { useCurrency } from '@/hooks/use-currency';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { EmptyState } from '@/components/ui/empty-states';
-import { Users } from 'lucide-react';
+import { ExternalLink, Users } from 'lucide-react';
 
 export type MemberRow = {
   id: string;
@@ -192,8 +193,17 @@ export function TeamMembersTable({
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      {canEdit && m.role !== 'owner' && m.user_id !== currentUserId && (
-                        <div className="flex justify-end items-center gap-1 flex-wrap">
+                      <div className="flex justify-end items-center gap-1 flex-wrap">
+                        {(canEdit || m.user_id === currentUserId) && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/members/${m.user_id}`}>
+                              <ExternalLink className="size-4" />
+                              Profile
+                            </Link>
+                          </Button>
+                        )}
+                        {canEdit && m.role !== 'owner' && m.user_id !== currentUserId && (
+                          <>
                           <Select
                             defaultValue={m.role}
                             onValueChange={(role) =>
@@ -257,8 +267,9 @@ export function TeamMembersTable({
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        </div>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

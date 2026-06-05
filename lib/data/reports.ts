@@ -15,6 +15,8 @@ type ReportEntry = {
   reimbursement_status?: string
   amount_reimbursed?: number
   user_id: string
+  assigned_user_id?: string | null
+  assignment_type?: "team" | "individual"
   category_id?: string | null
   notes?: string | null
   expense_categories?: { id: string; name: string; icon: string; color: string } | null
@@ -33,7 +35,7 @@ function percentChange(current: number, previous: number) {
 async function attachProfiles(entries: ReportEntry[]) {
   if (!entries.length) return entries
   const supabase = await createClient()
-  const ids = [...new Set(entries.map((entry) => entry.user_id))]
+  const ids = [...new Set(entries.flatMap((entry) => [entry.user_id, entry.assigned_user_id]).filter(Boolean) as string[])]
   const { data } = await supabase
     .from("profiles")
     .select("id, full_name, email")
@@ -42,6 +44,7 @@ async function attachProfiles(entries: ReportEntry[]) {
   return entries.map((entry) => ({
     ...entry,
     profiles: profiles.get(entry.user_id) ?? null,
+    assigned_profile: entry.assigned_user_id ? profiles.get(entry.assigned_user_id) ?? null : null,
   }))
 }
 
@@ -67,9 +70,11 @@ function summarizeByCategory(entries: ReportEntry[]) {
 function summarizeByMember(entries: ReportEntry[]) {
   const map = new Map<string, { userId: string; name: string; total: number; count: number; paid: number; pending: number }>()
   entries.forEach((entry) => {
-    const current = map.get(entry.user_id) ?? {
-      userId: entry.user_id,
-      name: entry.profiles?.full_name ?? entry.profiles?.email ?? "Member",
+    const memberId = entry.assigned_user_id ?? entry.user_id
+    const assignedProfile = (entry as ReportEntry & { assigned_profile?: Pick<Profile, "id" | "full_name" | "email"> | null }).assigned_profile
+    const current = map.get(memberId) ?? {
+      userId: memberId,
+      name: assignedProfile?.full_name ?? assignedProfile?.email ?? entry.profiles?.full_name ?? entry.profiles?.email ?? "Member",
       total: 0,
       count: 0,
       paid: 0,
@@ -80,7 +85,7 @@ function summarizeByMember(entries: ReportEntry[]) {
     current.count += 1
     if (entry.payment_status === "paid") current.paid += amount
     else current.pending += amount
-    map.set(entry.user_id, current)
+    map.set(memberId, current)
   })
   return Array.from(map.values()).sort((a, b) => b.total - a.total)
 }
@@ -106,7 +111,7 @@ export async function getReportsData(teamId: string, range: DateRangeValue) {
     await Promise.all([
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, assigned_user_id, assignment_type, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", range.from)
@@ -114,21 +119,21 @@ export async function getReportsData(teamId: string, range: DateRangeValue) {
         .order("lunch_date", { ascending: false }),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, assigned_user_id, assignment_type, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", previousRange.from)
         .lte("lunch_date", previousRange.to),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, assigned_user_id, assignment_type, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", currentMonth)
         .lte("lunch_date", getMonthEnd(currentMonth)),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, category_id, notes, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, approval_status, reimbursement_status, amount_reimbursed, user_id, assigned_user_id, assignment_type, category_id, notes, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", previousMonth)

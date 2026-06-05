@@ -30,6 +30,31 @@ async function attachProfiles<T extends { user_id: string }>(
   }))
 }
 
+async function attachEntryProfiles<T extends { user_id: string; assigned_user_id?: string | null }>(
+  items: T[],
+): Promise<(T & {
+  profiles: Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> | null
+  assigned_profile: Pick<Profile, "id" | "full_name" | "email" | "avatar_url"> | null
+})[]> {
+  if (!items.length) return []
+  const supabase = await createClient()
+  const ids = [
+    ...new Set(
+      items.flatMap((item) => [item.user_id, item.assigned_user_id]).filter(Boolean) as string[],
+    ),
+  ]
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, avatar_url")
+    .in("id", ids)
+  const map = new Map((profiles ?? []).map((profile) => [profile.id, profile]))
+  return items.map((item) => ({
+    ...item,
+    profiles: map.get(item.user_id) ?? null,
+    assigned_profile: item.assigned_user_id ? map.get(item.assigned_user_id) ?? null : null,
+  }))
+}
+
 export async function getDashboardData(teamId: string, range?: Pick<DateRangeValue, "from" | "to">, userId?: string) {
   const supabase = await createClient()
   const now = new Date()
@@ -48,7 +73,7 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
         .limit(8),
       supabase
         .from("lunch_entries")
-        .select("amount, lunch_date, payment_status, reimbursement_status, amount_reimbursed, user_id, category_id, expense_categories(id, name, icon, color)")
+        .select("amount, lunch_date, payment_status, reimbursement_status, amount_reimbursed, user_id, assigned_user_id, assignment_type, category_id, expense_categories(id, name, icon, color)")
         .eq("team_id", teamId)
         .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
         .gte("lunch_date", monthStart)
@@ -66,7 +91,7 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
   const entriesRaw = entriesRes.data ?? []
   const membersRaw = membersRes.data ?? []
   const [recentEntries, members] = await Promise.all([
-    attachProfiles(entriesRaw),
+    attachEntryProfiles(entriesRaw),
     attachProfiles(membersRaw),
   ])
 
@@ -86,13 +111,18 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
   const totalAmount = rangeEntries.reduce((s, r) => s + Number(r.amount), 0)
 
   const byUser = new Map<string, { total: number; pending: number; paid: number }>()
+  const assignedByUser = new Map<string, number>()
   rangeEntries.forEach((entry) => {
-    const row = byUser.get(entry.user_id) ?? { total: 0, pending: 0, paid: 0 }
+    const memberId = entry.assigned_user_id ?? entry.user_id
+    const row = byUser.get(memberId) ?? { total: 0, pending: 0, paid: 0 }
     const amount = Number(entry.amount)
     row.total += amount
     if (entry.payment_status === "paid") row.paid += amount
     else row.pending += amount
-    byUser.set(entry.user_id, row)
+    byUser.set(memberId, row)
+    if (entry.assigned_user_id) {
+      assignedByUser.set(entry.assigned_user_id, (assignedByUser.get(entry.assigned_user_id) ?? 0) + amount)
+    }
   })
 
   const leaderboard = Array.from(byUser.entries())
@@ -104,6 +134,31 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
         total: row.total,
         pending: row.pending,
         paid: row.paid,
+      }
+    })
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
+
+  const mostActiveMembers = members
+    .map((member) => ({
+      userId: member.user_id,
+      name: member.profiles?.full_name ?? member.profiles?.email ?? "Member",
+      count: rangeEntries.filter((entry) =>
+        entry.user_id === member.user_id ||
+        entry.assigned_user_id === member.user_id ||
+        (entry as { submitted_by?: string | null }).submitted_by === member.user_id,
+      ).length,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+
+  const highestAssignedExpenses = Array.from(assignedByUser.entries())
+    .map(([userId, total]) => {
+      const member = members.find((m) => m.user_id === userId)
+      return {
+        userId,
+        name: member?.profiles?.full_name ?? member?.profiles?.email ?? "Member",
+        total,
       }
     })
     .sort((a, b) => b.total - a.total)
@@ -136,6 +191,8 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
       reimbursementsOutstanding,
     },
     leaderboard,
+    mostActiveMembers,
+    highestAssignedExpenses,
   }
 }
 
@@ -148,6 +205,9 @@ export async function getLunchEntries(
     to?: string
     page?: number
     limit?: number
+    memberId?: string
+    assignedUserId?: string
+    categoryIds?: string[]
   },
 ) {
   const supabase = await createClient()
@@ -166,8 +226,14 @@ export async function getLunchEntries(
   }
   if (opts?.from) query = query.gte("lunch_date", opts.from)
   if (opts?.to) query = query.lte("lunch_date", opts.to)
-  if ((opts as { categoryIds?: string[] })?.categoryIds?.length) {
-    query = query.in("category_id", (opts as { categoryIds: string[] }).categoryIds)
+  if (opts?.categoryIds?.length) {
+    query = query.in("category_id", opts.categoryIds)
+  }
+  if (opts?.assignedUserId) {
+    query = query.eq("assigned_user_id", opts.assignedUserId)
+  }
+  if (opts?.memberId) {
+    query = query.or(`user_id.eq.${opts.memberId},assigned_user_id.eq.${opts.memberId},created_by.eq.${opts.memberId},submitted_by.eq.${opts.memberId}`)
   }
 
   const { data, count, error } = await query.range(fromIdx, fromIdx + limit - 1)
@@ -175,14 +241,16 @@ export async function getLunchEntries(
 
   if (opts?.search) {
     const q = opts.search.toLowerCase()
-    const withProfiles = await attachProfiles(entries)
+    const withProfiles = await attachEntryProfiles(entries)
     entries = withProfiles.filter(
       (e) =>
         e.notes?.toLowerCase().includes(q) ||
-        e.profiles?.full_name?.toLowerCase().includes(q),
+        e.profiles?.full_name?.toLowerCase().includes(q) ||
+        e.assigned_profile?.full_name?.toLowerCase().includes(q) ||
+        e.expense_categories?.name?.toLowerCase().includes(q),
     ) as LunchEntryWithProfile[]
   } else {
-    entries = (await attachProfiles(entries)) as LunchEntryWithProfile[]
+    entries = (await attachEntryProfiles(entries)) as LunchEntryWithProfile[]
   }
 
   return {
