@@ -34,7 +34,7 @@ export async function recordActivity(
     description: opts.message,
   };
 
-  await supabase.from('activity_logs').insert({
+  const { error } = await supabase.from('activity_logs').insert({
     team_id: opts.teamId,
     user_id: opts.userId ?? null,
     action_type: opts.actionType,
@@ -44,6 +44,19 @@ export async function recordActivity(
     description: opts.message,
     metadata,
   });
+
+  if (error) {
+    console.error('Failed to create activity log', {
+      teamId: opts.teamId,
+      userId: opts.userId ?? null,
+      actionType: opts.actionType,
+      entityType: opts.entityType,
+      entityId: opts.entityId ?? null,
+      error: error.message,
+    });
+  }
+
+  return { error };
 }
 
 export async function notifyTeamMembers(opts: {
@@ -71,14 +84,22 @@ export async function notifyTeamMembers(opts: {
     if (opts.audience === 'admins') query = query.in('role', ['owner', 'admin']);
     if (opts.audience === 'owners') query = query.eq('role', 'owner');
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) {
+      console.error('Failed to resolve notification recipients', {
+        teamId: opts.teamId,
+        audience: opts.audience ?? 'team',
+        error: error.message,
+      });
+      return { error };
+    }
     ids = (data ?? []).map((m) => m.user_id);
   }
 
   const targets = [...new Set(ids)].filter((id) => id !== opts.excludeUserId);
-  if (!targets.length) return;
+  if (!targets.length) return { error: null };
 
-  await supabase.from('notifications').insert(
+  const { error } = await supabase.from('notifications').insert(
     targets.map((userId) => ({
       user_id: userId,
       team_id: opts.teamId,
@@ -90,4 +111,14 @@ export async function notifyTeamMembers(opts: {
       metadata: { ...(opts.metadata ?? {}), audience: opts.audience ?? 'team' },
     })),
   );
+
+  if (error) {
+    console.error('Failed to create notifications', {
+      teamId: opts.teamId,
+      targetCount: targets.length,
+      error: error.message,
+    });
+  }
+
+  return { error };
 }

@@ -54,7 +54,15 @@ export function useRealtime(teamId: string | null) {
       )
     }
 
-    channel.subscribe()
+    channel.subscribe((status, error) => {
+      if (error) {
+        console.error("Team realtime subscription failed", {
+          teamId,
+          status,
+          error: error.message,
+        })
+      }
+    })
 
     return () => {
       supabase.removeChannel(channel)

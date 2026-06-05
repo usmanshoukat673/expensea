@@ -40,8 +40,8 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 - Settlements: pending, completed, and cancelled records.
 - Invites: legacy email invites and shareable invite links.
 - Recurring expenses: active, paused, and completed monthly rules.
-- Notifications: expense submission, approval, rejection, reimbursement, budget, settlement, recurring, and invite examples with deep links.
-- Activity: team, member, submitted/approved/rejected/reimbursed expense, budget, invite, settlement, approval, and recurring history in normalized `activity_logs`.
+- Notifications: expense creation, assignment, submission, approval, rejection, reimbursement, budget, settlement, recurring, and invite examples with deep links.
+- Activity: team, member, created/updated/deleted/submitted/approved/rejected/reimbursed expense, budget, invite, settlement, approval, and recurring history in normalized `activity_logs`.
 - Dashboard customization: role-aware dashboard preferences, saved views, default views, saved filters, widget visibility settings, and favorites.
 - Reports/analytics: generated from seeded expenses, budgets, settlements, and activity.
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -50,6 +51,7 @@ export function LunchEntryDialog({
   defaultLunchDate: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const { currency } = useCurrency();
   const isEdit = !!entry;
   const defaultCategory =
@@ -140,6 +142,7 @@ export function LunchEntryDialog({
       if (result?.error) toast.error(result.error);
       else {
         toast.success(isEdit ? 'Entry updated' : intent === 'submit' ? 'Submitted for approval' : 'Draft saved');
+        router.refresh();
         onOpenChange(false);
         reset();
         setParticipantIds([]);
@@ -332,7 +335,7 @@ export function LunchEntryDialog({
             {!isEdit && (
               <Button type="button" disabled={pending} onClick={() => submitExpense('submit')}>
                 {pending ? <Spinner /> : null}
-                Submit
+                Submit for approval
               </Button>
             )}
           </div>

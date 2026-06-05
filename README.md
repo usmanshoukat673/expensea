@@ -52,7 +52,7 @@ The app supports individual and shared expenses, equal or selected participant s
 - Reject and request-changes actions require a reason.
 - Reimbursement status tracks not reimbursed, partially reimbursed, and fully reimbursed expenses.
 - Reimbursement records store amount reimbursed, reimbursement date, and notes.
-- Notifications and activity feed entries are created for submitted, approved, rejected, and reimbursed expenses.
+- Notifications and activity feed entries are created for expense create, edit, delete, submit, approve, reject, and reimburse flows.
 
 ### Categories
 
@@ -93,8 +93,9 @@ The app supports individual and shared expenses, equal or selected participant s
 
 - Notification bell backed by `notifications` with unread badge, realtime dropdown preview, and quick mark-all action.
 - Full inbox at `/notifications` with all/unread/read/archived filters, search, pagination, deep links, mark-read, mark-all-read, delete, archive, and bulk actions.
-- Role-aware producers send personal notifications to viewers and team/admin/owner notifications for operational events.
-- Demo data includes expense notifications, budget alerts, settlement reminders, recurring events, and invite notifications.
+- Role-aware producers send personal notifications to creators, submitters, assignees, and settlement parties, plus owner/admin notifications for operational events.
+- Expense, approval, budget, settlement, and invite actions also write normalized activity logs.
+- Demo data includes expense create/assign/approval/rejection/reimbursement notifications, budget alerts, settlement reminders, recurring events, and invite notifications.
 - Recurring generation can create notifications for team members.
 
 ### Activity Center
@@ -169,7 +170,7 @@ Fill in:
 
 4. Run database migrations in order.
 
-Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `014_dashboard_customization_saved_views.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
+Apply every SQL file in `supabase/migrations/`, from `001_initial_schema.sql` through `016_notification_activity_audit_hardening.sql`, in the Supabase SQL editor or through your preferred Supabase CLI workflow.
 
 5. Configure Supabase Auth.
 
@@ -274,7 +275,7 @@ Team-aware personalization tables. `user_dashboard_preferences` stores the curre
 
 ## Demo Data
 
-`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, normalized activity history, role-aware dashboard layouts, saved views, and dashboard favorites.
+`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, normalized activity history for create/edit/delete/approval workflows, role-aware dashboard layouts, saved views, and dashboard favorites.
 
 Primary demo login:
 

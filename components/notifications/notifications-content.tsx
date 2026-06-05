@@ -81,7 +81,16 @@ export function NotificationsContent({
           if (payload.eventType === 'DELETE' && oldRow?.id) setItems((prev) => prev.filter((n) => n.id !== oldRow.id));
         },
       )
-      .subscribe();
+      .subscribe((subscriptionStatus, error) => {
+        if (error) {
+          console.error('Notifications inbox realtime subscription failed', {
+            teamId,
+            userId,
+            status: subscriptionStatus,
+            error: error.message,
+          });
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

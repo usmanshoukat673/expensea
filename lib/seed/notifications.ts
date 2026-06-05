@@ -53,10 +53,36 @@ export async function seedDemoNotifications(
       read_at: null,
       created_at: toIso(daysAgo(1)),
     });
+    rows.push({
+      user_id: adminUser,
+      team_id: hq.id,
+      type: 'new_expense',
+      title: 'New expense created',
+      body: 'Usman created Food Expense for Rs 5,000',
+      message: 'Usman created Food Expense for Rs 5,000',
+      link: '/entries',
+      metadata: { event_type: 'new_expense', amount: 5000, categoryName: 'Food Expense' },
+      is_read: false,
+      read_at: null,
+      created_at: toIso(daysAgo(0)),
+    });
   }
 
   if (viewer) {
     rows.push(
+      {
+        user_id: viewer,
+        team_id: hq.id,
+        type: 'expense_assigned',
+        title: 'Expense assigned to you',
+        body: 'Usman assigned Office Expense to you for Rs 7,800',
+        message: 'Usman assigned Office Expense to you for Rs 7,800',
+        link: '/my-expenses',
+        metadata: { event_type: 'expense_assigned', amount: 7800 },
+        is_read: false,
+        read_at: null,
+        created_at: toIso(daysAgo(0)),
+      },
       {
         user_id: viewer,
         team_id: hq.id,

@@ -5,11 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 import { requireTeam, canEdit } from '@/lib/auth/session';
 import { categorySchema } from '@/lib/validations';
 import { categorySlugify } from '@/lib/categories/defaults';
-import { recordActivity } from '@/lib/activity';
+import { notifyTeamMembers, recordActivity } from '@/lib/activity';
 
 export type ActionResult = { error?: string; success?: boolean };
 
-const CATEGORY_PATHS = ['/', '/categories', '/entries', '/analytics', '/budgets'] as const;
+const CATEGORY_PATHS = ['/', '/categories', '/entries', '/analytics', '/budgets', '/notifications', '/activity'] as const;
 
 function revalidateCategoryPaths() {
   for (const path of CATEGORY_PATHS) revalidatePath(path);
@@ -49,6 +49,17 @@ export async function createExpenseCategory(formData: FormData): Promise<ActionR
       entityId: category.id,
       message: `Category created: ${parsed.data.name}`,
       metadata: { name: parsed.data.name, color: parsed.data.color },
+    });
+    await notifyTeamMembers({
+      supabase,
+      teamId: session.teamId,
+      excludeUserId: session.user.id,
+      type: 'info',
+      title: 'Category created',
+      message: `Category created: ${parsed.data.name}`,
+      link: '/categories',
+      metadata: { event_type: 'category_created', categoryId: category.id, name: parsed.data.name },
+      audience: 'admins',
     });
   }
   revalidateCategoryPaths();
@@ -90,6 +101,17 @@ export async function updateExpenseCategory(id: string, formData: FormData): Pro
     message: `Category updated: ${parsed.data.name}`,
     metadata: { name: parsed.data.name, color: parsed.data.color },
   });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Category updated',
+    message: `Category updated: ${parsed.data.name}`,
+    link: '/categories',
+    metadata: { event_type: 'category_updated', categoryId: id, name: parsed.data.name },
+    audience: 'admins',
+  });
   revalidateCategoryPaths();
   return { success: true };
 }
@@ -99,6 +121,13 @@ export async function deleteExpenseCategory(id: string): Promise<ActionResult> {
   if (!canEdit(session.role)) return { error: 'Permission denied' };
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from('expense_categories')
+    .select('name')
+    .eq('id', id)
+    .eq('team_id', session.teamId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('expense_categories')
     .delete()
@@ -106,6 +135,26 @@ export async function deleteExpenseCategory(id: string): Promise<ActionResult> {
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'category_deleted',
+    entityType: 'category',
+    entityId: id,
+    message: `Category deleted: ${existing?.name ?? 'Category'}`,
+    metadata: { name: existing?.name ?? null },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Category deleted',
+    message: `Category deleted: ${existing?.name ?? 'Category'}`,
+    link: '/categories',
+    metadata: { event_type: 'category_deleted', categoryId: id, name: existing?.name ?? null },
+    audience: 'admins',
+  });
   revalidateCategoryPaths();
   return { success: true };
 }
