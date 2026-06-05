@@ -62,7 +62,7 @@ Roles live on `team_members.role`:
 - `admin`: editor role, can manage expenses, categories, budgets, settlements, invites, and members.
 - `viewer`: can read team data, create draft expenses, and submit their own expenses for approval.
 
-The role checks are enforced in both server actions and RLS. Server actions provide friendly validation and redirects; RLS remains the final database boundary.
+The role checks are enforced in navigation, page redirects, server actions, and RLS. Viewers do not see team management, team settings, role management, or invite management entries in the sidebar, mobile menu, command palette, or settings tabs. Server actions provide friendly validation and redirects; RLS remains the final database boundary.
 
 ## Expense Approval Workflow
 
@@ -86,6 +86,8 @@ Workflow:
 Only `approved` and `reimbursed` expenses are treated as financial facts. Budgets, analytics, reports, public totals, monthly summaries, and settlement balances all filter to those statuses. Pending and rejected rows remain auditable but do not affect spend or debt calculations.
 
 Every expense workflow action emits a normalized activity row and at least one notification. Create, update, delete, and submit events notify owners/admins; individual assignments notify the assignee; approval, rejection, and reimbursement events notify the submitter/creator. Approval events also notify owners/admins for operational visibility.
+
+Assignment and split rules are normalized before insert/update. Individual expenses require `assigned_user_id`, force `is_shared=false`, and never create participant rows. Team expenses may be unshared or shared. Shared team expenses require participants; equal split auto-selects all active team members in the UI and stores equal `share_amount` rows, while custom split stores explicit participant amounts and validates that the shares total the expense amount.
 
 ## Member Ledger Architecture
 
@@ -168,12 +170,14 @@ Role-aware defaults are generated in `lib/dashboard-customization.ts`: owners pr
 
 Shared expenses are recorded in approved/reimbursed `lunch_entries` with participant rows in `lunch_entry_participants`. The balance engine in `lib/balance/engine.ts`:
 
-1. Calculates participant shares for equal or selected splits.
+1. Calculates participant shares for equal or selected/custom splits.
 2. Creates raw debts from participants to payers.
 3. Applies completed settlements.
 4. Simplifies pairwise debts into minimal payment edges.
 
 Pending settlements are visible records. Completed settlements reduce outstanding debt. Cancelled settlements are ignored by debt calculations.
+
+Individual expenses do not enter the settlement balance engine because they are stored with `is_shared=false` and no participant rows. They still affect member reporting through `assigned_user_id` and team/category budgets after approval.
 
 ## Recurring Expense Engine
 
@@ -196,7 +200,7 @@ server action / cron
   -> bell preview and /notifications update without refresh
 ```
 
-The `/notifications` inbox supports all/unread/read/archived filters, search, pagination, mark read, mark all read, delete, archive, and selected bulk actions. Notification links deep-link to the related product surface, such as `/entries`, `/budgets`, `/settlements`, `/team`, or `/approvals`.
+The `/notifications` inbox supports all/unread/read/archived filters, search, pagination, mark read, mark all read, delete, archive, and selected bulk actions. Notification links deep-link to the related product surface, such as `/entries`, `/budgets`, `/settlements`, `/team`, or `/approvals`. Invite acceptance, member join, individual assignment, shared expense creation, and split updates are all notification/activity producers where relevant.
 
 Role-aware audience selection happens before insert:
 

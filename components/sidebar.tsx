@@ -56,6 +56,9 @@ export function Sidebar({
 }) {
   const pathname = usePathname()
   const canManage = role === "owner" || role === "admin"
+  const visibleNavItems = canManage
+    ? navItems
+    : navItems.filter((item) => item.href !== "/team")
   const { currency } = useCurrency()
 
   return (
@@ -70,7 +73,7 @@ export function Sidebar({
       </div>
 
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-4 py-6">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href))

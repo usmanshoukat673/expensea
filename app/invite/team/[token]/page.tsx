@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { getInvitePreview } from '@/lib/actions/team-invites';
 import { createClient } from '@/lib/supabase/server';
 import { InviteAcceptCard } from '@/components/team/invite-accept-card';
@@ -11,8 +10,10 @@ type Props = { params: Promise<{ token: string }> };
 
 export default async function TeamInviteAcceptPage({ params }: Props) {
   const { token } = await params;
-  const preview = await getInvitePreview(token);
-  if (!preview || preview.reason === 'not_found') notFound();
+  const preview = (await getInvitePreview(token)) ?? {
+    valid: false,
+    reason: 'not_found',
+  };
 
   const supabase = await createClient();
   const {

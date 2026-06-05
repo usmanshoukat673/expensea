@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
+import { Search } from 'lucide-react';
 import { createLunchEntry, updateLunchEntry } from '@/lib/actions/lunch-entries';
 import { lunchEntrySchema, type LunchEntryInput } from '@/lib/validations';
 import type { ExpenseCategory, LunchEntryWithProfile } from '@/lib/database.types';
@@ -30,8 +31,9 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { useCurrency } from '@/hooks/use-currency';
 import { CategorySelector } from '@/components/categories/category-selector';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-type Member = { user_id: string; name: string };
+type Member = { user_id: string; name: string; avatar_url?: string | null };
 
 export function LunchEntryDialog({
   members,
@@ -58,6 +60,8 @@ export function LunchEntryDialog({
     categories.find((c) => c.slug === 'miscellaneous') ?? categories[0];
 
   const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [participantShares, setParticipantShares] = useState<Record<string, string>>({});
+  const [memberSearch, setMemberSearch] = useState('');
 
   const {
     register,
@@ -88,6 +92,22 @@ export function LunchEntryDialog({
   const categoryId = watch('categoryId');
   const assignmentType = watch('assignmentType') ?? 'team';
   const assignedUserId = watch('assignedUserId');
+  const amount = Number(watch('amount') ?? 0);
+  const sharedEnabled = assignmentType === 'team' && !!isShared;
+  const filteredMembers = useMemo(() => {
+    const q = memberSearch.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((member) => member.name.toLowerCase().includes(q));
+  }, [memberSearch, members]);
+  const selectedParticipantCount = participantIds.length;
+  const equalShare =
+    sharedEnabled && splitType === 'equal' && selectedParticipantCount > 0 && amount > 0
+      ? amount / selectedParticipantCount
+      : 0;
+  const customTotal = participantIds.reduce(
+    (sum, id) => sum + Number(participantShares[id] || 0),
+    0,
+  );
 
   useEffect(() => {
     if (entry) {
@@ -106,8 +126,30 @@ export function LunchEntryDialog({
       setParticipantIds(
         entry.lunch_entry_participants?.map((p) => p.user_id) ?? [],
       );
+      setParticipantShares(
+        Object.fromEntries(
+          (entry.lunch_entry_participants ?? [])
+            .filter((p) => p.share_amount != null)
+            .map((p) => [p.user_id, String(p.share_amount)]),
+        ),
+      );
     }
   }, [entry, reset, defaultCategory?.id]);
+
+  useEffect(() => {
+    if (assignmentType !== 'individual') return;
+    setValue('isShared', false);
+    setValue('splitType', 'none');
+    setParticipantIds([]);
+    setParticipantShares({});
+    if (!assignedUserId) setValue('assignedUserId', payerId);
+  }, [assignmentType, assignedUserId, payerId, setValue]);
+
+  useEffect(() => {
+    if (assignmentType !== 'team' || !isShared || splitType !== 'equal') return;
+    setParticipantIds(members.map((member) => member.user_id));
+    setParticipantShares({});
+  }, [assignmentType, isShared, splitType, members]);
 
   useEffect(() => {
     const handler = () => onOpenChange(true);
@@ -116,9 +158,23 @@ export function LunchEntryDialog({
   }, [onOpenChange]);
 
   const toggleParticipant = (id: string) => {
-    setParticipantIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setParticipantIds((prev) => {
+      if (prev.includes(id)) {
+        setParticipantShares((shares) => {
+          const next = { ...shares };
+          delete next[id];
+          return next;
+        });
+        return prev.filter((x) => x !== id);
+      }
+      return [...prev, id];
+    });
+  };
+
+  const selectAllParticipants = () => setParticipantIds(members.map((member) => member.user_id));
+  const deselectAllParticipants = () => {
+    setParticipantIds([]);
+    setParticipantShares({});
   };
 
   const submitExpense = (intent: 'draft' | 'submit') => handleSubmit((data) => {
@@ -129,11 +185,13 @@ export function LunchEntryDialog({
     fd.set('notes', data.notes ?? '');
     fd.set('paymentStatus', data.paymentStatus);
     fd.set('categoryId', data.categoryId ?? '');
-    fd.set('isShared', String(!!data.isShared));
-    fd.set('splitType', data.isShared ? (data.splitType ?? 'equal') : 'none');
+    const isTeamExpense = data.assignmentType !== 'individual';
+    fd.set('isShared', String(isTeamExpense && !!data.isShared));
+    fd.set('splitType', isTeamExpense && data.isShared ? (data.splitType ?? 'equal') : 'none');
     fd.set('assignmentType', data.assignmentType ?? 'team');
     fd.set('assignedUserId', data.assignmentType === 'individual' ? (data.assignedUserId ?? '') : '');
-    fd.set('participantIds', JSON.stringify(participantIds));
+    fd.set('participantIds', JSON.stringify(isTeamExpense && data.isShared ? participantIds : []));
+    fd.set('participantShares', JSON.stringify(data.splitType === 'selected' ? participantShares : {}));
     fd.set('intent', intent);
     startTransition(async () => {
       const result = isEdit
@@ -192,8 +250,15 @@ export function LunchEntryDialog({
               value={assignmentType}
               onValueChange={(value) => {
                 setValue('assignmentType', value as 'team' | 'individual');
-                if (value === 'team') setValue('assignedUserId', null);
-                else if (!assignedUserId) setValue('assignedUserId', payerId);
+                if (value === 'team') {
+                  setValue('assignedUserId', null);
+                } else {
+                  setValue('isShared', false);
+                  setValue('splitType', 'none');
+                  setValue('assignedUserId', assignedUserId || payerId);
+                  setParticipantIds([]);
+                  setParticipantShares({});
+                }
               }}
               className="grid gap-2 sm:grid-cols-2"
             >
@@ -241,58 +306,112 @@ export function LunchEntryDialog({
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="isShared"
-              checked={!!isShared}
-              onCheckedChange={(v) => setValue('isShared', !!v)}
-            />
-            <Label htmlFor="isShared" className="font-normal cursor-pointer">
-              Shared expense (split with members)
-            </Label>
-          </div>
+          {assignmentType === 'team' && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="isShared"
+                checked={!!isShared}
+                onCheckedChange={(v) => {
+                  const checked = !!v;
+                  setValue('isShared', checked);
+                  setValue('splitType', checked ? 'equal' : 'none');
+                  if (checked) selectAllParticipants();
+                  else deselectAllParticipants();
+                }}
+              />
+              <Label htmlFor="isShared" className="font-normal cursor-pointer">
+                Shared expense (split with members)
+              </Label>
+            </div>
+          )}
 
-          {isShared && (
+          {sharedEnabled && (
             <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
               <div className="space-y-2">
                 <Label>Split type</Label>
                 <Select
                   value={splitType ?? 'equal'}
-                  onValueChange={(v) => setValue('splitType', v as 'equal' | 'selected')}
+                  onValueChange={(v) => {
+                    setValue('splitType', v as 'equal' | 'selected');
+                    if (v === 'equal') {
+                      selectAllParticipants();
+                      setParticipantShares({});
+                    }
+                  }}
                 >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="equal">Split equally</SelectItem>
-                    <SelectItem value="selected">Split among selected</SelectItem>
+                    <SelectItem value="selected">Custom split</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Participants</Label>
-                <div className="flex max-h-32 flex-wrap gap-2 overflow-y-auto">
-                  {members.map((m) => (
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Participants</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={selectAllParticipants}>
+                      Select all
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={deselectAllParticipants}>
+                      Deselect all
+                    </Button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={memberSearch}
+                    onChange={(event) => setMemberSearch(event.target.value)}
+                    placeholder="Search members"
+                    className="pl-9"
+                  />
+                </div>
+                <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
+                  {filteredMembers.map((m) => (
                     <label
                       key={m.user_id}
-                      className="flex items-center gap-1.5 text-sm cursor-pointer"
+                      className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-2 py-2 text-sm"
                     >
                       <Checkbox
                         checked={participantIds.includes(m.user_id)}
                         onCheckedChange={() => toggleParticipant(m.user_id)}
                       />
-                      {m.name}
+                      <Avatar className="size-7">
+                        <AvatarImage src={m.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {m.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                      {splitType === 'selected' && participantIds.includes(m.user_id) && (
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={participantShares[m.user_id] ?? ''}
+                          onChange={(event) =>
+                            setParticipantShares((shares) => ({
+                              ...shares,
+                              [m.user_id]: event.target.value,
+                            }))
+                          }
+                          placeholder="Amount"
+                          className="h-8 w-24"
+                          onClick={(event) => event.preventDefault()}
+                        />
+                      )}
                     </label>
                   ))}
                 </div>
-                {isShared && participantIds.length > 0 && watch('amount') > 0 && (
+                {sharedEnabled && splitType === 'equal' && equalShare > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Each owes{' '}
-                    {(
-                      Number(watch('amount')) /
-                      (participantIds.includes(payerId)
-                        ? participantIds.length
-                        : participantIds.length + 1)
-                    ).toFixed(2)}{' '}
-                    {currency.symbol}
+                    Each selected member owes {equalShare.toFixed(2)} {currency.symbol}.
+                  </p>
+                )}
+                {sharedEnabled && splitType === 'selected' && (
+                  <p className="text-xs text-muted-foreground">
+                    Custom shares total {customTotal.toFixed(2)} of {amount.toFixed(2)} {currency.symbol}.
                   </p>
                 )}
               </div>

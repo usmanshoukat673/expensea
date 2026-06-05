@@ -56,6 +56,12 @@ export const lunchEntrySchema = z.object({
 }).refine((d) => d.assignmentType !== 'individual' || !!d.assignedUserId, {
   message: 'Select an assigned member',
   path: ['assignedUserId'],
+}).refine((d) => d.assignmentType !== 'individual' || !d.isShared, {
+  message: 'Individual expenses cannot use shared split options',
+  path: ['isShared'],
+}).refine((d) => !d.isShared || (d.participantIds?.length ?? 0) > 0, {
+  message: 'Select at least one participant',
+  path: ['participantIds'],
 });
 
 export const rejectionSchema = z.object({

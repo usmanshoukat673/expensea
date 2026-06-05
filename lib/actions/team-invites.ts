@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth, requireTeam, canEdit } from '@/lib/auth/session';
 import { persistActiveTeam } from '@/lib/auth/teams';
 import { inviteSchema } from '@/lib/validations';
@@ -9,6 +10,7 @@ import type { TeamRole } from '@/lib/database.types';
 import {
   expiresAtFromOption,
   buildTeamInviteUrl,
+  normalizeTeamInviteToken,
   type InviteExpiryOption,
 } from '@/lib/invites/utils';
 import { notifyTeamMembers, recordActivity } from '@/lib/activity';
@@ -78,7 +80,9 @@ async function insertInvite(params: {
 
 export async function getInvitePreview(token: string): Promise<TeamInvitePreview | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('get_team_invite_preview', { p_token: token });
+  const normalized = normalizeTeamInviteToken(token);
+  if (!normalized) return null;
+  const { data, error } = await supabase.rpc('get_team_invite_preview', { p_token: normalized });
   if (error || !data) return null;
   return data as TeamInvitePreview;
 }
@@ -249,13 +253,20 @@ export async function sendEmailInvite(formData: FormData): Promise<ActionResult<
   return { success: true, data: { token: data.token } };
 }
 
-export async function acceptTeamInvite(token: string): Promise<ActionResult> {
+export async function acceptTeamInvite(
+  token: string,
+): Promise<ActionResult<{ alreadyMember?: boolean }>> {
   const session = await requireAuth();
-  const trimmed = token.trim();
+  const trimmed = normalizeTeamInviteToken(token);
   if (!trimmed) return { error: 'Invalid invite link' };
 
   const supabase = await createClient();
-  const { data: invite, error: fetchError } = await supabase
+  const admin = createAdminClient();
+  if (!admin) {
+    return { error: 'Invite acceptance is not configured on this server' };
+  }
+
+  const { data: invite, error: fetchError } = await admin
     .from('team_invites')
     .select('*')
     .eq('token', trimmed)
@@ -279,37 +290,42 @@ export async function acceptTeamInvite(token: string): Promise<ActionResult> {
     return { error: 'This invitation was sent to a different email address' };
   }
 
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('team_members')
     .select('id')
     .eq('team_id', invite.team_id)
     .eq('user_id', session.user.id)
     .maybeSingle();
 
-  if (existing) return { error: 'You are already a member of this team' };
+  if (existing) {
+    const { error: activeError } = await persistActiveTeam(supabase, session.user.id, invite.team_id);
+    if (activeError) return { error: activeError };
+    revalidatePath('/', 'layout');
+    return { success: true, data: { alreadyMember: true } };
+  }
 
   if (invite.role === 'owner') return { error: 'Invalid invitation role' };
 
-  const { error: memberError } = await supabase.from('team_members').insert({
+  const { error: memberError } = await admin.from('team_members').insert({
     team_id: invite.team_id,
     user_id: session.user.id,
     role: invite.role,
   });
   if (memberError) return { error: memberError.message };
 
-  await supabase
+  await admin
     .from('team_invites')
     .update({ usage_count: invite.usage_count + 1 })
     .eq('id', invite.id);
 
   if (invite.usage_limit != null && invite.usage_count + 1 >= invite.usage_limit) {
-    await supabase.from('team_invites').update({ is_active: false }).eq('id', invite.id);
+    await admin.from('team_invites').update({ is_active: false }).eq('id', invite.id);
   }
 
   const { error: activeError } = await persistActiveTeam(supabase, session.user.id, invite.team_id);
   if (activeError) return { error: activeError };
 
-  await recordActivity(supabase, {
+  await recordActivity(admin, {
     teamId: invite.team_id,
     userId: session.user.id,
     actionType: 'invite_accepted',

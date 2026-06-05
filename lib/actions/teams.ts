@@ -6,6 +6,7 @@ import { requireAuth, requireTeam, canEdit, isOwner } from '@/lib/auth/session';
 import { clearActiveTeamIfRemoved, persistActiveTeam } from '@/lib/auth/teams';
 import { teamNameSchema } from '@/lib/validations';
 import { normalizeCurrencyCode, type CurrencyCode } from '@/lib/currency';
+import { normalizeTeamInviteToken } from '@/lib/invites/utils';
 import type { TeamRole } from '@/lib/database.types';
 import { notifyTeamMembers, recordActivity } from '@/lib/activity';
 
@@ -100,12 +101,12 @@ export async function createTeam(formData: FormData): Promise<ActionResult<{ tea
 }
 
 export async function joinTeamByToken(formData: FormData): Promise<ActionResult> {
-  const token = String(formData.get('token') ?? '').trim();
+  const token = normalizeTeamInviteToken(String(formData.get('token') ?? ''));
   if (!token) return { error: 'Invitation token is required' };
 
   const { acceptTeamInvite } = await import('@/lib/actions/team-invites');
   const result = await acceptTeamInvite(token);
-  if (result.success) return result;
+  if (result.success) return { success: true };
 
   const session = await requireAuth();
   const supabase = await createClient();

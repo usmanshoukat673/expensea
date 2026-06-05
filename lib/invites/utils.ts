@@ -21,6 +21,24 @@ export function buildTeamInviteUrl(baseUrl: string, token: string): string {
   return `${base}/invite/team/${token}`;
 }
 
+export function normalizeTeamInviteToken(input: string): string {
+  const value = input.trim();
+  if (!value) return '';
+
+  try {
+    const url = new URL(value);
+    const parts = url.pathname.split('/').filter(Boolean);
+    const inviteIndex = parts.findIndex((part, index) => part === 'invite' && parts[index + 1] === 'team');
+    if (inviteIndex >= 0 && parts[inviteIndex + 2]) {
+      return decodeURIComponent(parts[inviteIndex + 2]).trim();
+    }
+  } catch {
+    // Not a URL; treat it as a raw token.
+  }
+
+  return value.replace(/^\/?invite\/team\//, '').split(/[?#/]/)[0]?.trim() ?? value;
+}
+
 export function buildPublicTeamUrl(baseUrl: string, teamId: string): string {
   const base = baseUrl.replace(/\/$/, '');
   return `${base}/public/team/${teamId}`;
