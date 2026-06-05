@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { TeamSwitcher } from '@/components/team/team-switcher';
 import type { AppLayoutUser } from '@/components/app-layout';
+import type { TeamRole } from '@/lib/database.types';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
@@ -25,14 +26,20 @@ const navItems = [
 export function Navbar({
   user,
   teamName,
+  role,
   notificationBell,
 }: {
   user: AppLayoutUser;
   teamName: string;
+  role: TeamRole | null;
   notificationBell?: ReactNode;
 }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const canManage = role === 'owner' || role === 'admin';
+  const visibleNavItems = canManage
+    ? navItems
+    : navItems.filter((item) => item.href !== '/team');
   const initials = user.name
     .split(' ')
     .map((n) => n[0])
@@ -66,7 +73,7 @@ export function Navbar({
       </div>
       {isOpen && (
         <nav className="absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto border-b border-sidebar-border bg-sidebar px-4 py-4 shadow-lg">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             const Icon = item.icon;
             return (

@@ -46,6 +46,7 @@ export function AppLayout({
       <Navbar
         user={user}
         teamName={teamName}
+        role={effectiveRole}
         notificationBell={
           <NotificationsBell
             initialNotifications={initialNotifications}
@@ -67,7 +68,7 @@ export function AppLayout({
         </div>
         <PageTransition>{children}</PageTransition>
       </main>
-      <MobileBottomNav />
+      <MobileBottomNav role={effectiveRole} />
       <FloatingActionButton canEdit={canEdit} />
     </div>
   )

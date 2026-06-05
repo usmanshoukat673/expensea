@@ -6,7 +6,7 @@ export const metadata = { title: 'Invite members' };
 
 export default async function TeamInvitePage() {
   const session = await requireTeam();
-  if (!canEdit(session.role)) redirect('/team');
+  if (!canEdit(session.role)) redirect('/settings/profile');
 
   return (
     <div className="max-w-lg space-y-6">

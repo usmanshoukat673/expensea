@@ -72,6 +72,8 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 
 The TypeScript seeders create team and individual assigned expenses, pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Settlement and activity seeders include member settlements, member timeline events such as `expense_created`, `expense_updated`, `expense_deleted`, `expense_assigned`, submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Notification seeders include owner/admin operational alerts and personal assignee/submitter alerts. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
 
+Seeded shared expenses include equal splits across all active team members and custom `selected` splits with explicit `lunch_entry_participants.share_amount` values. Seeded individual expenses are kept non-shared so they do not affect settlement balances.
+
 ## Member Ledger Data Model
 
 `lunch_entries.assignment_type` controls whether an expense belongs to the team generally or to one member specifically.
@@ -84,6 +86,8 @@ assignment_type = 'individual' -- assigned_user_id is required
 The `lunch_entries_assignment_consistency` constraint enforces that shape. Indexes on `(team_id, assigned_user_id, lunch_date DESC)` and `(team_id, assignment_type, lunch_date DESC)` support `/my-expenses`, member profile pages, member reports, and assignment filters.
 
 Monthly summaries now aggregate approved/reimbursed rows where the member is either the payer (`user_id`) or assignee (`assigned_user_id`). Member reports and dashboards use the assignee for individual expenses and the payer for team expenses.
+
+Shared team expense participants live in `lunch_entry_participants`. Equal split rows store equal `share_amount` values for the selected active members. Custom split rows store explicit per-member `share_amount` values and the server action validates that the selected rows add up to the expense amount. Individual expenses must not create participant rows.
 
 ## Notifications
 

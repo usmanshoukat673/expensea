@@ -42,7 +42,7 @@ export function InviteAcceptCard({
         toast.error(r.error);
         return;
       }
-      toast.success('Team joined successfully');
+      toast.success(r.data?.alreadyMember ? 'You are already on this team' : 'Team joined successfully');
       router.refresh();
       router.push('/');
     });

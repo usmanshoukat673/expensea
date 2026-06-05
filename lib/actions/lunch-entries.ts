@@ -35,6 +35,23 @@ function parseParticipants(formData: FormData): string[] {
   }
 }
 
+function parseParticipantShares(formData: FormData): Record<string, number> {
+  const raw = formData.get('participantShares');
+  if (!raw || typeof raw !== 'string') return {};
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const shares: Record<string, number> = {};
+    for (const [userId, value] of Object.entries(parsed)) {
+      const amount = Number(value);
+      if (Number.isFinite(amount) && amount > 0) shares[userId] = amount;
+    }
+    return shares;
+  } catch {
+    return {};
+  }
+}
+
 function formatExpenseAmount(amount: number | string | null | undefined) {
   return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
 }
@@ -73,6 +90,7 @@ async function syncParticipants(
   participantIds: string[],
   amount: number,
   splitType: 'equal' | 'selected' | 'none',
+  participantShares: Record<string, number> = {},
 ) {
   await supabase.from('lunch_entry_participants').delete().eq('entry_id', entryId);
   if (!participantIds.length || splitType === 'none') return;
@@ -84,9 +102,33 @@ async function syncParticipants(
     participantIds.map((userId) => ({
       entry_id: entryId,
       user_id: userId,
-      share_amount: share,
+      share_amount: splitType === 'selected' ? participantShares[userId] ?? null : share,
     })),
   );
+}
+
+function validateSplitRules(params: {
+  assignmentType: 'team' | 'individual';
+  isShared: boolean;
+  splitType: 'equal' | 'selected' | 'none';
+  participants: string[];
+  participantShares: Record<string, number>;
+  amount: number;
+}) {
+  if (params.assignmentType === 'individual') return null;
+  if (!params.isShared) return null;
+  if (!params.participants.length) return 'Select at least one participant for a team expense';
+  if (params.splitType !== 'selected') return null;
+
+  const missingShare = params.participants.some((id) => !params.participantShares[id]);
+  if (missingShare) return 'Enter a custom amount for every selected participant';
+
+  const total = params.participants.reduce((sum, id) => sum + Number(params.participantShares[id] ?? 0), 0);
+  if (Math.abs(total - params.amount) > 0.01) {
+    return 'Custom split amounts must add up to the expense amount';
+  }
+
+  return null;
 }
 
 async function validateEntryTeamRefs(
@@ -132,6 +174,8 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
   const session = await requireTeam();
 
   const participantIds = parseParticipants(formData);
+  const participantShares = parseParticipantShares(formData);
+  const assignmentType = formData.get('assignmentType') === 'individual' ? 'individual' : 'team';
   const intent = formData.get('intent') === 'submit' ? 'submit' : 'draft';
   const parsed = lunchEntrySchema.safeParse({
     userId: formData.get('userId'),
@@ -140,22 +184,32 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     notes: formData.get('notes') || undefined,
     paymentStatus: formData.get('paymentStatus'),
     categoryId: formData.get('categoryId') || null,
-    isShared: formData.get('isShared') === 'true',
-    splitType: formData.get('splitType') || 'none',
+    isShared: assignmentType === 'team' && formData.get('isShared') === 'true',
+    splitType: assignmentType === 'team' ? formData.get('splitType') || 'none' : 'none',
     participantIds,
-    assignmentType: formData.get('assignmentType') || 'team',
-    assignedUserId: formData.get('assignedUserId') || null,
+    assignmentType,
+    assignedUserId: assignmentType === 'individual' ? formData.get('assignedUserId') || null : null,
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
 
-  const isShared = parsed.data.isShared ?? false;
+  const isShared = parsed.data.assignmentType === 'team' && (parsed.data.isShared ?? false);
   const splitType = isShared ? (parsed.data.splitType ?? 'equal') : 'none';
   const participants =
     isShared && participantIds.length
       ? participantIds
       : isShared
-        ? [parsed.data.userId]
+        ? []
         : [];
+
+  const splitError = validateSplitRules({
+    assignmentType: parsed.data.assignmentType ?? 'team',
+    isShared,
+    splitType,
+    participants,
+    participantShares,
+    amount: parsed.data.amount,
+  });
+  if (splitError) return { error: splitError };
 
   const supabase = await createClient();
   const refError = await validateEntryTeamRefs(
@@ -195,10 +249,7 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
   if (error || !row) return { error: error?.message ?? 'Failed to create entry' };
 
   if (isShared && participants.length) {
-    const ids = participants.includes(parsed.data.userId)
-      ? participants
-      : [parsed.data.userId, ...participants];
-    await syncParticipants(supabase, row.id, ids, parsed.data.amount, splitType);
+    await syncParticipants(supabase, row.id, participants, parsed.data.amount, splitType, participantShares);
   }
 
   const categoryName = await getCategoryName(supabase, session.teamId, parsed.data.categoryId);
@@ -284,13 +335,31 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
   }
 
   if (isShared) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'shared_expense_created',
+      entityType: 'expense',
+      entityId: row.id,
+      message: `${actor} created a shared ${categoryName.toLowerCase()} for ${amountLabel}`,
+      metadata: {
+        amount: parsed.data.amount,
+        amount_label: amountLabel,
+        category_name: categoryName,
+        split_type: splitType,
+        participant_ids: participants,
+      },
+    });
     await notifyTeamMembers({
       teamId: session.teamId,
       excludeUserId: session.user.id,
       type: 'shared_expense',
       title: 'New shared expense',
-      body: `A shared expense of ${parsed.data.amount} was added`,
-      metadata: { entryId: row.id },
+      body: `${actor} created ${categoryName} for ${amountLabel}`,
+      link: '/settlements',
+      metadata: { entryId: row.id, splitType, participantIds: participants },
+      memberIds: participants.filter((id) => id !== session.user.id),
+      audience: 'personal',
     });
   }
 
@@ -310,6 +379,8 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   const session = await requireTeam();
 
   const participantIds = parseParticipants(formData);
+  const participantShares = parseParticipantShares(formData);
+  const assignmentType = formData.get('assignmentType') === 'individual' ? 'individual' : 'team';
   const parsed = lunchEntrySchema.safeParse({
     userId: formData.get('userId'),
     amount: formData.get('amount'),
@@ -317,15 +388,15 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     notes: formData.get('notes') || undefined,
     paymentStatus: formData.get('paymentStatus'),
     categoryId: formData.get('categoryId') || null,
-    isShared: formData.get('isShared') === 'true',
-    splitType: formData.get('splitType') || 'none',
+    isShared: assignmentType === 'team' && formData.get('isShared') === 'true',
+    splitType: assignmentType === 'team' ? formData.get('splitType') || 'none' : 'none',
     participantIds,
-    assignmentType: formData.get('assignmentType') || 'team',
-    assignedUserId: formData.get('assignedUserId') || null,
+    assignmentType,
+    assignedUserId: assignmentType === 'individual' ? formData.get('assignedUserId') || null : null,
   });
   if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
 
-  const isShared = parsed.data.isShared ?? false;
+  const isShared = parsed.data.assignmentType === 'team' && (parsed.data.isShared ?? false);
   const splitType = isShared ? (parsed.data.splitType ?? 'equal') : 'none';
 
   const supabase = await createClient();
@@ -345,12 +416,20 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
 
   const participants =
     isShared && participantIds.length > 0
-      ? participantIds.includes(parsed.data.userId)
-        ? participantIds
-        : [parsed.data.userId, ...participantIds]
+      ? participantIds
       : isShared
-        ? [parsed.data.userId]
+        ? []
         : [];
+  const splitError = validateSplitRules({
+    assignmentType: parsed.data.assignmentType ?? 'team',
+    isShared,
+    splitType,
+    participants,
+    participantShares,
+    amount: parsed.data.amount,
+  });
+  if (splitError) return { error: splitError };
+
   const refError = await validateEntryTeamRefs(
     supabase,
     session.teamId,
@@ -387,7 +466,7 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   if (error) return { error: error.message };
 
   if (isShared) {
-    await syncParticipants(supabase, id, participants, parsed.data.amount, splitType);
+    await syncParticipants(supabase, id, participants, parsed.data.amount, splitType, participantShares);
   } else {
     await supabase.from('lunch_entry_participants').delete().eq('entry_id', id);
   }
@@ -455,6 +534,24 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
       metadata: { entryId: id, categoryName, amount: parsed.data.amount },
       memberIds: [parsed.data.assignedUserId],
       audience: 'personal',
+    });
+  }
+
+  if (isShared) {
+    await recordActivity(supabase, {
+      teamId: session.teamId,
+      userId: session.user.id,
+      actionType: 'split_updated',
+      entityType: 'expense',
+      entityId: id,
+      message: `${actor} updated split participants for ${categoryName}`,
+      metadata: {
+        amount: parsed.data.amount,
+        amount_label: amountLabel,
+        category_name: categoryName,
+        split_type: splitType,
+        participant_ids: participants,
+      },
     });
   }
 

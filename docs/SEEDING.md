@@ -35,13 +35,14 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 - Expenses: current month, previous month, and historical expenses across categories.
 - Approvals: pending approvals, approved expenses, rejected expenses, and draft/submitted workflow coverage.
 - Reimbursements: not reimbursed, partially reimbursed, and fully reimbursed expense examples.
-- Shared expenses: equal participant splits and participant rows.
+- Shared expenses: equal participant splits across active members plus custom selected splits with explicit participant share amounts.
+- Assignment coverage: individual expenses are assigned to one member and stay non-shared; team expenses may be unshared, equal split, or custom split.
 - Budgets: team and category budgets with healthy, near-limit, and over-budget examples.
 - Settlements: pending, completed, and cancelled records.
 - Invites: legacy email invites and shareable invite links.
 - Recurring expenses: active, paused, and completed monthly rules.
 - Notifications: expense creation, assignment, submission, approval, rejection, reimbursement, budget, settlement, recurring, and invite examples with deep links.
-- Activity: team, member, created/updated/deleted/submitted/approved/rejected/reimbursed expense, budget, invite, settlement, approval, and recurring history in normalized `activity_logs`.
+- Activity: team, member, created/updated/deleted/submitted/approved/rejected/reimbursed/assigned/shared/split-updated expense, budget, invite, settlement, approval, and recurring history in normalized `activity_logs`.
 - Dashboard customization: role-aware dashboard preferences, saved views, default views, saved filters, widget visibility settings, and favorites.
 - Reports/analytics: generated from seeded expenses, budgets, settlements, and activity.
 
@@ -97,7 +98,7 @@ The seeders use fixed team slugs for idempotency and a seeded Faker instance for
 ## Seeder Audit Notes
 
 - Current seeders are complete for the implemented product surface.
-- Expense seeders now cover approval statuses and reimbursement statuses.
+- Expense seeders now cover approval statuses, reimbursement statuses, individual assignments, team expenses, equal splits, and custom splits.
 - The recurring-expense seeder covers active, paused, and completed rules.
 - The dashboard customization seeder covers owner/admin/viewer default layouts, saved views, saved filters, hidden widgets, pinned widgets, and favorites.
 - Reset now clears all demo-owned relational tables, including dashboard preferences/views/favorites, `recurring_expenses`, `team_invites`, normalized `activity_logs`, and legacy `team_activity_log`.

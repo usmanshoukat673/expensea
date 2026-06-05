@@ -82,8 +82,12 @@ export async function seedDemoExpenses(
       }
 
       const isShared = Math.random() < 0.32 && ctx.memberIds.length >= 3;
-      const assignedUserId = Math.random() < 0.38 ? pick(ctx.memberIds) : null;
-      const splitType: 'none' | 'equal' = isShared ? 'equal' : 'none';
+      const assignedUserId = !isShared && Math.random() < 0.38 ? pick(ctx.memberIds) : null;
+      const splitType: 'none' | 'equal' | 'selected' = isShared
+        ? Math.random() < 0.25
+          ? 'selected'
+          : 'equal'
+        : 'none';
       const approvalRoll = Math.random();
       const approvalStatus =
         approvalRoll < 0.12
@@ -163,17 +167,31 @@ export async function seedDemoExpenses(
   const participants: ParticipantInsert[] = [];
 
   for (const { row, id } of insertedIds) {
-    if (!row.is_shared || row.split_type !== 'equal') continue;
+    if (!row.is_shared || (row.split_type !== 'equal' && row.split_type !== 'selected')) continue;
     const ctx = [...teams.values()].find((t) => t.id === row.team_id);
     if (!ctx) continue;
 
-    const pool = ctx.memberIds.filter((id) => id !== row.user_id);
-    const count = Math.min(pool.length, 2 + Math.floor(Math.random() * 4));
-    const selected = shuffle([...pool]).slice(0, count);
-    const allParticipants = [row.user_id, ...selected];
-    const share = Math.round((row.amount / allParticipants.length) * 100) / 100;
+    if (row.split_type === 'equal') {
+      const share = Math.round((row.amount / ctx.memberIds.length) * 100) / 100;
+      for (const uid of ctx.memberIds) {
+        participants.push({ entry_id: id, user_id: uid, share_amount: share });
+      }
+      continue;
+    }
 
-    for (const uid of allParticipants) {
+    const pool = shuffle([...ctx.memberIds]);
+    const count = Math.min(pool.length, 2 + Math.floor(Math.random() * Math.max(1, pool.length - 1)));
+    const selected = pool.slice(0, count);
+    const weights = selected.map(() => 1 + Math.random() * 3);
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let allocated = 0;
+    for (let i = 0; i < selected.length; i++) {
+      const uid = selected[i];
+      const share =
+        i === selected.length - 1
+          ? Math.round((row.amount - allocated) * 100) / 100
+          : Math.round((row.amount * (weights[i] / totalWeight)) * 100) / 100;
+      allocated = Math.round((allocated + share) * 100) / 100;
       participants.push({ entry_id: id, user_id: uid, share_amount: share });
     }
   }

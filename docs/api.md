@@ -17,7 +17,7 @@ Validation lives in `lib/validations.ts`.
 | `profileSchema` | Name length 2-100, optional avatar URL. |
 | `teamNameSchema` | Team name length 2-50. |
 | `inviteSchema` | Valid email, role `admin` or `viewer`. |
-| `lunchEntrySchema` | Member UUID, positive amount, date, paid/unpaid status, optional category, split mode, participants, assignment type, and assigned member for individual expenses. |
+| `lunchEntrySchema` | Member UUID, positive amount, date, paid/unpaid status, optional category, split mode, participants, assignment type, assigned member for individual expenses, no shared split for individual expenses, and at least one participant for shared team expenses. |
 | `rejectionSchema` | Rejection or request-changes reason is required and capped at 500 characters. |
 | `reimbursementSchema` | Positive reimbursement amount, reimbursement date, optional notes up to 500 characters. |
 | `categorySchema` | Name length 2-50, icon, hex color, optional description up to 200 chars. |
@@ -102,6 +102,8 @@ Actions:
 - `regenerateTeamInvite(inviteId, formData)`
 - `listTeamInvites()`
 
+`acceptTeamInvite(token)` validates active, unexpired, usage-limited links, email-specific invites, and active membership. Already-joined users are treated idempotently: the active team is switched to the invite team and the action returns success with `data.alreadyMember`.
+
 Example invite form:
 
 ```text
@@ -139,10 +141,13 @@ splitType=none
 assignmentType=team | individual
 assignedUserId=<required when assignmentType=individual>
 participantIds=[]
+participantShares={} # only for custom/selected splits
 intent=draft | submit
 ```
 
-When `assignmentType=individual`, the action validates that `assignedUserId` is an active member of the current team, writes `assigned_by`, records an `expense_assigned` activity event, and notifies the assigned member.
+When `assignmentType=individual`, the action forces `isShared=false` and `splitType=none`, validates that `assignedUserId` is an active member of the current team, writes `assigned_by`, records an `expense_assigned` activity event, and notifies the assigned member.
+
+When `assignmentType=team` and `isShared=true`, at least one participant is required. `splitType=equal` stores equal participant shares, while `splitType=selected` is the custom split mode and requires `participantShares` amounts for every selected participant that add up to the expense amount.
 
 ## Member Ledger And Personal Expense Reads
 
@@ -180,13 +185,22 @@ participantIds=<member-id>,<member-id>
 intent=draft|submit
 ```
 
+Example custom split:
+
+```text
+isShared=true
+splitType=selected
+participantIds=["<member-a>","<member-b>"]
+participantShares={"<member-a>":3000,"<member-b>":1200}
+```
+
 Response:
 
 ```json
 { "success": true }
 ```
 
-The action writes `lunch_entries` and, for shared expenses, `lunch_entry_participants`. New expenses are drafts unless `intent=submit`, which sets `approval_status=pending_approval` and `submitted_by` to the current user. Expense create, update, delete, bulk-delete, submit, approve, reject, and reimburse actions all write `activity_logs`, create targeted `notifications`, and revalidate `/activity` plus `/notifications`.
+The action writes `lunch_entries` and, for shared expenses, `lunch_entry_participants`. New expenses are drafts unless `intent=submit`, which sets `approval_status=pending_approval` and `submitted_by` to the current user. Expense create, update, delete, bulk-delete, submit, approve, reject, and reimburse actions all write `activity_logs`, create targeted `notifications`, and revalidate `/activity` plus `/notifications`. Shared expense creation also writes `shared_expense_created`; split edits write `split_updated`.
 
 ### Approval actions
 

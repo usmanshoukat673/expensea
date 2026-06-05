@@ -67,9 +67,11 @@ export function CommandPalette({ canEdit }: { canEdit: boolean }) {
           <CommandItem onSelect={() => go('/settlements')}>
             <Scale className="size-4" /> Settlements
           </CommandItem>
-          <CommandItem onSelect={() => go('/team')}>
-            <Users className="size-4" /> Team
-          </CommandItem>
+          {canEdit && (
+            <CommandItem onSelect={() => go('/team')}>
+              <Users className="size-4" /> Team
+            </CommandItem>
+          )}
           <CommandItem onSelect={() => go('/analytics')}>
             <BarChart3 className="size-4" /> Analytics
           </CommandItem>

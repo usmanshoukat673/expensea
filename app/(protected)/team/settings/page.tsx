@@ -10,7 +10,7 @@ export const metadata = { title: 'Team settings' };
 
 export default async function TeamSettingsPage() {
   const session = await requireTeam();
-  if (!canEdit(session.role)) redirect('/team');
+  if (!canEdit(session.role)) redirect('/settings/profile');
 
   const supabase = await createClient();
   const { data: team } = await supabase.from('teams').select('*').eq('id', session.teamId).single();

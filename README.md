@@ -6,7 +6,7 @@ Expensea is a free, open-source expense tracker for teams that need shared spend
 
 Expensea uses a multi-team architecture where each user can belong to several teams and switch an active team context from their profile. Each team owns its expenses, categories, budgets, settlements, invites, notifications, recurring rules, and activity logs. Owners and admins can manage data; viewers can inspect team spending without changing it.
 
-The app supports individual and shared expenses, equal or selected participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, personalized dashboards with saved views, realtime notifications, a searchable activity center, team invite links, and public share pages for teams that opt in.
+The app supports individual and shared expenses, equal or custom participant splits, approval review before expenses affect finances, reimbursement tracking, team/category budgets, pending and completed settlements, reporting by date range/category/member, recurring expenses that can be generated on demand or by cron, personalized dashboards with saved views, realtime notifications, a searchable activity center, team invite links, and public share pages for teams that opt in.
 
 ## Features
 
@@ -24,6 +24,7 @@ The app supports individual and shared expenses, equal or selected participant s
 - Owner/admin team settings for name, brand name, currency, logo URL, and public sharing options.
 - Member management, role updates, status toggles, member removal, and ownership transfer.
 - Email-based invites through `team_invitations` and shareable invite links through `team_invites`.
+- Permission-aware navigation hides team management, team settings, role management, and invite management from viewers; direct restricted routes redirect to permitted pages while server actions and RLS enforce the same boundary.
 
 ### Expense Management
 
@@ -33,7 +34,7 @@ The app supports individual and shared expenses, equal or selected participant s
 - Approval statuses: draft, pending approval, approved, rejected, and reimbursed.
 - Viewers can create drafts and submit expenses; admins and owners review, approve, reject, request changes, and record reimbursements.
 - Only approved and reimbursed expenses affect budgets, analytics, reports, public financial totals, and settlement balances.
-- Shared expenses with `none`, `equal`, or `selected` split modes.
+- Team expenses can be shared with equal or custom split modes. Equal split auto-selects all active members and recalculates when members are removed. Custom split stores participant `share_amount` rows. Individual expenses require an assigned member and cannot show or submit shared split controls.
 - Participant shares stored in `lunch_entry_participants`.
 - Bulk delete for selected expenses.
 - Realtime refresh support for expense and team updates.
@@ -52,7 +53,7 @@ The app supports individual and shared expenses, equal or selected participant s
 - Reject and request-changes actions require a reason.
 - Reimbursement status tracks not reimbursed, partially reimbursed, and fully reimbursed expenses.
 - Reimbursement records store amount reimbursed, reimbursement date, and notes.
-- Notifications and activity feed entries are created for expense create, edit, delete, submit, approve, reject, and reimburse flows.
+- Notifications and activity feed entries are created for expense create, edit, delete, submit, approve, reject, reimburse, assignment, shared expense creation, and split update flows.
 
 ### Categories
 
@@ -275,7 +276,7 @@ Team-aware personalization tables. `user_dashboard_preferences` stores the curre
 
 ## Demo Data
 
-`npm run seed:demo` creates demo users, multiple teams, memberships with different roles, categories, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, normalized activity history for create/edit/delete/approval workflows, role-aware dashboard layouts, saved views, and dashboard favorites.
+`npm run seed:demo` creates demo users, multiple teams, owner/admin/viewer memberships, individual assigned expenses, team expenses, equal splits, custom splits, current/previous/historical expenses across approval states, reimbursement examples, budgets with healthy/near-limit/over-budget states, settlements, recurring expenses, actionable notifications, pending invites, public teams, normalized activity history for create/edit/delete/approval/assignment/split workflows, role-aware dashboard layouts, saved views, and dashboard favorites.
 
 Primary demo login:
 

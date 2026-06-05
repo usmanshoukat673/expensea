@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, BookOpen, Scale, UserRound, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { TeamRole } from "@/lib/database.types"
 
 const items = [
   { href: "/", icon: Home, label: "Home" },
@@ -13,13 +14,15 @@ const items = [
   { href: "/settings/profile", icon: Settings, label: "Settings" },
 ]
 
-export function MobileBottomNav() {
+export function MobileBottomNav({ role }: { role: TeamRole | null }) {
   const pathname = usePathname()
+  const canManage = role === "owner" || role === "admin"
+  const visibleItems = canManage ? items : items.filter((item) => item.href !== "/settings/team")
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around h-16 px-2">
-        {items.map((item) => {
+        {visibleItems.map((item) => {
           const active =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href))

@@ -34,6 +34,7 @@ export default async function EntriesPage({
   const memberList = members.map((m) => ({
     user_id: m.user_id,
     name: m.profiles?.full_name ?? m.profiles?.email ?? "Member",
+    avatar_url: m.profiles?.avatar_url ?? null,
   }))
 
   const defaultLunchDate = formatDateYMD(new Date())
