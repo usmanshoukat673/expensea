@@ -9,6 +9,18 @@ import { recordActivity } from '@/lib/activity';
 
 export type ActionResult = { error?: string; success?: boolean };
 
+function revalidateSettlementSurfaces() {
+  revalidatePath('/settlements');
+  revalidatePath('/');
+  revalidatePath('/analytics');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
+}
+
+function formatSettlementAmount(amount: number | string | null | undefined) {
+  return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
+}
+
 async function validateSettlementMembers(
   supabase: Awaited<ReturnType<typeof createClient>>,
   teamId: string,
@@ -77,7 +89,7 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
       actionType: 'settlement_created',
       entityType: 'settlement',
       entityId: settlement.id,
-      message: `Settlement created for ${parsed.data.amount}`,
+      message: `Settlement created for ${formatSettlementAmount(parsed.data.amount)}`,
       metadata: {
         amount: parsed.data.amount,
         payer: parsed.data.payerUserId,
@@ -88,17 +100,16 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
 
   await notifyTeamMembers({
     teamId: session.teamId,
-    excludeUserId: session.user.id,
     type: 'settlement_request',
     title: 'New settlement request',
-    body: `A settlement of ${parsed.data.amount} was recorded`,
-    metadata: { payer: parsed.data.payerUserId, receiver: parsed.data.receiverUserId },
+    body: `A settlement of ${formatSettlementAmount(parsed.data.amount)} was recorded`,
+    link: '/settlements',
+    metadata: { settlementId: settlement?.id, payer: parsed.data.payerUserId, receiver: parsed.data.receiverUserId },
     memberIds: [parsed.data.receiverUserId, parsed.data.payerUserId],
+    audience: 'personal',
   });
 
-  revalidatePath('/settlements');
-  revalidatePath('/');
-  revalidatePath('/analytics');
+  revalidateSettlementSurfaces();
   return { success: true };
 }
 
@@ -137,30 +148,28 @@ export async function updateSettlementStatus(
 
   if (error) return { error: error.message };
 
-  if (status === 'completed') {
-    await recordActivity(supabase, {
-      teamId: session.teamId,
-      userId: session.user.id,
-      actionType: 'settlement_completed',
-      entityType: 'settlement',
-      entityId: id,
-      message: `Settlement completed for ${existing.amount}`,
-      metadata: { amount: existing.amount },
-    });
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: status === 'completed' ? 'settlement_completed' : 'settlement_cancelled',
+    entityType: 'settlement',
+    entityId: id,
+    message: `Settlement ${status} for ${formatSettlementAmount(existing.amount)}`,
+    metadata: { amount: existing.amount, status },
+  });
 
-    await notifyTeamMembers({
-      teamId: session.teamId,
-      excludeUserId: session.user.id,
-      type: 'settlement_completed',
-      title: 'Settlement completed',
-      body: `Settlement of ${existing.amount} marked complete`,
-      memberIds: [existing.payer_user_id, existing.receiver_user_id],
-    });
-  }
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    type: status === 'completed' ? 'settlement_completed' : 'settlement_cancelled',
+    title: status === 'completed' ? 'Settlement completed' : 'Settlement cancelled',
+    body: `Settlement of ${formatSettlementAmount(existing.amount)} marked ${status}`,
+    link: '/settlements',
+    metadata: { settlementId: id, amount: existing.amount, status },
+    memberIds: [existing.payer_user_id, existing.receiver_user_id],
+    audience: 'personal',
+  });
 
-  revalidatePath('/settlements');
-  revalidatePath('/');
-  revalidatePath('/analytics');
+  revalidateSettlementSurfaces();
   return { success: true };
 }
 

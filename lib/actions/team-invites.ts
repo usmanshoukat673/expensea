@@ -147,10 +147,23 @@ export async function generateShareableInvite(formData: FormData): Promise<
     message: 'Invite link generated',
     metadata: { role, expiry },
   });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Invite link generated',
+    message: `A ${role} invite link was generated.`,
+    link: '/team/invite',
+    metadata: { event_type: 'invite_link_generated', inviteId: data.id, role, expiry },
+    audience: 'admins',
+  });
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   revalidatePath('/team');
   revalidatePath('/settings/team');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
   return {
     success: true,
     data: { token: data.token, url: buildTeamInviteUrl(baseUrl, data.token) },
@@ -218,8 +231,21 @@ export async function sendEmailInvite(formData: FormData): Promise<ActionResult<
     message: `Invitation sent to ${email}`,
     metadata: { email, role: parsed.data.role },
   });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Team invite sent',
+    message: `Invitation sent to ${email}.`,
+    link: '/team/invite',
+    metadata: { event_type: 'invitation_sent', inviteId: data.id, email, role: parsed.data.role },
+    audience: 'admins',
+  });
 
   revalidatePath('/team');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
   return { success: true, data: { token: data.token } };
 }
 
@@ -304,6 +330,8 @@ export async function acceptTeamInvite(token: string): Promise<ActionResult> {
   });
 
   revalidatePath('/', 'layout');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
   return { success: true };
 }
 
@@ -319,7 +347,29 @@ export async function disableTeamInvite(inviteId: string): Promise<ActionResult>
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'invite_disabled',
+    entityType: 'invite',
+    entityId: inviteId,
+    message: 'Invite disabled',
+    metadata: { inviteId },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Invite disabled',
+    message: 'A team invite was disabled.',
+    link: '/team/invite',
+    metadata: { event_type: 'invite_disabled', inviteId },
+    audience: 'admins',
+  });
   revalidatePath('/team');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
   return { success: true };
 }
 
@@ -356,9 +406,31 @@ export async function regenerateTeamInvite(inviteId: string, formData: FormData)
   });
 
   if (error || !data) return { error: error?.message ?? 'Failed to regenerate' };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'invite_regenerated',
+    entityType: 'invite',
+    entityId: data.id,
+    message: 'Invite regenerated',
+    metadata: { oldInviteId: inviteId, role, invitedEmail: old.invited_email },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Invite regenerated',
+    message: 'A team invite was regenerated.',
+    link: '/team/invite',
+    metadata: { event_type: 'invite_regenerated', inviteId: data.id, oldInviteId: inviteId },
+    audience: 'admins',
+  });
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   revalidatePath('/team');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
   return {
     success: true,
     data: { token: data.token, url: buildTeamInviteUrl(baseUrl, data.token) },

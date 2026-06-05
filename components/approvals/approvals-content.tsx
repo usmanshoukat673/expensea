@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { format as formatDate, parseISO } from 'date-fns';
 import { Check, RotateCcw, X, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,6 +51,7 @@ export function ApprovalsContent({
   canReview: boolean;
 }) {
   const { format } = useCurrency();
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [reasonEntry, setReasonEntry] = useState<{ entry: QueueEntry; mode: 'reject' | 'changes' } | null>(null);
   const [reimburseEntry, setReimburseEntry] = useState<QueueEntry | null>(null);
@@ -71,7 +73,10 @@ export function ApprovalsContent({
     startTransition(async () => {
       const result = await action();
       if (result?.error) toast.error(result.error);
-      else toast.success(label);
+      else {
+        router.refresh();
+        toast.success(label);
+      }
     });
   };
 

@@ -8,7 +8,11 @@ import { notifyTeamMembers, recordActivity } from '@/lib/activity';
 import { notifyBudgetThresholds } from '@/lib/budget-alerts';
 export type ActionResult = { error?: string; success?: boolean };
 
-const BUDGET_PATHS = ['/', '/budgets', '/analytics'] as const;
+const BUDGET_PATHS = ['/', '/budgets', '/analytics', '/notifications', '/activity'] as const;
+
+function formatBudgetAmount(amount: number | string | null | undefined) {
+  return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
+}
 
 function revalidateBudgetPaths() {
   for (const p of BUDGET_PATHS) revalidatePath(p);
@@ -83,10 +87,10 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
     await recordActivity(supabase, {
       teamId: session.teamId,
       userId: session.user.id,
-      actionType: 'budget_updated',
+      actionType: 'budget_created',
       entityType: 'budget',
       entityId: budget.id,
-      message: `Budget created for ${parsed.data.amount}`,
+      message: `Budget created for ${formatBudgetAmount(parsed.data.amount)}`,
       metadata: { amount: parsed.data.amount, type: parsed.data.type },
     });
     await notifyTeamMembers({
@@ -94,9 +98,10 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
       teamId: session.teamId,
       excludeUserId: session.user.id,
       type: 'info',
-      title: 'Budget updated',
+      title: 'Budget created',
       message: `A ${parsed.data.type} budget was created.`,
-      metadata: { event_type: 'budget_updated', budgetId: budget.id },
+      link: '/budgets',
+      metadata: { event_type: 'budget_created', budgetId: budget.id },
     });
     await notifyBudgetThresholds(supabase, {
       teamId: session.teamId,
@@ -150,7 +155,7 @@ export async function updateTeamBudget(
     actionType: 'budget_updated',
     entityType: 'budget',
     entityId: id,
-    message: `Budget updated to ${parsed.data.amount}`,
+    message: `Budget updated to ${formatBudgetAmount(parsed.data.amount)}`,
     metadata: { amount: parsed.data.amount, type: parsed.data.type },
   });
   await notifyTeamMembers({
@@ -160,6 +165,7 @@ export async function updateTeamBudget(
     type: 'info',
     title: 'Budget updated',
     message: `A ${parsed.data.type} budget was updated.`,
+    link: '/budgets',
     metadata: { event_type: 'budget_updated', budgetId: id },
   });
   await notifyBudgetThresholds(supabase, {
@@ -176,6 +182,14 @@ export async function deleteTeamBudget(id: string): Promise<ActionResult> {
   if (!canEdit(session.role)) return { error: 'Permission denied' };
 
   const supabase = await createClient();
+  const { data: existing, error: fetchError } = await supabase
+    .from('team_budgets')
+    .select('id, type, amount')
+    .eq('id', id)
+    .eq('team_id', session.teamId)
+    .maybeSingle();
+  if (fetchError) return { error: fetchError.message };
+
   const { error } = await supabase
     .from('team_budgets')
     .delete()
@@ -183,6 +197,27 @@ export async function deleteTeamBudget(id: string): Promise<ActionResult> {
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'budget_deleted',
+    entityType: 'budget',
+    entityId: id,
+    message: `Budget deleted${existing?.amount ? ` for ${formatBudgetAmount(existing.amount)}` : ''}`,
+    metadata: { amount: existing?.amount ?? null, type: existing?.type ?? null },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Budget deleted',
+    message: existing?.type
+      ? `A ${existing.type} budget was deleted.`
+      : 'A budget was deleted.',
+    link: '/budgets',
+    metadata: { event_type: 'budget_deleted', budgetId: id },
+  });
   revalidateBudgetPaths();
   return { success: true };
 }

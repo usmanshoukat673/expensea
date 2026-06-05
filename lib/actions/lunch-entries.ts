@@ -20,6 +20,8 @@ function revalidateExpenseSurfaces() {
   revalidatePath('/analytics');
   revalidatePath('/reports');
   revalidatePath('/budgets');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
 }
 
 function parseParticipants(formData: FormData): string[] {
@@ -31,6 +33,38 @@ function parseParticipants(formData: FormData): string[] {
   } catch {
     return [];
   }
+}
+
+function formatExpenseAmount(amount: number | string | null | undefined) {
+  return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
+}
+
+function actorLabel(session: Awaited<ReturnType<typeof requireTeam>>) {
+  return session.profile.full_name ?? session.profile.email ?? 'A team member';
+}
+
+async function getCategoryName(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  teamId: string,
+  categoryId?: string | null,
+) {
+  if (!categoryId) return 'Expense';
+  const { data, error } = await supabase
+    .from('expense_categories')
+    .select('name')
+    .eq('id', categoryId)
+    .eq('team_id', teamId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Failed to load expense category for event description', {
+      teamId,
+      categoryId,
+      error: error.message,
+    });
+  }
+
+  return data?.name ? `${data.name} Expense` : 'Expense';
 }
 
 async function syncParticipants(
@@ -167,17 +201,25 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     await syncParticipants(supabase, row.id, ids, parsed.data.amount, splitType);
   }
 
+  const categoryName = await getCategoryName(supabase, session.teamId, parsed.data.categoryId);
+  const amountLabel = formatExpenseAmount(parsed.data.amount);
+  const actor = actorLabel(session);
+  const createdMessage =
+    intent === 'submit'
+      ? `${actor} submitted ${categoryName} for ${amountLabel}`
+      : `${actor} created ${categoryName} for ${amountLabel}`;
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: intent === 'submit' ? 'expense_submitted' : 'expense_created',
     entityType: 'expense',
     entityId: row.id,
-    message: intent === 'submit'
-      ? `Expense submitted for approval (${parsed.data.amount})`
-      : `Expense created for ${parsed.data.amount}`,
+    message: createdMessage,
     metadata: {
       amount: parsed.data.amount,
+      amount_label: amountLabel,
+      category_name: categoryName,
       shared: isShared,
       approval_status: intent === 'submit' ? 'pending_approval' : 'draft',
       assignment_type: parsed.data.assignmentType ?? 'team',
@@ -192,8 +234,13 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
       actionType: 'expense_assigned',
       entityType: 'expense',
       entityId: row.id,
-      message: `Expense assigned (${parsed.data.amount})`,
-      metadata: { amount: parsed.data.amount, assigned_user_id: parsed.data.assignedUserId },
+      message: `${actor} assigned ${categoryName} to a member for ${amountLabel}`,
+      metadata: {
+        amount: parsed.data.amount,
+        amount_label: amountLabel,
+        category_name: categoryName,
+        assigned_user_id: parsed.data.assignedUserId,
+      },
     });
   }
 
@@ -203,10 +250,38 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     type: intent === 'submit' ? 'expense_submitted' : 'new_expense',
     title: intent === 'submit' ? 'Expense submitted' : 'New expense added',
     body: intent === 'submit'
-      ? `An expense of ${parsed.data.amount} is waiting for approval`
-      : `An expense of ${parsed.data.amount} was added`,
-    metadata: { entryId: row.id },
+      ? `${actor} submitted ${categoryName} for ${amountLabel}`
+      : `${actor} created ${categoryName} for ${amountLabel}`,
+    link: intent === 'submit' ? '/approvals' : '/entries',
+    metadata: { entryId: row.id, categoryName, amount: parsed.data.amount },
+    audience: 'admins',
   });
+
+  if (intent === 'submit') {
+    await notifyTeamMembers({
+      teamId: session.teamId,
+      type: 'expense_submitted',
+      title: 'Expense submitted',
+      body: `Your ${categoryName} for ${amountLabel} is waiting for approval`,
+      link: '/approvals',
+      metadata: { entryId: row.id, categoryName, amount: parsed.data.amount },
+      memberIds: [session.user.id],
+      audience: 'personal',
+    });
+  }
+
+  if (parsed.data.assignmentType === 'individual' && parsed.data.assignedUserId) {
+    await notifyTeamMembers({
+      teamId: session.teamId,
+      type: 'expense_assigned',
+      title: 'Expense assigned to you',
+      body: `${actor} assigned ${categoryName} to you for ${amountLabel}`,
+      link: '/my-expenses',
+      metadata: { entryId: row.id, categoryName, amount: parsed.data.amount },
+      memberIds: [parsed.data.assignedUserId],
+      audience: 'personal',
+    });
+  }
 
   if (isShared) {
     await notifyTeamMembers({
@@ -256,7 +331,7 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from('lunch_entries')
-    .select('created_by, approval_status')
+    .select('created_by, approval_status, assigned_user_id')
     .eq('id', id)
     .eq('team_id', session.teamId)
     .maybeSingle();
@@ -317,15 +392,21 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     await supabase.from('lunch_entry_participants').delete().eq('entry_id', id);
   }
 
+  const categoryName = await getCategoryName(supabase, session.teamId, parsed.data.categoryId);
+  const amountLabel = formatExpenseAmount(parsed.data.amount);
+  const actor = actorLabel(session);
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: 'expense_updated',
     entityType: 'expense',
     entityId: id,
-    message: `Expense updated to ${parsed.data.amount}`,
+    message: `${actor} updated ${categoryName} to ${amountLabel}`,
     metadata: {
       amount: parsed.data.amount,
+      amount_label: amountLabel,
+      category_name: categoryName,
       shared: isShared,
       assignment_type: parsed.data.assignmentType ?? 'team',
       assigned_user_id: parsed.data.assignmentType === 'individual' ? parsed.data.assignedUserId : null,
@@ -339,8 +420,13 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
       actionType: 'expense_assigned',
       entityType: 'expense',
       entityId: id,
-      message: `Expense assigned (${parsed.data.amount})`,
-      metadata: { amount: parsed.data.amount, assigned_user_id: parsed.data.assignedUserId },
+      message: `${actor} assigned ${categoryName} to a member for ${amountLabel}`,
+      metadata: {
+        amount: parsed.data.amount,
+        amount_label: amountLabel,
+        category_name: categoryName,
+        assigned_user_id: parsed.data.assignedUserId,
+      },
     });
   }
 
@@ -349,9 +435,28 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     excludeUserId: session.user.id,
     type: 'info',
     title: 'Expense updated',
-    body: `An expense was updated to ${parsed.data.amount}`,
-    metadata: { entryId: id },
+    body: `${actor} updated ${categoryName} to ${amountLabel}`,
+    link: '/entries',
+    metadata: { entryId: id, categoryName, amount: parsed.data.amount },
+    audience: 'admins',
   });
+
+  if (
+    parsed.data.assignmentType === 'individual' &&
+    parsed.data.assignedUserId &&
+    parsed.data.assignedUserId !== existing?.assigned_user_id
+  ) {
+    await notifyTeamMembers({
+      teamId: session.teamId,
+      type: 'expense_assigned',
+      title: 'Expense assigned to you',
+      body: `${actor} assigned ${categoryName} to you for ${amountLabel}`,
+      link: '/my-expenses',
+      metadata: { entryId: id, categoryName, amount: parsed.data.amount },
+      memberIds: [parsed.data.assignedUserId],
+      audience: 'personal',
+    });
+  }
 
   if (existing?.approval_status === 'approved' || existing?.approval_status === 'reimbursed') {
     await notifyBudgetThresholds(supabase, {
@@ -372,7 +477,7 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from('lunch_entries')
-    .select('amount, notes')
+    .select('amount, notes, category_id, assigned_user_id, created_by')
     .eq('id', id)
     .eq('team_id', session.teamId)
     .maybeSingle();
@@ -385,14 +490,23 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
 
   if (error) return { error: error.message };
 
+  const categoryName = await getCategoryName(supabase, session.teamId, existing?.category_id);
+  const amountLabel = formatExpenseAmount(existing?.amount);
+  const actor = actorLabel(session);
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: 'expense_deleted',
     entityType: 'expense',
     entityId: id,
-    message: `Expense deleted${existing?.amount ? ` (${existing.amount})` : ''}`,
-    metadata: { amount: existing?.amount ?? null, notes: existing?.notes ?? null },
+    message: `${actor} deleted ${categoryName}${existing?.amount ? ` for ${amountLabel}` : ''}`,
+    metadata: {
+      amount: existing?.amount ?? null,
+      amount_label: amountLabel,
+      category_name: categoryName,
+      notes: existing?.notes ?? null,
+    },
   });
 
   await notifyTeamMembers({
@@ -400,9 +514,27 @@ export async function deleteLunchEntry(id: string): Promise<ActionResult> {
     excludeUserId: session.user.id,
     type: 'warning',
     title: 'Expense deleted',
-    body: existing?.amount ? `An expense of ${existing.amount} was deleted` : 'An expense was deleted',
-    metadata: { entryId: id },
+    body: `${actor} deleted ${categoryName}${existing?.amount ? ` for ${amountLabel}` : ''}`,
+    link: '/entries',
+    metadata: { entryId: id, categoryName, amount: existing?.amount ?? null },
+    audience: 'admins',
   });
+
+  const personalTargets = [existing?.created_by, existing?.assigned_user_id].filter(
+    (userId): userId is string => Boolean(userId) && userId !== session.user.id,
+  );
+  if (personalTargets.length) {
+    await notifyTeamMembers({
+      teamId: session.teamId,
+      type: 'warning',
+      title: 'Expense deleted',
+      body: `${categoryName}${existing?.amount ? ` for ${amountLabel}` : ''} was deleted`,
+      link: '/entries',
+      metadata: { entryId: id, categoryName, amount: existing?.amount ?? null },
+      memberIds: personalTargets,
+      audience: 'personal',
+    });
+  }
 
   await notifyBudgetThresholds(supabase, {
     teamId: session.teamId,
@@ -419,6 +551,13 @@ export async function bulkDeleteLunchEntries(ids: string[]): Promise<ActionResul
   if (!ids.length) return { error: 'No entries selected' };
 
   const supabase = await createClient();
+  const { data: existingRows, error: fetchError } = await supabase
+    .from('lunch_entries')
+    .select('id, amount')
+    .in('id', ids)
+    .eq('team_id', session.teamId);
+  if (fetchError) return { error: fetchError.message };
+
   const { error } = await supabase
     .from('lunch_entries')
     .delete()
@@ -426,6 +565,26 @@ export async function bulkDeleteLunchEntries(ids: string[]): Promise<ActionResul
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
+  const count = existingRows?.length ?? ids.length;
+  const total = (existingRows ?? []).reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0);
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'expense_bulk_deleted',
+    entityType: 'expense',
+    message: `${actorLabel(session)} deleted ${count} expenses`,
+    metadata: { count, total_amount: total, entry_ids: ids },
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Expenses deleted',
+    body: `${actorLabel(session)} deleted ${count} expenses`,
+    link: '/entries',
+    metadata: { count, totalAmount: total, entryIds: ids },
+    audience: 'admins',
+  });
   revalidateExpenseSurfaces();
   return { success: true };
 }
@@ -437,7 +596,7 @@ async function getEntryForWorkflow(
 ) {
   const { data, error } = await supabase
     .from('lunch_entries')
-    .select('id, team_id, created_by, submitted_by, user_id, amount, approval_status, reimbursement_status, amount_reimbursed')
+    .select('id, team_id, created_by, submitted_by, user_id, amount, category_id, approval_status, reimbursement_status, amount_reimbursed')
     .eq('id', id)
     .eq('team_id', teamId)
     .maybeSingle();
@@ -470,22 +629,38 @@ export async function submitExpenseForApproval(id: string): Promise<ActionResult
     .eq('team_id', session.teamId);
   if (error) return { error: error.message };
 
+  const categoryName = await getCategoryName(supabase, session.teamId, entry.category_id);
+  const amountLabel = formatExpenseAmount(entry.amount);
+  const actor = actorLabel(session);
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: 'expense_submitted',
     entityType: 'expense',
     entityId: id,
-    message: `Expense submitted for approval (${entry.amount})`,
-    metadata: { amount: entry.amount },
+    message: `${actor} submitted ${categoryName} for ${amountLabel}`,
+    metadata: { amount: entry.amount, amount_label: amountLabel, category_name: categoryName },
   });
   await notifyTeamMembers({
     teamId: session.teamId,
     excludeUserId: session.user.id,
     type: 'expense_submitted',
     title: 'Expense submitted',
-    body: `An expense of ${entry.amount} is waiting for approval`,
-    metadata: { entryId: id },
+    body: `${actor} submitted ${categoryName} for ${amountLabel}`,
+    link: '/approvals',
+    metadata: { entryId: id, categoryName, amount: entry.amount },
+    audience: 'admins',
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    type: 'expense_submitted',
+    title: 'Expense submitted',
+    body: `Your ${categoryName} for ${amountLabel} is waiting for approval`,
+    link: '/approvals',
+    metadata: { entryId: id, categoryName, amount: entry.amount },
+    memberIds: [session.user.id],
+    audience: 'personal',
   });
   revalidateExpenseSurfaces();
   return { success: true };
@@ -511,23 +686,39 @@ export async function approveExpense(id: string): Promise<ActionResult> {
     .eq('team_id', session.teamId);
   if (error) return { error: error.message };
 
+  const categoryName = await getCategoryName(supabase, session.teamId, entry.category_id);
+  const amountLabel = formatExpenseAmount(entry.amount);
+  const actor = actorLabel(session);
+  const creatorId = entry.submitted_by ?? entry.created_by;
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: 'expense_approved',
     entityType: 'expense',
     entityId: id,
-    message: `Expense approved (${entry.amount})`,
-    metadata: { amount: entry.amount },
+    message: `${actor} approved ${categoryName} for ${amountLabel}`,
+    metadata: { amount: entry.amount, amount_label: amountLabel, category_name: categoryName },
+  });
+  await notifyTeamMembers({
+    teamId: session.teamId,
+    type: 'expense_approved',
+    title: 'Your expense has been approved',
+    body: `${categoryName} for ${amountLabel} was approved`,
+    link: '/entries',
+    metadata: { entryId: id, categoryName, amount: entry.amount },
+    memberIds: creatorId ? [creatorId] : undefined,
+    audience: 'personal',
   });
   await notifyTeamMembers({
     teamId: session.teamId,
     excludeUserId: session.user.id,
     type: 'expense_approved',
     title: 'Expense approved',
-    body: `An expense of ${entry.amount} was approved`,
-    metadata: { entryId: id },
-    memberIds: entry.submitted_by ? [entry.submitted_by] : undefined,
+    body: `${actor} approved ${categoryName} for ${amountLabel}`,
+    link: '/approvals',
+    metadata: { entryId: id, categoryName, amount: entry.amount },
+    audience: 'admins',
   });
   await notifyBudgetThresholds(supabase, {
     teamId: session.teamId,
@@ -560,23 +751,34 @@ export async function rejectExpense(id: string, formData: FormData): Promise<Act
     .eq('team_id', session.teamId);
   if (error) return { error: error.message };
 
+  const categoryName = await getCategoryName(supabase, session.teamId, entry.category_id);
+  const amountLabel = formatExpenseAmount(entry.amount);
+  const actor = actorLabel(session);
+  const creatorId = entry.submitted_by ?? entry.created_by;
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: 'expense_rejected',
     entityType: 'expense',
     entityId: id,
-    message: `Expense rejected: ${parsed.data.reason}`,
-    metadata: { amount: entry.amount, reason: parsed.data.reason },
+    message: `${actor} rejected ${categoryName} for ${amountLabel}: ${parsed.data.reason}`,
+    metadata: {
+      amount: entry.amount,
+      amount_label: amountLabel,
+      category_name: categoryName,
+      reason: parsed.data.reason,
+    },
   });
   await notifyTeamMembers({
     teamId: session.teamId,
-    excludeUserId: session.user.id,
     type: 'expense_rejected',
     title: 'Expense rejected',
-    body: parsed.data.reason,
-    metadata: { entryId: id, reason: parsed.data.reason },
-    memberIds: entry.submitted_by ? [entry.submitted_by] : undefined,
+    body: `${categoryName} for ${amountLabel} was rejected: ${parsed.data.reason}`,
+    link: '/entries',
+    metadata: { entryId: id, categoryName, amount: entry.amount, reason: parsed.data.reason },
+    memberIds: creatorId ? [creatorId] : undefined,
+    audience: 'personal',
   });
   revalidateExpenseSurfaces();
   return { success: true };
@@ -619,23 +821,35 @@ export async function recordExpenseReimbursement(id: string, formData: FormData)
     .eq('team_id', session.teamId);
   if (error) return { error: error.message };
 
+  const categoryName = await getCategoryName(supabase, session.teamId, entry.category_id);
+  const amountLabel = formatExpenseAmount(parsed.data.amount);
+  const actor = actorLabel(session);
+  const creatorId = entry.submitted_by ?? entry.created_by;
+
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
     actionType: 'expense_reimbursed',
     entityType: 'expense',
     entityId: id,
-    message: `Expense reimbursement recorded (${parsed.data.amount})`,
-    metadata: { amount: parsed.data.amount, total_reimbursed: reimbursed, reimbursement_status: reimbursementStatus },
+    message: `${actor} recorded reimbursement of ${amountLabel}`,
+    metadata: {
+      amount: parsed.data.amount,
+      amount_label: amountLabel,
+      category_name: categoryName,
+      total_reimbursed: reimbursed,
+      reimbursement_status: reimbursementStatus,
+    },
   });
   await notifyTeamMembers({
     teamId: session.teamId,
-    excludeUserId: session.user.id,
     type: 'reimbursement_completed',
     title: reimbursementStatus === 'fully_reimbursed' ? 'Reimbursement completed' : 'Reimbursement recorded',
-    body: `Reimbursed ${parsed.data.amount} for an approved expense`,
+    body: `${amountLabel} was reimbursed for ${categoryName}`,
+    link: '/entries',
     metadata: { entryId: id, amount: parsed.data.amount, reimbursementStatus },
-    memberIds: entry.submitted_by ? [entry.submitted_by] : undefined,
+    memberIds: creatorId ? [creatorId] : undefined,
+    audience: 'personal',
   });
   revalidateExpenseSurfaces();
   return { success: true };

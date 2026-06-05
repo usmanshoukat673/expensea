@@ -52,15 +52,29 @@ export async function seedDemoActivity(
     {
       team_id: hq.id,
       user_id: adminUser ?? owner,
+      action: 'expense_created',
+      metadata: { amount: 5000, entity_type: 'expense', message: 'Usman created Food Expense for Rs 5,000' },
+      created_at: toIso(daysAgo(4)),
+    },
+    {
+      team_id: hq.id,
+      user_id: adminUser ?? owner,
       action: 'expense_submitted',
-      metadata: { amount: 5000, shared: true, note: 'Team lunch', entity_type: 'expense' },
+      metadata: { amount: 5000, shared: true, entity_type: 'expense', message: 'Ahmed submitted Food Expense for Rs 5,000' },
       created_at: toIso(daysAgo(3)),
     },
     {
       team_id: hq.id,
       user_id: owner,
       action: 'expense_approved',
-      metadata: { amount: 5000, entity_type: 'expense' },
+      metadata: { amount: 5000, entity_type: 'expense', message: 'Usman approved Food Expense for Rs 5,000' },
+      created_at: toIso(daysAgo(2)),
+    },
+    {
+      team_id: hq.id,
+      user_id: owner,
+      action: 'expense_updated',
+      metadata: { amount: 7800, entity_type: 'expense', message: 'Usman updated Office Expense to Rs 7,800' },
       created_at: toIso(daysAgo(2)),
     },
     {
@@ -69,6 +83,13 @@ export async function seedDemoActivity(
       action: 'expense_assigned',
       metadata: { amount: 7800, assigned_user_id: viewer ?? owner, entity_type: 'expense', message: 'Laptop repair assigned to Sarah' },
       created_at: toIso(daysAgo(2)),
+    },
+    {
+      team_id: hq.id,
+      user_id: owner,
+      action: 'expense_deleted',
+      metadata: { amount: 1500, entity_type: 'expense', message: 'Usman deleted Miscellaneous Expense for Rs 1,500' },
+      created_at: toIso(daysAgo(1)),
     },
     {
       team_id: hq.id,
@@ -94,9 +115,23 @@ export async function seedDemoActivity(
     {
       team_id: hq.id,
       user_id: owner,
-      action: 'budget_updated',
-      metadata: { type: 'category', category: 'food', amount: 25000 },
+      action: 'settlement_cancelled',
+      metadata: { amount: 900, entity_type: 'settlement', message: 'Settlement cancelled for Rs 900' },
+      created_at: toIso(daysAgo(6)),
+    },
+    {
+      team_id: hq.id,
+      user_id: owner,
+      action: 'budget_created',
+      metadata: { type: 'category', category: 'food', amount: 25000, entity_type: 'budget' },
       created_at: toIso(daysAgo(10)),
+    },
+    {
+      team_id: hq.id,
+      user_id: owner,
+      action: 'budget_deleted',
+      metadata: { type: 'monthly', amount: 10000, entity_type: 'budget', message: 'Budget deleted for Rs 10,000' },
+      created_at: toIso(daysAgo(8)),
     },
     {
       team_id: hq.id,

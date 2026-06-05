@@ -119,7 +119,15 @@ export function ActivityContent({
           setActivity((prev) => [row, ...prev.filter((a) => a.id !== row.id)].slice(0, limit));
         },
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (error) {
+          console.error('Activity realtime subscription failed', {
+            teamId,
+            status,
+            error: error.message,
+          });
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

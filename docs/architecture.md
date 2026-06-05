@@ -85,6 +85,8 @@ Workflow:
 
 Only `approved` and `reimbursed` expenses are treated as financial facts. Budgets, analytics, reports, public totals, monthly summaries, and settlement balances all filter to those statuses. Pending and rejected rows remain auditable but do not affect spend or debt calculations.
 
+Every expense workflow action emits a normalized activity row and at least one notification. Create, update, delete, and submit events notify owners/admins; individual assignments notify the assignee; approval, rejection, and reimbursement events notify the submitter/creator. Approval events also notify owners/admins for operational visibility.
+
 ## Member Ledger Architecture
 
 Member-level views are team-scoped personal workspaces layered on top of the existing expense, settlement, budget, recurring, and activity systems.
@@ -189,6 +191,7 @@ The notification flow is:
 server action / cron
   -> notifyTeamMembers(...)
   -> notifications insert with type, title, message, link, metadata
+  -> insert/recipient errors are logged by the producer helper
   -> Supabase Realtime streams row to matching user
   -> bell preview and /notifications update without refresh
 ```
@@ -203,6 +206,7 @@ Role-aware audience selection happens before insert:
 - `team`: all active members, optionally excluding the actor.
 
 Migration `013_notifications_activity_center.sql` keeps compatibility columns aligned. `body/message` and `read/read_at/is_read` are synchronized by trigger so old and new paths remain consistent.
+Migration `016_notification_activity_audit_hardening.sql` sets `REPLICA IDENTITY FULL` for `notifications` and `activity_logs` and ensures both tables are in `supabase_realtime`, so focused UI subscriptions can handle inserts, updates, and deletes reliably.
 
 ## Activity Architecture
 
@@ -214,8 +218,10 @@ The activity flow is:
 server action / cron
   -> recordActivity(...)
   -> activity_logs insert
+  -> insert errors are logged by the producer helper
   -> Supabase Realtime streams team-scoped inserts
   -> /activity and dashboard recent activity update without refresh
 ```
 
 Activity filters use `entity_type` and cover expense, budget, team, settlement, approval, and recurring expense events. Search runs against description, message, and action type. Pages load in bounded ranges and realtime subscriptions are scoped to the active team to avoid large payloads and excessive channel usage.
+Realtime subscription failures are logged in the global team subscription, notification bell, notification inbox, and activity center so broken broadcasts are visible during development and production diagnostics.

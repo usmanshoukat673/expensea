@@ -9,12 +9,14 @@ Apply migrations in `supabase/migrations/` in filename order. The current requir
 ...
 014_dashboard_customization_saved_views.sql
 015_member_ledger_assignment.sql
+016_notification_activity_audit_hardening.sql
 ```
 
 Migration `012_expense_approvals_reimbursements.sql` introduces the approval and reimbursement workflow and updates summary behavior so only approved financial rows are aggregated.
 Migration `013_notifications_activity_center.sql` completes the notifications and activity center schema with deep links, archive/read state, search indexes, compatibility triggers, and normalized activity descriptions.
 Migration `014_dashboard_customization_saved_views.sql` adds team-aware dashboard preferences, saved dashboard views, and dashboard favorites.
 Migration `015_member_ledger_assignment.sql` adds member expense assignment, member-ledger indexes, assignment-aware monthly summaries, and viewer-scoped expense read policy behavior.
+Migration `016_notification_activity_audit_hardening.sql` hardens realtime delivery for notifications and activity logs by setting `REPLICA IDENTITY FULL` and ensuring both tables are part of `supabase_realtime`.
 
 ## Expense Workflow Columns
 
@@ -68,7 +70,7 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 
 ## Demo Data
 
-The TypeScript seeders create team and individual assigned expenses, pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Settlement and activity seeders include member settlements, member timeline events such as `expense_assigned`, submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
+The TypeScript seeders create team and individual assigned expenses, pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Settlement and activity seeders include member settlements, member timeline events such as `expense_created`, `expense_updated`, `expense_deleted`, `expense_assigned`, submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Notification seeders include owner/admin operational alerts and personal assignee/submitter alerts. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
 
 ## Member Ledger Data Model
 
@@ -105,6 +107,8 @@ Monthly summaries now aggregate approved/reimbursed rows where the member is eit
 
 Indexes cover user/team/read queries, archive filtering, and text search over title/message/body.
 
+`notifications` is included in `supabase_realtime` and uses `REPLICA IDENTITY FULL` so inbox and bell subscriptions receive enough row data for insert, update, and delete handling.
+
 ## Activity Logs
 
 `activity_logs` is the normalized team timeline.
@@ -123,6 +127,8 @@ Indexes cover user/team/read queries, archive filtering, and text search over ti
 | `created_at` | Event time. |
 
 `team_activity_log` remains for compatibility. New legacy inserts are mirrored into `activity_logs`, while new feature code writes normalized activity directly through `recordActivity`.
+
+`activity_logs` is included in `supabase_realtime` and uses `REPLICA IDENTITY FULL` so the activity center can stream new rows and diagnose update/delete payloads if future UI surfaces need them.
 
 ## Dashboard Customization
 

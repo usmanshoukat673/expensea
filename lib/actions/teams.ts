@@ -19,6 +19,14 @@ function slugify(name: string) {
   return `${base}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function revalidateTeamSurfaces() {
+  revalidatePath('/team');
+  revalidatePath('/settings/team');
+  revalidatePath('/team/settings');
+  revalidatePath('/notifications');
+  revalidatePath('/activity');
+}
+
 export async function completeOnboarding(formData: FormData): Promise<ActionResult> {
   const session = await requireAuth();
   const fullName = String(formData.get('fullName') ?? '').trim();
@@ -74,6 +82,17 @@ export async function createTeam(formData: FormData): Promise<ActionResult<{ tea
     entityId: team.id,
     message: `Team created: ${team.name}`,
     metadata: { name: team.name },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: team.id,
+    type: 'success',
+    title: 'Team created',
+    message: `Team created: ${team.name}`,
+    link: '/team',
+    metadata: { event_type: 'team_created', teamId: team.id },
+    memberIds: [session.user.id],
+    audience: 'personal',
   });
 
   revalidatePath('/', 'layout');
@@ -170,7 +189,38 @@ export async function updateMemberRole(memberId: string, role: TeamRole): Promis
     .eq('id', memberId);
 
   if (error) return { error: error.message };
-  revalidatePath('/team');
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'member_role_updated',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: `Member role updated to ${role}`,
+    metadata: { memberId, userId: member.user_id, previousRole: member.role, role },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    type: 'info',
+    title: 'Role updated',
+    message: `Your role was updated to ${role}.`,
+    link: '/team',
+    metadata: { event_type: 'member_role_updated', role },
+    memberIds: [member.user_id],
+    audience: 'personal',
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Member role updated',
+    message: `A member role was updated to ${role}.`,
+    link: '/team',
+    metadata: { event_type: 'member_role_updated', userId: member.user_id, role },
+    audience: 'admins',
+  });
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -193,8 +243,28 @@ export async function removeMember(memberId: string): Promise<ActionResult> {
   if (error) return { error: error.message };
 
   await clearActiveTeamIfRemoved(supabase, member.user_id, session.teamId);
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'member_removed',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: 'Member removed from team',
+    metadata: { memberId, userId: member.user_id, role: member.role },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Member removed',
+    message: 'A member was removed from the team.',
+    link: '/team',
+    metadata: { event_type: 'member_removed', userId: member.user_id },
+    audience: 'admins',
+  });
 
-  revalidatePath('/team');
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -214,7 +284,27 @@ export async function revokeInvitation(invitationId: string): Promise<ActionResu
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
-  revalidatePath('/team');
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'invitation_revoked',
+    entityType: 'invite',
+    entityId: invitationId,
+    message: 'Invitation revoked',
+    metadata: { invitationId },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'warning',
+    title: 'Invitation revoked',
+    message: 'A team invitation was revoked.',
+    link: '/team/invite',
+    metadata: { event_type: 'invitation_revoked', invitationId },
+    audience: 'admins',
+  });
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -235,8 +325,27 @@ export async function transferOwnership(newOwnerMemberId: string): Promise<Actio
   await supabase.from('team_members').update({ role: 'admin' }).eq('team_id', session.teamId).eq('user_id', session.user.id);
   await supabase.from('team_members').update({ role: 'owner' }).eq('id', newOwnerMemberId);
   await supabase.from('teams').update({ owner_id: newOwner.user_id }).eq('id', session.teamId);
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'ownership_transferred',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: 'Team ownership transferred',
+    metadata: { newOwnerUserId: newOwner.user_id },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    type: 'success',
+    title: 'Ownership transferred',
+    message: 'Team ownership was transferred.',
+    link: '/team',
+    metadata: { event_type: 'ownership_transferred', newOwnerUserId: newOwner.user_id },
+    audience: 'admins',
+  });
 
-  revalidatePath('/team');
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -249,9 +358,18 @@ export async function updateTeamCurrency(currency: CurrencyCode): Promise<Action
   const { error } = await supabase.from('teams').update({ currency: code }).eq('id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'team_currency_updated',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: `Team currency updated to ${code}`,
+    metadata: { currency: code },
+  });
   revalidatePath('/', 'layout');
   revalidatePath('/settings/profile');
-  revalidatePath('/settings/team');
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -281,10 +399,36 @@ export async function updateTeamSettings(formData: FormData): Promise<ActionResu
     .eq('id', session.teamId);
 
   if (error) return { error: error.message };
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: 'team_settings_updated',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: `Team settings updated: ${name}`,
+    metadata: {
+      name,
+      isPublic,
+      currency,
+      brandName,
+      showBalancesOnPublic,
+      showCategoryAnalyticsOnPublic,
+    },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    excludeUserId: session.user.id,
+    type: 'info',
+    title: 'Team settings updated',
+    message: `Team settings updated: ${name}`,
+    link: '/settings/team',
+    metadata: { event_type: 'team_settings_updated' },
+    audience: 'admins',
+  });
   revalidatePath('/', 'layout');
-  revalidatePath('/settings/team');
   revalidatePath('/settings/profile');
-  revalidatePath('/team/settings');
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -356,7 +500,7 @@ export async function addMemberByEmail(formData: FormData): Promise<ActionResult
     metadata: { event_type: 'member_joined', userId: profile.id },
   });
 
-  revalidatePath('/team');
+  revalidateTeamSurfaces();
   return { success: true };
 }
 
@@ -373,7 +517,27 @@ export async function toggleMemberStatus(userId: string, active: boolean): Promi
     .eq('team_id', session.teamId);
 
   if (error) return { error: error.message };
-  revalidatePath('/team');
+  await recordActivity(supabase, {
+    teamId: session.teamId,
+    userId: session.user.id,
+    actionType: active ? 'member_activated' : 'member_suspended',
+    entityType: 'team',
+    entityId: session.teamId,
+    message: `Member ${active ? 'activated' : 'suspended'}`,
+    metadata: { userId, status },
+  });
+  await notifyTeamMembers({
+    supabase,
+    teamId: session.teamId,
+    type: active ? 'info' : 'warning',
+    title: active ? 'Membership activated' : 'Membership suspended',
+    message: `Your team membership was ${active ? 'activated' : 'suspended'}.`,
+    link: '/team',
+    metadata: { event_type: active ? 'member_activated' : 'member_suspended', status },
+    memberIds: [userId],
+    audience: 'personal',
+  });
+  revalidateTeamSurfaces();
   return { success: true };
 }
 

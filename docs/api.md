@@ -142,7 +142,7 @@ participantIds=[]
 intent=draft | submit
 ```
 
-When `assignmentType=individual`, the action validates that `assignedUserId` is an active member of the current team, writes `assigned_by`, and records an `expense_assigned` activity event.
+When `assignmentType=individual`, the action validates that `assignedUserId` is an active member of the current team, writes `assigned_by`, records an `expense_assigned` activity event, and notifies the assigned member.
 
 ## Member Ledger And Personal Expense Reads
 
@@ -186,7 +186,7 @@ Response:
 { "success": true }
 ```
 
-The action writes `lunch_entries` and, for shared expenses, `lunch_entry_participants`. New expenses are drafts unless `intent=submit`, which sets `approval_status=pending_approval` and `submitted_by` to the current user.
+The action writes `lunch_entries` and, for shared expenses, `lunch_entry_participants`. New expenses are drafts unless `intent=submit`, which sets `approval_status=pending_approval` and `submitted_by` to the current user. Expense create, update, delete, bulk-delete, submit, approve, reject, and reimburse actions all write `activity_logs`, create targeted `notifications`, and revalidate `/activity` plus `/notifications`.
 
 ### Approval actions
 
@@ -211,7 +211,7 @@ reimbursedAt=2026-06-02
 notes=Payroll transfer
 ```
 
-Approval actions write notifications and activity. Approving an expense revalidates budgets, analytics, reports, settlements, the dashboard, entries, and the approval queue.
+Approval actions write notifications and activity. Submit notifies owners/admins and the submitter. Approve notifies the submitter/creator plus owners/admins. Reject includes the rejection reason in the submitter notification. Reimburse notifies the submitter/creator. Approving an expense revalidates budgets, analytics, reports, settlements, the dashboard, entries, notifications, activity, and the approval queue.
 
 Financial data helpers count only `approval_status IN ('approved', 'reimbursed')`; pending, draft, and rejected expenses remain visible in operational views but do not affect budgets, reports, analytics, settlements, or public totals.
 
@@ -261,6 +261,8 @@ amount=25000
 month=
 ```
 
+Budget create, update, and delete actions write activity events and owner/admin notifications. Budget threshold alerts still run after create/update and after approved expense changes.
+
 ## Settlement Actions
 
 File: `lib/actions/settlements.ts`
@@ -281,6 +283,8 @@ proofUrl=
 ```
 
 Allowed statuses are `pending`, `completed`, and `cancelled`.
+
+Settlement create, complete, and cancel actions notify the payer and receiver, write activity events, and revalidate settlements, analytics, notifications, and activity.
 
 ## Recurring Expense Actions
 
@@ -330,6 +334,8 @@ Notification reads use `lib/data/notifications.ts`:
 
 The `/notifications` page filters by `status=all|unread|read|archived`, searches with `q`, and paginates with `page`. Notification rows include `link` so alerts can open the related expense, budget, settlement, team, or approval page.
 
+Notification producers use `notifyTeamMembers` from `lib/activity.ts` or the wrapper in `lib/notifications.ts`. Recipient lookup and insert failures are logged. Audience values are `personal`, `admins`, `owners`, and `team`; `admins` includes both owners and admins.
+
 ## Dashboard Customization Actions
 
 File: `lib/actions/dashboard-customization.ts`
@@ -370,7 +376,7 @@ Dashboard reads use `getDashboardCustomization(teamId, userId, role)` from `lib/
 
 Activity reads use `getActivityLogs(teamId, { type, page, limit, search })` from `lib/data/dashboard.ts`.
 
-The `/activity` page filters by `type=expense|budget|team|settlement|approval|recurring_expense`, searches with `q`, and paginates with `page`. Supabase Realtime subscriptions are team-scoped and listen for new `activity_logs` inserts only.
+The `/activity` page filters by `type=expense|budget|team|settlement|approval|recurring_expense`, searches with `q`, and paginates with `page`. Supabase Realtime subscriptions are team-scoped and listen for new `activity_logs` inserts. Activity insert failures and realtime subscription failures are logged.
 
 ## API Routes
 

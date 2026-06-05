@@ -76,7 +76,16 @@ export function NotificationsBell({
           }
         },
       )
-      .subscribe();
+      .subscribe((status, error) => {
+        if (error) {
+          console.error('Notification bell realtime subscription failed', {
+            teamId,
+            userId,
+            status,
+            error: error.message,
+          });
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

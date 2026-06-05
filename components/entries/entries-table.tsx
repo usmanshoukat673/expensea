@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import {
   useReactTable,
   getCoreRowModel,
@@ -78,6 +79,7 @@ export function EntriesTable({
   onEditEntry?: (entry: LunchEntryWithProfile) => void
 }) {
   const { format: formatCurrency } = useCurrency()
+  const router = useRouter()
   const [entries, setEntries] = useState(initialEntries)
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search, 300)
@@ -290,6 +292,7 @@ export function EntriesTable({
                                 : entry,
                             ),
                           )
+                          router.refresh()
                           toast.success("Submitted for approval")
                         }
                       })
@@ -302,7 +305,7 @@ export function EntriesTable({
             } as ColumnDef<LunchEntryWithProfile>,
           ]),
     ],
-    [canManageEntries, currentUserId, onOpenChange, onEditEntry, pending, startTransition, formatCurrency],
+    [canManageEntries, currentUserId, onOpenChange, onEditEntry, pending, startTransition, formatCurrency, router],
   )
 
   const table = useReactTable({
