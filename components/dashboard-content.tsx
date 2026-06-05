@@ -25,6 +25,7 @@ import {
   MoreHorizontal,
   PiggyBank,
   Plus,
+  Scale,
   Settings2,
   Star,
   Trash2,
@@ -141,6 +142,15 @@ type DashboardProps = {
   }
   budgetSummary: DashboardBudgetSummary
   leaderboard: { userId: string; name: string; total: number; pending: number; paid: number }[]
+  mostActiveMembers: { userId: string; name: string; count: number }[]
+  highestAssignedExpenses: { userId: string; name: string; total: number }[]
+  personalDashboard: {
+    monthlyExpenses: number
+    assignedExpenses: number
+    settlements: number
+    pendingApprovals: number
+    budgetImpact: number
+  }
   dateRange: DateRangeValue
   historicalStats: {
     currentMonthTotal: number
@@ -326,7 +336,13 @@ export function DashboardContent(props: DashboardProps) {
     ),
     categories: <CategoriesWidget entries={props.categoryEntries} />,
     recent_entries: <RecentEntriesWidget entries={props.recentEntries} format={format} />,
-    leaderboard: <LeaderboardWidget leaderboard={props.leaderboard} format={format} />,
+    leaderboard: (
+      <div className="grid gap-6 lg:grid-cols-3">
+        <LeaderboardWidget leaderboard={props.leaderboard} format={format} />
+        <MostActiveMembersWidget members={props.mostActiveMembers} />
+        <HighestAssignedWidget members={props.highestAssignedExpenses} format={format} />
+      </div>
+    ),
     recurring: <RecurringWidget rules={props.upcomingRecurringExpenses} format={format} />,
     activity: <ActivityWidget activity={props.activity} />,
     notifications: <NotificationsWidget summary={props.notificationSummary} />,
@@ -363,6 +379,8 @@ export function DashboardContent(props: DashboardProps) {
 
       <BudgetAlertToasts budgets={props.budgetSummary.budgets} />
       {!hiddenSet.has("budget") && <BudgetAlertBanner summary={props.budgetSummary} />}
+
+      <PersonalDashboardWidget stats={props.personalDashboard} format={format} />
 
       <div className="space-y-6">
         {order.map((widget, index) =>
@@ -720,6 +738,79 @@ function LeaderboardWidget({ leaderboard, format }: { leaderboard: DashboardProp
               <p className="truncate text-sm font-medium">{row.name}</p>
               <p className="text-xs text-muted-foreground">Pending {format(row.pending)}</p>
             </div>
+            <span className="shrink-0 text-sm font-semibold">{format(row.total)}</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function PersonalDashboardWidget({ stats, format }: { stats: DashboardProps["personalDashboard"]; format: (value: number) => string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>My dashboard</CardTitle>
+        <CardDescription>Your personal workspace in this date range</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {[
+            { label: "My expenses this month", value: format(stats.monthlyExpenses), icon: Wallet },
+            { label: "My assigned expenses", value: format(stats.assignedExpenses), icon: BookOpen },
+            { label: "My settlements", value: format(stats.settlements), icon: Scale },
+            { label: "My pending approvals", value: String(stats.pendingApprovals), icon: ClipboardCheck },
+            { label: "My budget impact", value: format(stats.budgetImpact), icon: PiggyBank },
+          ].map((item) => {
+            const Icon = item.icon
+            return (
+              <div key={item.label} className="rounded-lg border border-border p-3">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">{item.label}</p>
+                  <Icon className="size-4 shrink-0 text-accent" />
+                </div>
+                <p className="break-words text-xl font-bold">{item.value}</p>
+              </div>
+            )
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function MostActiveMembersWidget({ members }: { members: DashboardProps["mostActiveMembers"] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Most active members</CardTitle>
+        <CardDescription>By expense activity</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {members.length === 0 ? <p className="text-sm text-muted-foreground">No data yet</p> : members.map((row, i) => (
+          <div key={row.userId} className="flex items-center gap-3">
+            <span className="w-4 font-mono text-xs text-muted-foreground">{i + 1}</span>
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">{row.name}</p>
+            <Badge variant="secondary">{row.count}</Badge>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
+function HighestAssignedWidget({ members, format }: { members: DashboardProps["highestAssignedExpenses"]; format: (value: number) => string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Highest assigned expenses</CardTitle>
+        <CardDescription>Individual assignments</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {members.length === 0 ? <p className="text-sm text-muted-foreground">No assigned expenses yet</p> : members.map((row, i) => (
+          <div key={row.userId} className="flex items-center gap-3">
+            <span className="w-4 font-mono text-xs text-muted-foreground">{i + 1}</span>
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">{row.name}</p>
             <span className="shrink-0 text-sm font-semibold">{format(row.total)}</span>
           </div>
         ))}

@@ -51,6 +51,11 @@ export const lunchEntrySchema = z.object({
   isShared: z.coerce.boolean().optional(),
   splitType: z.enum(['none', 'equal', 'selected']).optional(),
   participantIds: z.array(z.string().uuid()).optional(),
+  assignmentType: z.enum(['team', 'individual']).optional(),
+  assignedUserId: z.string().uuid().optional().nullable(),
+}).refine((d) => d.assignmentType !== 'individual' || !!d.assignedUserId, {
+  message: 'Select an assigned member',
+  path: ['assignedUserId'],
 });
 
 export const rejectionSchema = z.object({

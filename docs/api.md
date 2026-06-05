@@ -17,7 +17,7 @@ Validation lives in `lib/validations.ts`.
 | `profileSchema` | Name length 2-100, optional avatar URL. |
 | `teamNameSchema` | Team name length 2-50. |
 | `inviteSchema` | Valid email, role `admin` or `viewer`. |
-| `lunchEntrySchema` | Member UUID, positive amount, date, paid/unpaid status, optional category, split mode, participants. |
+| `lunchEntrySchema` | Member UUID, positive amount, date, paid/unpaid status, optional category, split mode, participants, assignment type, and assigned member for individual expenses. |
 | `rejectionSchema` | Rejection or request-changes reason is required and capped at 500 characters. |
 | `reimbursementSchema` | Positive reimbursement amount, reimbursement date, optional notes up to 500 characters. |
 | `categorySchema` | Name length 2-50, icon, hex color, optional description up to 200 chars. |
@@ -125,6 +125,45 @@ Actions:
 - `rejectExpense(id, formData)`
 - `requestExpenseChanges(id, formData)`
 - `recordExpenseReimbursement(id, formData)`
+
+Create/update expense form data includes:
+
+```text
+userId=<payer profile uuid>
+amount=12000
+lunchDate=2026-06-04
+paymentStatus=unpaid
+categoryId=<optional category uuid>
+isShared=false
+splitType=none
+assignmentType=team | individual
+assignedUserId=<required when assignmentType=individual>
+participantIds=[]
+intent=draft | submit
+```
+
+When `assignmentType=individual`, the action validates that `assignedUserId` is an active member of the current team, writes `assigned_by`, and records an `expense_assigned` activity event.
+
+## Member Ledger And Personal Expense Reads
+
+Files: `lib/data/dashboard.ts`, `lib/data/members.ts`
+
+- `getLunchEntries(teamId, { memberId })` filters expenses where the member is payer, assignee, creator, or submitter. This powers `/my-expenses`.
+- `getMemberWorkspaceData(session, memberId)` powers `/members/[memberId]` and `/members/[memberId]/ledger`.
+- Viewer sessions can request their own member id only. Admin and owner sessions can request any active team member.
+
+Member workspace data returns:
+
+- profile and membership role/status
+- personal and assigned expenses
+- settlements
+- recurring expenses created by the member
+- activity timeline
+- impacted budgets
+- analytics: spending trend, category breakdown, monthly spending, average monthly spend
+- ledger: credits, debits, owed/receivable shared balance, net balance
+
+Exports are client-side CSV, Excel-compatible HTML, and printable PDF from the member workspace and reports UI.
 
 Example create request:
 

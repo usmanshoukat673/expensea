@@ -29,6 +29,7 @@ The app supports individual and shared expenses, equal or selected participant s
 
 - CRUD for team-scoped expense entries stored in `lunch_entries`.
 - Paid/unpaid status, notes, expense date, payer, category, and created-by tracking.
+- Assignment flow for `team` expenses or `individual` expenses assigned to a member.
 - Approval statuses: draft, pending approval, approved, rejected, and reimbursed.
 - Viewers can create drafts and submit expenses; admins and owners review, approve, reject, request changes, and record reimbursements.
 - Only approved and reimbursed expenses affect budgets, analytics, reports, public financial totals, and settlement balances.
@@ -36,6 +37,13 @@ The app supports individual and shared expenses, equal or selected participant s
 - Participant shares stored in `lunch_entry_participants`.
 - Bulk delete for selected expenses.
 - Realtime refresh support for expense and team updates.
+
+### Member Ledger And Personal Expenses
+
+- `/my-expenses` shows the current user's paid, assigned, created, and submitted expense history with search, status filters, category filters, date ranges, and CSV export.
+- `/members/[memberId]` is a personal financial workspace with overview totals, monthly spending, assigned expenses, settlements, impacted budgets, category usage, recurring rules, activity timeline, and analytics.
+- `/members/[memberId]/ledger` shows credits paid by the member, debits assigned or owed by the member, shared settlement balances, and net balance.
+- Viewers are limited to their own member workspace; admins and owners can open team member workspaces from the Team page.
 
 ### Approvals And Reimbursements
 
@@ -70,6 +78,7 @@ The app supports individual and shared expenses, equal or selected participant s
 
 - Reports by date range with current/previous comparisons.
 - Monthly summary totals, paid/pending totals, member spending, category breakdowns, and settlement summary.
+- Member spending reports use the assigned member for individual expenses and the payer for team-level expenses.
 - Historical budget data for trend and overspending analysis.
 - Approval metrics include approval rate, rejection rate, pending approvals, and reimbursement trends.
 

@@ -33,6 +33,9 @@ type EntryInsert = {
   reimbursed_at: string | null;
   reimbursement_notes: string | null;
   category_id: string | null;
+  assigned_user_id: string | null;
+  assigned_by: string | null;
+  assignment_type: 'team' | 'individual';
   is_shared: boolean;
   split_type: 'none' | 'equal' | 'selected';
   created_by: string;
@@ -79,6 +82,7 @@ export async function seedDemoExpenses(
       }
 
       const isShared = Math.random() < 0.32 && ctx.memberIds.length >= 3;
+      const assignedUserId = Math.random() < 0.38 ? pick(ctx.memberIds) : null;
       const splitType: 'none' | 'equal' = isShared ? 'equal' : 'none';
       const approvalRoll = Math.random();
       const approvalStatus =
@@ -127,6 +131,9 @@ export async function seedDemoExpenses(
         reimbursed_at: amountReimbursed > 0 ? toDateString(date) : null,
         reimbursement_notes: amountReimbursed > 0 ? pick(['Bank transfer processed', 'Payroll reimbursement', 'Petty cash reimbursement']) : null,
         category_id: categoryId,
+        assigned_user_id: assignedUserId,
+        assigned_by: assignedUserId ? editorId : null,
+        assignment_type: assignedUserId ? 'individual' : 'team',
         is_shared: isShared,
         split_type: splitType,
         created_by: editorId,

@@ -9,6 +9,7 @@ export type SettlementStatus = 'pending' | 'completed' | 'cancelled';
 export type ExpenseSplitType = 'none' | 'equal' | 'selected';
 export type BudgetType = 'monthly' | 'category';
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type ExpenseAssignmentType = 'team' | 'individual';
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -236,6 +237,9 @@ export interface Database {
           reimbursement_notes: string | null;
           category_id: string | null;
           recurring_expense_id: string | null;
+          assigned_user_id: string | null;
+          assigned_by: string | null;
+          assignment_type: ExpenseAssignmentType;
           is_shared: boolean;
           split_type: ExpenseSplitType;
           created_by: string;
@@ -260,6 +264,9 @@ export interface Database {
           reimbursement_notes?: string | null;
           category_id?: string | null;
           recurring_expense_id?: string | null;
+          assigned_user_id?: string | null;
+          assigned_by?: string | null;
+          assignment_type?: ExpenseAssignmentType;
           is_shared?: boolean;
           split_type?: ExpenseSplitType;
           created_by: string;
@@ -634,6 +641,7 @@ export interface Database {
       member_status: MemberStatus;
       settlement_status: SettlementStatus;
       expense_split_type: ExpenseSplitType;
+      expense_assignment_type: ExpenseAssignmentType;
       budget_type: BudgetType;
       recurring_frequency: RecurringFrequency;
     };
@@ -663,6 +671,7 @@ export type Notification = Database['public']['Tables']['notifications']['Row'];
 
 export type LunchEntryWithProfile = LunchEntry & {
   profiles?: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'> | null;
+  assigned_profile?: Pick<Profile, 'id' | 'full_name' | 'email' | 'avatar_url'> | null;
   expense_categories?: Pick<ExpenseCategory, 'id' | 'name' | 'icon' | 'color' | 'slug'> | null;
   lunch_entry_participants?: { user_id: string; share_amount: number | null }[];
 };

@@ -68,6 +68,9 @@ The role checks are enforced in both server actions and RLS. Server actions prov
 
 Expenses remain in `lunch_entries` for compatibility, but now carry workflow fields:
 
+- `assignment_type`: `team` or `individual`.
+- `assigned_user_id`: optional member responsible for an individual expense.
+- `assigned_by`: user who made the assignment.
 - `approval_status`: `draft`, `pending_approval`, `approved`, `rejected`, or `reimbursed`.
 - `submitted_by`: user who submitted the expense for review.
 - `approved_by` / `approved_at`: reviewer and review timestamp for approved or rejected records.
@@ -81,6 +84,30 @@ Workflow:
 4. Approved expenses can be reimbursed partially or fully.
 
 Only `approved` and `reimbursed` expenses are treated as financial facts. Budgets, analytics, reports, public totals, monthly summaries, and settlement balances all filter to those statuses. Pending and rejected rows remain auditable but do not affect spend or debt calculations.
+
+## Member Ledger Architecture
+
+Member-level views are team-scoped personal workspaces layered on top of the existing expense, settlement, budget, recurring, and activity systems.
+
+```text
+/my-expenses
+  -> getLunchEntries(teamId, memberId=current user)
+
+/members/[memberId]
+  -> getMemberWorkspaceData(session, memberId)
+  -> lunch_entries paid/assigned/created/submitted by member
+  -> settlements where payer/receiver/creator is member
+  -> activity_logs by actor or assigned_user_id metadata
+  -> team_budgets impacted by the member's categories
+  -> recurring_expenses created by member
+
+/members/[memberId]/ledger
+  -> same data, ledger-focused rendering
+```
+
+Credits are approved or reimbursed expenses where `user_id` is the member. Debits are individual expenses where `assigned_user_id` is the member plus shared settlement balances from the balance engine. Net balance is calculated from receivable minus owed settlement balance, while the page separately exposes assigned expense debit totals.
+
+Viewer access is intentionally narrower than team access: a viewer can open their own member workspace only. Admins and owners can open all team member workspaces. This check happens in `lib/data/members.ts`; RLS also limits viewer expense reads to rows they paid, created, submitted, or were assigned.
 
 ## Reimbursement Workflow
 
@@ -118,6 +145,8 @@ The budget engine in `lib/budget/engine.ts` builds a spend index from expenses, 
 - alert level: `none`, `warning80`, or `exceeded`
 
 Budget views, dashboard cards, reports, analytics, and demo seeders all rely on this engine's assumptions. All budget data helpers pass only approved or reimbursed expenses into the engine.
+
+Member budget impact is derived by matching approved/reimbursed member expenses against monthly budgets and category budgets. Individual assignments count toward the assigned member for member reports and dashboard leaderboards.
 
 ## Dashboard Customization Architecture
 

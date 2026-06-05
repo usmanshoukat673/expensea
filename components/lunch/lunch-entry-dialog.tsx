@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
@@ -74,6 +75,8 @@ export function LunchEntryDialog({
       categoryId: entry?.category_id ?? defaultCategory?.id ?? null,
       isShared: entry?.is_shared ?? false,
       splitType: entry?.split_type ?? 'equal',
+      assignmentType: entry?.assignment_type ?? 'team',
+      assignedUserId: entry?.assigned_user_id ?? null,
     },
   });
 
@@ -81,6 +84,8 @@ export function LunchEntryDialog({
   const splitType = watch('splitType');
   const payerId = watch('userId');
   const categoryId = watch('categoryId');
+  const assignmentType = watch('assignmentType') ?? 'team';
+  const assignedUserId = watch('assignedUserId');
 
   useEffect(() => {
     if (entry) {
@@ -93,6 +98,8 @@ export function LunchEntryDialog({
         categoryId: entry.category_id ?? defaultCategory?.id ?? null,
         isShared: entry.is_shared ?? false,
         splitType: entry.split_type ?? 'equal',
+        assignmentType: entry.assignment_type ?? 'team',
+        assignedUserId: entry.assigned_user_id ?? null,
       });
       setParticipantIds(
         entry.lunch_entry_participants?.map((p) => p.user_id) ?? [],
@@ -122,6 +129,8 @@ export function LunchEntryDialog({
     fd.set('categoryId', data.categoryId ?? '');
     fd.set('isShared', String(!!data.isShared));
     fd.set('splitType', data.isShared ? (data.splitType ?? 'equal') : 'none');
+    fd.set('assignmentType', data.assignmentType ?? 'team');
+    fd.set('assignedUserId', data.assignmentType === 'individual' ? (data.assignedUserId ?? '') : '');
     fd.set('participantIds', JSON.stringify(participantIds));
     fd.set('intent', intent);
     startTransition(async () => {
@@ -172,6 +181,49 @@ export function LunchEntryDialog({
               onChange={(id) => setValue('categoryId', id)}
               recentIds={recentCategoryIds}
             />
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
+            <Label>Assignment</Label>
+            <RadioGroup
+              value={assignmentType}
+              onValueChange={(value) => {
+                setValue('assignmentType', value as 'team' | 'individual');
+                if (value === 'team') setValue('assignedUserId', null);
+                else if (!assignedUserId) setValue('assignedUserId', payerId);
+              }}
+              className="grid gap-2 sm:grid-cols-2"
+            >
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <RadioGroupItem value="team" />
+                Team expense
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                <RadioGroupItem value="individual" />
+                Individual expense
+              </label>
+            </RadioGroup>
+            {assignmentType === 'individual' && (
+              <div className="space-y-2">
+                <Label>Assigned to</Label>
+                <Select
+                  value={assignedUserId ?? ''}
+                  onValueChange={(v) => setValue('assignedUserId', v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.assignedUserId && <p className="text-sm text-destructive">{errors.assignedUserId.message}</p>}
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

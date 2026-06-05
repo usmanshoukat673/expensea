@@ -37,14 +37,19 @@ export function ReportsContent({ data }: { data: ReportsData }) {
 
   const exportRows = useMemo(
     () =>
-      data.entries.map((entry) => ({
-        Date: entry.lunch_date,
-        Member: entry.profiles?.full_name ?? entry.profiles?.email ?? "Member",
-        Category: entry.expense_categories?.name ?? "Uncategorized",
-        Amount: Number(entry.amount),
-        Status: entry.payment_status,
-        Notes: entry.notes ?? "",
-      })),
+      data.entries.map((entry) => {
+        const assignedProfile = (entry as typeof entry & { assigned_profile?: { full_name?: string | null; email?: string | null } | null }).assigned_profile
+        const assignmentType = (entry as typeof entry & { assignment_type?: string }).assignment_type
+        return {
+          Date: entry.lunch_date,
+          Member: entry.profiles?.full_name ?? entry.profiles?.email ?? "Member",
+          Assigned: assignmentType === "individual" ? assignedProfile?.full_name ?? assignedProfile?.email ?? "Member" : "Team",
+          Category: entry.expense_categories?.name ?? "Uncategorized",
+          Amount: Number(entry.amount),
+          Status: entry.payment_status,
+          Notes: entry.notes ?? "",
+        }
+      }),
     [data.entries],
   )
 

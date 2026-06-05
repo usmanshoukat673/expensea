@@ -8,11 +8,13 @@ Apply migrations in `supabase/migrations/` in filename order. The current requir
 001_initial_schema.sql
 ...
 014_dashboard_customization_saved_views.sql
+015_member_ledger_assignment.sql
 ```
 
 Migration `012_expense_approvals_reimbursements.sql` introduces the approval and reimbursement workflow and updates summary behavior so only approved financial rows are aggregated.
 Migration `013_notifications_activity_center.sql` completes the notifications and activity center schema with deep links, archive/read state, search indexes, compatibility triggers, and normalized activity descriptions.
 Migration `014_dashboard_customization_saved_views.sql` adds team-aware dashboard preferences, saved dashboard views, and dashboard favorites.
+Migration `015_member_ledger_assignment.sql` adds member expense assignment, member-ledger indexes, assignment-aware monthly summaries, and viewer-scoped expense read policy behavior.
 
 ## Expense Workflow Columns
 
@@ -21,6 +23,9 @@ Expenses are stored in `lunch_entries`.
 | Column | Purpose |
 | --- | --- |
 | `approval_status` | `draft`, `pending_approval`, `approved`, `rejected`, or `reimbursed`. |
+| `assignment_type` | `team` for team-level expenses or `individual` for member-assigned expenses. |
+| `assigned_user_id` | Member assigned to an individual expense; null for team expenses. |
+| `assigned_by` | User who assigned the expense. |
 | `submitted_by` | User who submitted the expense. |
 | `approved_by` | Admin/owner who approved, rejected, or requested changes. |
 | `approved_at` | Review timestamp. |
@@ -43,6 +48,7 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 ## Permissions
 
 - Members can view team expenses.
+- Viewers can view their own paid, assigned, created, or submitted expense rows; admins and owners can view team expense rows.
 - Any active member can insert draft or pending expenses they created.
 - Viewers can update their own draft/rejected expenses and submit them.
 - Admins and owners can approve, reject, request changes, update, delete, and reimburse.
@@ -62,7 +68,20 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 
 ## Demo Data
 
-The TypeScript seeders create pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Notification and activity seeders include submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
+The TypeScript seeders create team and individual assigned expenses, pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Settlement and activity seeders include member settlements, member timeline events such as `expense_assigned`, submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
+
+## Member Ledger Data Model
+
+`lunch_entries.assignment_type` controls whether an expense belongs to the team generally or to one member specifically.
+
+```sql
+assignment_type = 'team'       -- assigned_user_id must be null
+assignment_type = 'individual' -- assigned_user_id is required
+```
+
+The `lunch_entries_assignment_consistency` constraint enforces that shape. Indexes on `(team_id, assigned_user_id, lunch_date DESC)` and `(team_id, assignment_type, lunch_date DESC)` support `/my-expenses`, member profile pages, member reports, and assignment filters.
+
+Monthly summaries now aggregate approved/reimbursed rows where the member is either the payer (`user_id`) or assignee (`assigned_user_id`). Member reports and dashboards use the assignee for individual expenses and the payer for team expenses.
 
 ## Notifications
 

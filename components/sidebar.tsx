@@ -18,6 +18,7 @@ import {
   FileText,
   CalendarClock,
   ClipboardCheck,
+  UserRound,
 } from "lucide-react"
 import { useCurrency } from "@/hooks/use-currency"
 import { cn } from "@/lib/utils"
@@ -30,6 +31,7 @@ import type { TeamRole } from "@/lib/database.types"
 const navItems = [
   { href: "/", icon: Home, label: "Dashboard" },
   { href: "/entries", icon: BookOpen, label: "Entries" },
+  { href: "/my-expenses", icon: UserRound, label: "My Expenses" },
   { href: "/approvals", icon: ClipboardCheck, label: "Approvals" },
   { href: "/recurring-expenses", icon: CalendarClock, label: "Recurring" },
   { href: "/categories", icon: Tag, label: "Categories" },
