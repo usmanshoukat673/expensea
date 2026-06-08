@@ -133,6 +133,16 @@ sign in -> load profile -> profile.team_id -> team-scoped page data
 team switcher -> switchTeam(teamId) -> profiles.team_id update -> revalidate
 ```
 
+## Authentication And Session Validation
+
+Authentication is a two-layer contract: Supabase Auth proves identity, and the Expensea `profiles` row proves the user has explicitly registered in the application. `validateCurrentUser()` in `lib/auth/session.ts` is the central validation entry point for server code. It checks the auth session, profile existence, profile status, and workspace/team state.
+
+Protected pages and server actions use `requireAuth()` or `requireTeam()`. These helpers never create profiles. Missing profiles, inactive profiles, expired sessions, revoked refresh tokens, and invalid team access are redirected before protected data renders. The browser `AuthProvider` mirrors the same cleanup by clearing user/profile/role/team state and signing out when client-side validation sees a missing or inactive profile.
+
+Signup is the only explicit account-creation path. `createUserProfileForSignup()` is intentionally named for that boundary and must not be called by login, middleware, protected layouts, invite acceptance, or background validation.
+
+Invite links preserve their token through `/signup?invite=...`. Valid active users accept immediately; unauthenticated or deleted/missing-profile users are sent to signup with the token preserved. Invite acceptance validates expiry, disabled state, usage limits, email restrictions, role, existing membership, activity logging, notification delivery, and active-team persistence.
+
 ## Budget Engine
 
 Budgets are stored in `team_budgets` as:

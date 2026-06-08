@@ -16,6 +16,34 @@ export async function seedDemoUsers(admin: SeedAdmin): Promise<UserMap> {
   return map;
 }
 
+export async function seedAuthValidationFixtures(admin: SeedAdmin): Promise<void> {
+  const missingProfileId = await getOrCreateUser(
+    admin,
+    'missing.profile@expensea.app',
+    'Missing Profile Fixture',
+    1,
+  );
+  await admin.from('profiles').delete().eq('id', missingProfileId);
+
+  const deletedAccountId = await getOrCreateUser(
+    admin,
+    'deleted.account@expensea.app',
+    'Deleted Account Fixture',
+    1,
+  );
+  await admin
+    .from('profiles')
+    .update({
+      status: 'inactive',
+      onboarding_completed: false,
+      team_id: null,
+      full_name: 'Deleted Account Fixture',
+    })
+    .eq('id', deletedAccountId);
+
+  log('auth-qa', 'missing-profile and inactive-account fixtures ready');
+}
+
 async function getOrCreateUser(
   admin: SeedAdmin,
   email: string,
@@ -42,6 +70,7 @@ async function getOrCreateUser(
         full_name: fullName,
         avatar_url: null,
         onboarding_completed: true,
+        status: 'active',
         created_at: joinedAt,
       })
       .eq('id', existingProfile.id);
@@ -61,13 +90,15 @@ async function getOrCreateUser(
 
   await admin
     .from('profiles')
-    .update({
+    .upsert({
+      id: created.user.id,
+      email,
       full_name: fullName,
       avatar_url: null,
       onboarding_completed: true,
+      status: 'active',
       created_at: joinedAt,
-    })
-    .eq('id', created.user.id);
+    });
 
   return created.user.id;
 }

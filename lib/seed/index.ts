@@ -1,6 +1,6 @@
 import { createSeedAdmin } from '@/lib/seed/client';
 import { resetDemoData, isDemoSeeded } from '@/lib/seed/reset';
-import { seedDemoUsers } from '@/lib/seed/auth';
+import { seedAuthValidationFixtures, seedDemoUsers } from '@/lib/seed/auth';
 import { seedDemoTeams, seedPendingInvitations } from '@/lib/seed/teams';
 import { seedDemoExpenses } from '@/lib/seed/expenses';
 import { seedDemoSettlements } from '@/lib/seed/settlements';
@@ -56,6 +56,7 @@ export async function runSeed(opts: SeedOptions = {}): Promise<void> {
   log('start', 'Expensea demo seed');
 
   const users = await seedDemoUsers(admin);
+  await seedAuthValidationFixtures(admin);
   const teams = await seedDemoTeams(admin, users);
   await seedPendingInvitations(admin, teams, users);
   const { entryCount } = await seedDemoExpenses(admin, users, teams);

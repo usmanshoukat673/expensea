@@ -4,7 +4,7 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 
 ## Prerequisites
 
-1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `014_dashboard_customization_saved_views.sql`.
+1. Apply every migration in `supabase/migrations/`, from `001_initial_schema.sql` through `017_disable_auth_auto_profile_provisioning.sql`.
 2. Set these variables in `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -40,6 +40,7 @@ Expensea includes a complete demo workspace for development, onboarding, screens
 - Budgets: team and category budgets with healthy, near-limit, and over-budget examples.
 - Settlements: pending, completed, and cancelled records.
 - Invites: legacy email invites and shareable invite links.
+- Auth/session QA: missing-profile auth user, inactive/deleted-style profile, and an expired invite fixture.
 - Recurring expenses: active, paused, and completed monthly rules.
 - Notifications: expense creation, assignment, submission, approval, rejection, reimbursement, budget, settlement, recurring, and invite examples with deep links.
 - Activity: team, member, created/updated/deleted/submitted/approved/rejected/reimbursed/assigned/shared/split-updated expense, budget, invite, settlement, approval, and recurring history in normalized `activity_logs`.
@@ -59,6 +60,15 @@ Password for all accounts: `password123`
 | `hamza.malik@expensea.app` | Owner/Viewer coverage |
 | `fatima.noor@expensea.app` | Owner/Viewer coverage |
 | `bilal.hassan@expensea.app` | Admin/Viewer coverage |
+
+Additional QA-only accounts use the same password:
+
+| Email | Purpose |
+| --- | --- |
+| `missing.profile@expensea.app` | Auth user exists but `profiles` row is removed; login must fail without auto-provisioning. |
+| `deleted.account@expensea.app` | Profile is `inactive`; protected/session validation must force logout. |
+
+Expired-session testing requires revoking or clearing a real Supabase session cookie, because refresh tokens are managed by Supabase Auth rather than the relational seeders.
 
 ## Demo Teams
 

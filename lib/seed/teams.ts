@@ -172,7 +172,17 @@ export async function seedPendingInvitations(
       is_active: true,
       expires_at: toIso(daysAgo(-10)),
     },
+    {
+      team_id: hq.id,
+      invited_email: 'expired.invite@expensea.app',
+      role: 'viewer',
+      created_by: inviter,
+      usage_limit: 1,
+      usage_count: 0,
+      is_active: true,
+      expires_at: toIso(daysAgo(2)),
+    },
   ]);
 
-  log('invitations', 'pending invites created');
+  log('invitations', 'pending and expired invite fixtures created');
 }

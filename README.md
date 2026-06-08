@@ -16,6 +16,10 @@ The app supports individual and shared expenses, equal or custom participant spl
 - Supabase Auth callback handling at `/auth/callback`.
 - Onboarding flow for setting a profile name and creating or joining a team.
 - Profile settings for name, avatar URL, active team, theme, and currency preferences.
+- Explicit account creation only: login validates that an active Expensea profile already exists and never auto-provisions a profile from a valid Supabase Auth session.
+- The legacy auth-user profile trigger is disabled; signup creates application profiles explicitly.
+- Expired, revoked, stale, missing-profile, and inactive/deleted account sessions are signed out with user-facing messages before protected pages load.
+- Invite links preserve their token through signup and resume automatically after registration.
 
 ### Team Management
 
@@ -271,6 +275,7 @@ Team-aware personalization tables. `user_dashboard_preferences` stores the curre
 - [Architecture](docs/architecture.md)
 - [API and Server Actions](docs/api.md)
 - [Database](docs/database.md)
+- [Authentication and Sessions](docs/authentication.md)
 - [Seeding Guide](docs/SEEDING.md)
 - [Deployment Notes](DEPLOYMENT.md)
 
