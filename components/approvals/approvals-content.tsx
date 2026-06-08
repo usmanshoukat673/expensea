@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState, useTransition } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { format as formatDate, parseISO } from 'date-fns';
 import { Check, RotateCcw, X, WalletCards } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import type { ExpenseCategory, LunchEntryWithProfile, Profile } from '@/lib/data
 import type { DateRangeValue } from '@/lib/date-ranges';
 import { useCurrency } from '@/hooks/use-currency';
 import { DateRangeFilter } from '@/components/filters/date-range-filter';
+import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,19 +44,32 @@ export function ApprovalsContent({
   categories,
   submitters,
   dateRange,
+  categoryFilter = 'all',
+  submitterFilter = 'all',
   canReview,
 }: {
   queue: Queue;
   categories: ExpenseCategory[];
   submitters: { id: string; name: string }[];
   dateRange: DateRangeValue;
+  categoryFilter?: string;
+  submitterFilter?: string;
   canReview: boolean;
 }) {
   const { format } = useCurrency();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [reasonEntry, setReasonEntry] = useState<{ entry: QueueEntry; mode: 'reject' | 'changes' } | null>(null);
   const [reimburseEntry, setReimburseEntry] = useState<QueueEntry | null>(null);
+  const [categoryDraft, setCategoryDraft] = useState(categoryFilter);
+  const [submitterDraft, setSubmitterDraft] = useState(submitterFilter);
+
+  useEffect(() => {
+    setCategoryDraft(categoryFilter);
+    setSubmitterDraft(submitterFilter);
+  }, [categoryFilter, submitterFilter]);
 
   const stats = useMemo(() => {
     const approvedOutstanding = queue.approved.reduce(
@@ -81,6 +95,20 @@ export function ApprovalsContent({
     });
   };
 
+  const updateFilters = (category: string, submitter: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (category === 'all') params.delete('category');
+    else params.set('category', category);
+    if (canReview && submitter !== 'all') params.set('submitter', submitter);
+    else params.delete('submitter');
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  const activeFilterCount =
+    (categoryFilter !== 'all' ? 1 : 0) +
+    (canReview && submitterFilter !== 'all' ? 1 : 0);
+
   return (
     <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -98,23 +126,39 @@ export function ApprovalsContent({
         <Metric title="Reimbursements outstanding" value={format(stats.outstanding)} />
       </div>
 
-      <form className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row">
-        <Select name="category" defaultValue="all">
-          <SelectTrigger className="sm:w-[180px]"><SelectValue placeholder="Category" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select name="submitter" defaultValue="all">
-          <SelectTrigger className="sm:w-[180px]"><SelectValue placeholder="Submitter" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All submitters</SelectItem>
-            {submitters.map((submitter) => <SelectItem key={submitter.id} value={submitter.id}>{submitter.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Button variant="outline" type="submit">Apply filters</Button>
-      </form>
+      <FilterSheet
+        activeCount={activeFilterCount}
+        title="Approval filters"
+        description="Filter review queues by category and submitter."
+        align="start"
+        onReset={() => {
+          setCategoryDraft('all');
+          setSubmitterDraft('all');
+          updateFilters('all', 'all');
+        }}
+        onApply={() => updateFilters(categoryDraft, submitterDraft)}
+      >
+        <FilterField label="Category">
+          <Select value={categoryDraft} onValueChange={setCategoryDraft}>
+            <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories.map((category) => <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FilterField>
+        {canReview && (
+          <FilterField label="Submitter">
+            <Select value={submitterDraft} onValueChange={setSubmitterDraft}>
+              <SelectTrigger><SelectValue placeholder="Submitter" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All submitters</SelectItem>
+                {submitters.map((submitter) => <SelectItem key={submitter.id} value={submitter.id}>{submitter.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        )}
+      </FilterSheet>
 
       <Tabs defaultValue="pending">
         <TabsList>

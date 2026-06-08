@@ -47,6 +47,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { EmptyState } from '@/components/ui/empty-states';
 import { ExternalLink, Users } from 'lucide-react';
+import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
 
 export type MemberRow = {
   id: string;
@@ -76,6 +77,9 @@ export function TeamMembersTable({
   const { format } = useCurrency();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [activityFilter, setActivityFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [pending, startTransition] = useTransition();
   const canEdit = currentRole === 'owner' || currentRole === 'admin';
@@ -85,9 +89,29 @@ export function TeamMembersTable({
     const q = debouncedSearch.toLowerCase();
     return members.filter((m) => {
       const name = m.profiles?.full_name ?? m.profiles?.email ?? '';
+      const status = m.status ?? 'active';
+      const total = m.lunchStats?.total ?? 0;
+      const pendingTotal = m.lunchStats?.pending ?? 0;
+      if (roleFilter !== 'all' && m.role !== roleFilter) return false;
+      if (statusFilter !== 'all' && status !== statusFilter) return false;
+      if (activityFilter === 'spending' && total <= 0) return false;
+      if (activityFilter === 'pending' && pendingTotal <= 0) return false;
+      if (activityFilter === 'no_spend' && total > 0) return false;
       return !q || name.toLowerCase().includes(q) || m.profiles?.email?.toLowerCase().includes(q);
     });
-  }, [members, debouncedSearch]);
+  }, [members, debouncedSearch, roleFilter, statusFilter, activityFilter]);
+
+  const activeFilterCount =
+    (roleFilter !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (activityFilter !== 'all' ? 1 : 0);
+
+  const resetFilters = () => {
+    setRoleFilter('all');
+    setStatusFilter('all');
+    setActivityFilter('all');
+    setPage(0);
+  };
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageMembers = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -107,7 +131,48 @@ export function TeamMembersTable({
           }}
           className="max-w-sm"
         />
-        <p className="text-sm text-muted-foreground">{filtered.length} members</p>
+        <div className="flex items-center gap-2">
+          <FilterSheet
+            activeCount={activeFilterCount}
+            title="Member filters"
+            description="Filter the roster by role, account status, and expense activity."
+            onReset={resetFilters}
+          >
+            <FilterField label="Role">
+              <Select value={roleFilter} onValueChange={(value) => { setRoleFilter(value); setPage(0); }}>
+                <SelectTrigger><SelectValue placeholder="Role" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+            <FilterField label="Activity status">
+              <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setPage(0); }}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+            <FilterField label="Activity level">
+              <Select value={activityFilter} onValueChange={(value) => { setActivityFilter(value); setPage(0); }}>
+                <SelectTrigger><SelectValue placeholder="Activity" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any activity</SelectItem>
+                  <SelectItem value="spending">Has spending</SelectItem>
+                  <SelectItem value="pending">Has pending amount</SelectItem>
+                  <SelectItem value="no_spend">No spending</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+          </FilterSheet>
+          <p className="text-sm text-muted-foreground">{filtered.length} members</p>
+        </div>
       </div>
 
       <div className="rounded-lg border border-border overflow-x-auto">
@@ -127,14 +192,14 @@ export function TeamMembersTable({
                 <TableCell colSpan={5} className="h-40 p-0">
                   <EmptyState
                     icon={Users}
-                    title={search ? 'No matching members' : 'No team members'}
+                    title={search || activeFilterCount > 0 ? 'No matching members' : 'No team members'}
                     description={
-                      search
+                      search || activeFilterCount > 0
                         ? 'Try a different name or email in search.'
                         : 'Invite colleagues to start tracking expenses together.'
                     }
-                    actionLabel={search ? undefined : 'Invite member'}
-                    actionHref={search ? undefined : '/team'}
+                    actionLabel={search || activeFilterCount > 0 ? undefined : 'Invite member'}
+                    actionHref={search || activeFilterCount > 0 ? undefined : '/team'}
                   />
                 </TableCell>
               </TableRow>

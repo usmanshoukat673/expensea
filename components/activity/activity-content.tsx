@@ -24,6 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-states';
+import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type ActivityRow = ActivityLog & {
   profiles?: { full_name: string | null; avatar_url?: string | null } | null;
@@ -90,11 +92,13 @@ export function ActivityContent({
   const router = useRouter();
   const [activity, setActivity] = useState(initialActivity);
   const [query, setQuery] = useState(search);
+  const [typeDraft, setTypeDraft] = useState(activeType);
   const pages = Math.max(1, Math.ceil(total / limit));
 
   useEffect(() => {
     setActivity(initialActivity);
-  }, [initialActivity]);
+    setTypeDraft(activeType);
+  }, [initialActivity, activeType]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -159,20 +163,30 @@ export function ActivityContent({
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {filters.map((filter) => (
-            <Button
-              key={filter.value}
-              variant={activeType === filter.value ? 'default' : 'outline'}
-              size="sm"
-              asChild
-            >
-              <Link href={activityHref(filter.value, search)}>
-                {filter.label}
-              </Link>
-            </Button>
-          ))}
-        </div>
+        <FilterSheet
+          activeCount={activeType !== 'all' ? 1 : 0}
+          title="Activity filters"
+          description="Filter the audit trail by event type."
+          align="start"
+          onReset={() => {
+            setTypeDraft('all');
+            router.push(activityHref('all', search));
+          }}
+          onApply={() => router.push(activityHref(typeDraft, query))}
+        >
+          <FilterField label="Event type">
+            <Select value={typeDraft} onValueChange={setTypeDraft}>
+              <SelectTrigger><SelectValue placeholder="Event type" /></SelectTrigger>
+              <SelectContent>
+                {filters.map((filter) => (
+                  <SelectItem key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterSheet>
         <div className="flex gap-2">
           <Input
             value={query}
