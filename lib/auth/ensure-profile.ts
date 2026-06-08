@@ -4,15 +4,24 @@ import type { Database, Profile } from '@/lib/database.types';
 
 type Supabase = SupabaseClient<Database>;
 
-export async function ensureUserProfile(
+export async function getUserProfile(
+  supabase: Supabase,
+  userId: string
+): Promise<Profile | null> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+
+  return data ?? null;
+}
+
+export async function createUserProfileForSignup(
   supabase: Supabase,
   user: User
 ): Promise<Profile | null> {
-  const { data: existing } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
+  const existing = await getUserProfile(supabase, user.id);
 
   if (existing) return existing;
 

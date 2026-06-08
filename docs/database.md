@@ -10,6 +10,7 @@ Apply migrations in `supabase/migrations/` in filename order. The current requir
 014_dashboard_customization_saved_views.sql
 015_member_ledger_assignment.sql
 016_notification_activity_audit_hardening.sql
+017_disable_auth_auto_profile_provisioning.sql
 ```
 
 Migration `012_expense_approvals_reimbursements.sql` introduces the approval and reimbursement workflow and updates summary behavior so only approved financial rows are aggregated.
@@ -17,6 +18,7 @@ Migration `013_notifications_activity_center.sql` completes the notifications an
 Migration `014_dashboard_customization_saved_views.sql` adds team-aware dashboard preferences, saved dashboard views, and dashboard favorites.
 Migration `015_member_ledger_assignment.sql` adds member expense assignment, member-ledger indexes, assignment-aware monthly summaries, and viewer-scoped expense read policy behavior.
 Migration `016_notification_activity_audit_hardening.sql` hardens realtime delivery for notifications and activity logs by setting `REPLICA IDENTITY FULL` and ensuring both tables are part of `supabase_realtime`.
+Migration `017_disable_auth_auto_profile_provisioning.sql` disables the old auth trigger so arbitrary `auth.users` inserts do not silently become Expensea accounts. Signup creates profiles explicitly through the server action.
 
 ## Expense Workflow Columns
 
@@ -56,6 +58,19 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 - Admins and owners can approve, reject, request changes, update, delete, and reimburse.
 - Owners retain full team control through existing team policies.
 
+## Authentication Data Rules
+
+`auth.users` is the identity source, but `profiles` is the application account source. A user must have an active `profiles` row to access Expensea. A valid Supabase session without a profile is rejected and never auto-repaired during login or protected-route validation.
+
+`profiles.status` controls account availability:
+
+```sql
+status = 'active'   -- allowed through validation
+status = 'inactive' -- treated as deleted/disabled and forced to sign in or sign up again
+```
+
+The signup path may create a profile intentionally through `createUserProfileForSignup()`. Session validation, middleware, protected layouts, invite acceptance, and non-signup server actions must not insert profiles.
+
 ## Migration 012 Notes
 
 `012_expense_approvals_reimbursements.sql`:
@@ -73,6 +88,8 @@ are counted by budgets, analytics, reports, settlements, monthly summaries, and 
 The TypeScript seeders create team and individual assigned expenses, pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Settlement and activity seeders include member settlements, member timeline events such as `expense_created`, `expense_updated`, `expense_deleted`, `expense_assigned`, submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Notification seeders include owner/admin operational alerts and personal assignee/submitter alerts. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
 
 Seeded shared expenses include equal splits across all active team members and custom `selected` splits with explicit `lunch_entry_participants.share_amount` values. Seeded individual expenses are kept non-shared so they do not affect settlement balances.
+
+Auth QA seed fixtures include `missing.profile@expensea.app` with an auth user and no profile, `deleted.account@expensea.app` with an inactive profile, and an expired team invite. Expired sessions are tested by revoking or clearing the Supabase session cookie, since refresh-token state is owned by Supabase Auth.
 
 ## Member Ledger Data Model
 

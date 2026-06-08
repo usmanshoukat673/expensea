@@ -39,7 +39,13 @@ email=owner@expensea.app
 password=password123
 ```
 
-Success: signs in and redirects to the app. Failure returns `{ error }`.
+Success: signs in and redirects to the app. After Supabase accepts the credentials, the action calls `validateCurrentUser()` and requires an existing active Expensea profile. If the profile is missing, the action signs out and returns:
+
+```text
+Your account is not registered in Expensea. Please create an account or contact your administrator.
+```
+
+Login must not create profiles or convert into signup.
 
 ### `signUp(formData)`
 
@@ -52,7 +58,7 @@ password=password123
 confirmPassword=password123
 ```
 
-Creates a Supabase auth user and profile.
+Creates a Supabase auth user and profile intentionally. This is the only user-facing flow that may call `createUserProfileForSignup()`. If an invite token is supplied, the token is preserved and the invite resumes after successful signup/signin.
 
 ### `forgotPassword(formData)` and `resetPassword(formData)`
 
@@ -103,6 +109,8 @@ Actions:
 - `listTeamInvites()`
 
 `acceptTeamInvite(token)` validates active, unexpired, usage-limited links, email-specific invites, and active membership. Already-joined users are treated idempotently: the active team is switched to the invite team and the action returns success with `data.alreadyMember`.
+
+Invite routes validate the current user first. Unauthenticated users and users with missing/inactive profiles are redirected to signup with the invite token preserved. Valid active users accept immediately, creating membership, activity, notification, and active-team selection.
 
 Example invite form:
 

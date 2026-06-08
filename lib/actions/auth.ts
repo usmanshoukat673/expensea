@@ -1,7 +1,9 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { ensureUserProfile } from '@/lib/auth/ensure-profile';
+import { createUserProfileForSignup } from '@/lib/auth/ensure-profile';
+import { validateCurrentUser } from '@/lib/auth/session';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import {
   loginSchema,
@@ -30,6 +32,21 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
     const supabase = await createClient();
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     if (error) return { error: error.message };
+
+    const validation = await validateCurrentUser();
+    if (!validation.valid) {
+      await supabase.auth.signOut();
+      if (validation.reason === 'profile_missing') {
+        return {
+          error:
+            'Your account is not registered in Expensea. Please create an account or contact your administrator.',
+        };
+      }
+      if (validation.reason === 'account_deleted') {
+        return { error: 'Your account no longer exists. Please create a new account.' };
+      }
+      return { error: 'Your session has expired. Please sign in again.' };
+    }
 
     const redirectTo = (formData.get('redirect') as string) || '/onboarding';
     return {
@@ -79,7 +96,12 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     }
 
     if (data.user) {
-      await ensureUserProfile(supabase, data.user);
+      const profileClient = createAdminClient() ?? supabase;
+      const profile = await createUserProfileForSignup(profileClient, data.user);
+      if (!profile) {
+        await supabase.auth.signOut();
+        return { error: 'Account setup failed. Please try again or contact your administrator.' };
+      }
     }
 
     const inviteToken = String(formData.get('inviteToken') ?? '').trim();

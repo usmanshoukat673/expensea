@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getInvitePreview } from '@/lib/actions/team-invites';
-import { createClient } from '@/lib/supabase/server';
+import { acceptTeamInvite } from '@/lib/actions/team-invites';
+import { invalidateCurrentSession, validateCurrentUser } from '@/lib/auth/session';
 import { InviteAcceptCard } from '@/components/team/invite-accept-card';
 import { AuthLayout } from '@/components/auth/auth-layout';
 
@@ -15,14 +17,29 @@ export default async function TeamInviteAcceptPage({ params }: Props) {
     reason: 'not_found',
   };
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const invitePath = `/invite/team/${token}`;
   const loginHref = `/login?redirect=${encodeURIComponent(invitePath)}`;
   const signupHref = `/signup?invite=${encodeURIComponent(token)}`;
+
+  let isAuthenticated = false;
+  if (preview.valid) {
+    const validation = await validateCurrentUser();
+    if (!validation.valid) {
+      if (validation.reason !== 'no_session') {
+        await invalidateCurrentSession();
+        const authStatus =
+          validation.reason === 'profile_missing' ? 'account_deleted' : validation.reason;
+        redirect(
+          `/signup?invite=${encodeURIComponent(token)}&authStatus=${authStatus}`,
+        );
+      }
+      redirect(signupHref);
+    }
+
+    const result = await acceptTeamInvite(token);
+    if (result.success) redirect('/');
+    isAuthenticated = true;
+  }
 
   return (
     <AuthLayout
@@ -36,7 +53,7 @@ export default async function TeamInviteAcceptPage({ params }: Props) {
       <InviteAcceptCard
         token={token}
         preview={preview}
-        isAuthenticated={!!user}
+        isAuthenticated={isAuthenticated}
         loginHref={loginHref}
         signupHref={signupHref}
       />

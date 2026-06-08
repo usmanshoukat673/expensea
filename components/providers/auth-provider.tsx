@@ -26,9 +26,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
+  const clearLocalAuthState = useCallback(() => {
+    setUser(null);
+    setProfile(null);
+    setRole(null);
+    setTeams([]);
+  }, []);
+
   const loadProfile = useCallback(
     async (uid: string) => {
-      const { data: p } = await supabase.from('profiles').select('*').eq('id', uid).single();
+      const { data: p } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
+      if (!p || p.status !== 'active') {
+        clearLocalAuthState();
+        await supabase.auth.signOut();
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+          window.location.assign('/login?authStatus=account_deleted');
+        }
+        return;
+      }
       setProfile(p);
       const userTeams = await listUserTeams(supabase, uid);
       setTeams(userTeams);
@@ -36,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const active = userTeams.find((t) => t.id === activeId);
       setRole(active?.role ?? null);
     },
-    [supabase]
+    [supabase, clearLocalAuthState]
   );
 
   const refresh = useCallback(async () => {
@@ -45,12 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = await supabase.auth.getUser();
     setUser(u);
     if (u) await loadProfile(u.id);
-    else {
-      setProfile(null);
-      setRole(null);
-      setTeams([]);
-    }
-  }, [supabase, loadProfile]);
+    else clearLocalAuthState();
+  }, [supabase, loadProfile, clearLocalAuthState]);
 
   useEffect(() => {
     refresh().finally(() => setLoading(false));
@@ -59,14 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) loadProfile(session.user.id);
-      else {
-        setProfile(null);
-        setRole(null);
-        setTeams([]);
-      }
+      else clearLocalAuthState();
     });
     return () => subscription.unsubscribe();
-  }, [supabase, refresh, loadProfile]);
+  }, [supabase, refresh, loadProfile, clearLocalAuthState]);
 
   const value = useMemo(
     () => ({
