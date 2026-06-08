@@ -9,7 +9,6 @@ import {
   BarChart3,
   Settings,
   UserCog,
-  Coins,
   Tag,
   Scale,
   PiggyBank,
@@ -22,12 +21,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react"
-import { useCurrency } from "@/hooks/use-currency"
 import { cn } from "@/lib/utils"
 import { BrandLogo } from "@/components/branding/brand-logo"
-import { SignOutButton } from "@/components/auth/sign-out-button"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { TeamSwitcher } from "@/components/team/team-switcher"
 import {
   Tooltip,
   TooltipContent,
@@ -68,6 +63,9 @@ const navSections = [
   },
 ]
 
+const collapsedSidebarItemClass =
+  "group relative flex h-11 w-full items-center justify-center rounded-lg px-0 text-sm font-medium leading-none text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-150 hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
+
 function CollapsedTooltip({
   collapsed,
   label,
@@ -96,14 +94,10 @@ function CollapsedTooltip({
 
 export function Sidebar({
   role,
-  teamSlug,
-  teamId,
   collapsed,
   onToggleCollapsed,
 }: {
   role: TeamRole | null
-  teamSlug?: string
-  teamId?: string
   collapsed: boolean
   onToggleCollapsed: () => void
 }) {
@@ -112,7 +106,6 @@ export function Sidebar({
   const visibleNavItems = canManage
     ? navItems
     : navItems.filter((item) => item.href !== "/team")
-  const { currency } = useCurrency()
 
   return (
     <TooltipProvider delayDuration={0} skipDelayDuration={0}>
@@ -123,46 +116,36 @@ export function Sidebar({
         )}
         data-collapsed={collapsed}
       >
-      <div className={cn("shrink-0 border-b border-sidebar-border", collapsed ? "space-y-2 px-3 py-4" : "space-y-3 px-4 py-5")}>
-        <div className={cn("flex items-center", collapsed ? "w-full justify-center" : "justify-between gap-2")}>
+      <div className={cn("shrink-0 border-b border-sidebar-border", collapsed ? "px-3 py-4" : "px-4 py-5")}>
+        <div className={cn("flex items-center", collapsed ? "w-full" : "justify-between gap-2 px-2")}>
           {!collapsed && (
             <BrandLogo
               size="sm"
-              className="px-2"
+              className="min-w-0"
               nameClassName="text-xs font-medium text-sidebar-foreground/60"
             />
           )}
-          <div className={cn(collapsed && "flex w-full justify-center")}>
-            <button
-              type="button"
-              onClick={onToggleCollapsed}
-              className={cn(
-                "inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-sidebar-foreground/70 outline-none transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring",
-                collapsed && "size-11 bg-transparent px-0 text-accent-foreground hover:bg-sidebar-accent",
-              )}
-              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              aria-pressed={collapsed}
-            >
-              {collapsed ? (
-                <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                  <PanelLeftOpen className="size-4 transition-transform duration-200" />
-                </span>
-              ) : (
-                <PanelLeftClose className="size-4 transition-transform duration-200" />
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            className={cn(
+              collapsed
+                ? "group relative flex size-10 items-center justify-center rounded-lg px-0 text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-150 hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
+                : "inline-flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            )}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-5 shrink-0 transition-transform duration-150 group-hover:scale-105" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
+          </button>
         </div>
-        {collapsed ? (
-          <div className="flex w-full justify-center">
-            <TeamSwitcher variant="sidebar" collapsed />
-          </div>
-        ) : (
-          <TeamSwitcher variant="sidebar" className="px-2" />
-        )}
       </div>
 
-      <nav className={cn("min-h-0 flex-1 overflow-y-auto py-5", collapsed ? "space-y-3 px-3" : "space-y-5 px-4")}>
+      <nav className={cn("min-h-0 flex-1 py-4", collapsed ? "space-y-3 overflow-y-auto px-3" : "space-y-4 overflow-y-auto px-4")}>
         {navSections.map((section) => {
           const items = section.items.filter((item) =>
             visibleNavItems.some((visibleItem) => visibleItem.href === item.href),
@@ -194,7 +177,7 @@ export function Sidebar({
                       aria-label={collapsed ? item.label : undefined}
                       className={cn(
                         "group relative flex items-center rounded-lg text-sm font-medium leading-none outline-none transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-ring",
-                        collapsed ? "h-11 justify-center px-0" : "gap-3 px-4 py-2.5",
+                        collapsed ? collapsedSidebarItemClass : "gap-3 px-4 py-2.5",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50",
@@ -224,7 +207,7 @@ export function Sidebar({
               aria-label={collapsed ? "Invite" : undefined}
               className={cn(
                 "group relative flex items-center rounded-lg text-sm font-medium leading-none outline-none transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-ring",
-                collapsed ? "h-11 justify-center px-0" : "gap-3 px-4 py-2.5",
+                collapsed ? collapsedSidebarItemClass : "gap-3 px-4 py-2.5",
                 pathname === "/team/invite"
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50",
@@ -239,54 +222,6 @@ export function Sidebar({
           </CollapsedTooltip>
         )}
       </nav>
-
-      <div className={cn("shrink-0 space-y-2 border-t border-sidebar-border py-4", collapsed ? "px-3" : "px-4")}>
-        <CollapsedTooltip
-          collapsed={collapsed}
-          label={`${currency.code} currency`}
-          description={`${currency.flag} ${currency.symbol}`}
-        >
-          <Link
-            href="/settings/profile"
-            aria-label={collapsed ? `${currency.code} currency settings` : undefined}
-            className={cn(
-              "flex rounded-lg text-sidebar-foreground/80 outline-none transition-colors hover:bg-sidebar-accent/10 focus-visible:ring-2 focus-visible:ring-ring",
-              collapsed ? "h-10 items-center justify-center" : "items-center gap-2 px-2 py-2 text-xs",
-              pathname.startsWith("/settings") && "bg-sidebar-accent/10",
-            )}
-          >
-            <Coins className="size-4 shrink-0" />
-            {!collapsed && (
-              <span className="truncate">
-                {currency.flag} {currency.code} · {currency.symbol}
-              </span>
-            )}
-          </Link>
-        </CollapsedTooltip>
-        <div className={cn("flex items-center py-1", collapsed ? "justify-center px-0" : "justify-between px-2")}>
-          {!collapsed && <span className="text-xs text-muted-foreground">Theme</span>}
-          <ThemeToggle />
-        </div>
-        {teamSlug && teamId && !collapsed && (
-          <div className="px-4 py-2 space-y-1">
-            <Link
-              href={`/public/team/${teamId}`}
-              target="_blank"
-              className="block text-xs text-muted-foreground hover:text-accent"
-            >
-              Public page ↗
-            </Link>
-            <Link
-              href={`/share/${teamSlug}`}
-              target="_blank"
-              className="block text-xs text-muted-foreground hover:text-accent"
-            >
-              Share by slug ↗
-            </Link>
-          </div>
-        )}
-        <SignOutButton collapsed={collapsed} />
-      </div>
       </aside>
     </TooltipProvider>
   )
