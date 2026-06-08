@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { acceptTeamInvite, type TeamInvitePreview } from '@/lib/actions/team-invites';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
+import { AlertCircle, CalendarClock, Mail, ShieldCheck, Users } from 'lucide-react';
 
 export function InviteAcceptCard({
   token,
@@ -34,6 +34,19 @@ export function InviteAcceptCard({
         : preview.reason === 'usage_exceeded'
           ? 'This invitation has been used too many times'
           : 'Invalid invite link';
+  const teamInitials = preview.team_name
+    ?.split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'EX';
+  const memberCount =
+    typeof preview.member_count === 'number'
+      ? `${preview.member_count.toLocaleString()} ${preview.member_count === 1 ? 'member' : 'members'}`
+      : null;
+  const expiresAt = preview.expires_at
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(preview.expires_at))
+    : null;
 
   const onJoin = () => {
     startTransition(async () => {
@@ -50,59 +63,101 @@ export function InviteAcceptCard({
 
   if (!preview.valid) {
     return (
-      <Card>
-        <CardContent className="space-y-4 pt-6 text-center">
-          <p className="text-sm text-muted-foreground">{invalidMessage}</p>
-          <Button variant="outline" asChild>
-            <Link href="/login">Sign in</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-5 text-center">
+        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+          <AlertCircle className="size-6" />
+        </div>
+        <div className="space-y-2">
+          <p className="font-semibold">Invite unavailable</p>
+          <p className="text-sm leading-6 text-muted-foreground">{invalidMessage}. Ask your team admin for a fresh invitation.</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/login">Sign in</Link>
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardContent className="space-y-4 pt-6">
-        <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-4 text-sm">
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Team</span>
-            <span className="font-medium text-right">{preview.team_name}</span>
+    <div className="space-y-5">
+      <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+        <div className="flex items-start gap-4">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-accent/10 font-semibold text-accent">
+            {teamInitials}
           </div>
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Invited by</span>
-            <span className="font-medium text-right">{preview.inviter_name}</span>
-          </div>
-          <div className="flex justify-between gap-2 items-center">
-            <span className="text-muted-foreground">Role</span>
-            <Badge variant="secondary" className="capitalize">
-              {preview.role}
-            </Badge>
-          </div>
-          {preview.invited_email && (
-            <div className="flex justify-between gap-2">
-              <span className="text-muted-foreground">Email</span>
-              <span className="font-medium text-right break-all">{preview.invited_email}</span>
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="break-words text-lg font-semibold leading-tight">{preview.team_name}</h2>
+              {preview.role ? (
+                <Badge variant="secondary" className="capitalize">
+                  {preview.role}
+                </Badge>
+              ) : null}
             </div>
-          )}
-        </div>
-
-        {isAuthenticated ? (
-          <Button type="button" className="w-full" disabled={pending} onClick={onJoin}>
-            {pending ? <Spinner /> : null}
-            Join team
-          </Button>
-        ) : (
-          <div className="space-y-2">
-            <Button className="w-full" asChild>
-              <Link href={signupHref}>Sign up & join</Link>
-            </Button>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href={loginHref}>Sign in to join</Link>
-            </Button>
+            <p className="text-sm leading-6 text-muted-foreground">
+              {preview.inviter_name ? `${preview.inviter_name} invited you to collaborate in Expensea.` : 'You have been invited to collaborate in Expensea.'}
+            </p>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-xl border border-border/70 bg-background/40 p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ShieldCheck className="size-4 text-accent" />
+            Invited role
+          </div>
+          <p className="mt-2 font-medium capitalize">{preview.role ?? 'Team member'}</p>
+        </div>
+        <div className="rounded-xl border border-border/70 bg-background/40 p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Users className="size-4 text-accent" />
+            Team size
+          </div>
+          <p className="mt-2 font-medium">{memberCount ?? 'Available after joining'}</p>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm">
+        <div className="flex justify-between gap-3">
+          <span className="text-muted-foreground">Invited by</span>
+          <span className="text-right font-medium">{preview.inviter_name ?? 'Team admin'}</span>
+        </div>
+        {preview.invited_email ? (
+          <div className="flex justify-between gap-3">
+            <span className="inline-flex items-center gap-2 text-muted-foreground">
+              <Mail className="size-4" />
+              Email
+            </span>
+            <span className="break-all text-right font-medium">{preview.invited_email}</span>
+          </div>
+        ) : null}
+        {expiresAt ? (
+          <div className="flex justify-between gap-3">
+            <span className="inline-flex items-center gap-2 text-muted-foreground">
+              <CalendarClock className="size-4" />
+              Expires
+            </span>
+            <span className="text-right font-medium">{expiresAt}</span>
+          </div>
+        ) : null}
+      </div>
+
+      {isAuthenticated ? (
+        <Button type="button" className="w-full" disabled={pending} onClick={onJoin}>
+          {pending ? <Spinner /> : null}
+          Join team
+        </Button>
+      ) : (
+        <div className="space-y-2 border-t border-border/70 pt-5">
+          <Button className="w-full" asChild>
+            <Link href={signupHref}>Sign up & join</Link>
+          </Button>
+          <Button variant="outline" className="w-full" asChild>
+            <Link href={loginHref}>Sign in to join</Link>
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

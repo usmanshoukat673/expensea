@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Text } from 'lucide-react';
 
 type FormData = z.infer<typeof teamNameSchema>;
 
@@ -39,12 +40,27 @@ export function CreateTeamForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-6">
+    <form onSubmit={onSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="name">Workspace name</Label>
-        <Input id="name" placeholder="e.g. Product Team" {...register('name')} />
+        <Input id="name" placeholder="e.g. Product Team" autoComplete="organization" {...register('name')} />
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
+
+      <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+        <div className="flex gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+            <Text className="size-4" />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <p className="font-medium">Description</p>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Add team guidelines, default currency, and public profile details from workspace settings after creation.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? <Spinner /> : null}
         Create & continue
