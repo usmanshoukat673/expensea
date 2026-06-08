@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronsUpDown, Plus, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useTeam } from '@/hooks/use-team';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { TeamRole } from '@/lib/database.types';
 
 const roleLabels: Record<TeamRole, string> = {
@@ -42,9 +47,10 @@ function RoleBadge({ role }: { role: TeamRole }) {
 type TeamSwitcherProps = {
   variant?: 'sidebar' | 'navbar';
   className?: string;
+  collapsed?: boolean;
 };
 
-export function TeamSwitcher({ variant = 'sidebar', className }: TeamSwitcherProps) {
+export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false }: TeamSwitcherProps) {
   const { teams, activeTeam, activeTeamId, switching, switchToTeam } = useTeam();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -71,56 +77,90 @@ export function TeamSwitcher({ variant = 'sidebar', className }: TeamSwitcherPro
   }
 
   const triggerLabel = activeTeam?.name ?? 'Select team';
+  const teamInitials = triggerLabel
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'EX';
+
+  const trigger = (
+    <PopoverTrigger asChild>
+      <Button
+        variant="ghost"
+        role="combobox"
+        aria-expanded={open}
+        aria-label={collapsed ? `Switch team: ${triggerLabel}` : undefined}
+        className={cn(
+          'font-normal transition-all duration-200',
+          collapsed
+            ? 'size-11 justify-center rounded-lg px-0 hover:bg-sidebar-accent'
+            : variant === 'sidebar'
+              ? 'w-full h-auto justify-between px-0 py-0 hover:bg-transparent text-left'
+              : 'h-9 max-w-[200px] justify-between px-2 hover:bg-sidebar-accent',
+          className
+        )}
+      >
+        {collapsed ? (
+          <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-xs font-semibold text-accent-foreground">
+            {teamInitials}
+          </span>
+        ) : (
+          <>
+            <span className="flex flex-col items-start min-w-0 flex-1">
+              <span
+                className={cn(
+                  'truncate font-semibold',
+                  variant === 'sidebar'
+                    ? 'text-sm text-sidebar-foreground'
+                    : 'text-sm text-sidebar-foreground'
+                )}
+              >
+                {triggerLabel}
+              </span>
+              {variant === 'sidebar' && activeTeam && (
+                <span className="text-xs text-sidebar-foreground/50 capitalize flex items-center gap-1.5 mt-0.5">
+                  <RoleBadge role={activeTeam.role} />
+                </span>
+              )}
+            </span>
+            <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+          </>
+        )}
+      </Button>
+    </PopoverTrigger>
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          role="combobox"
-          aria-expanded={open}
-          className={cn(
-            'justify-between font-normal transition-all duration-200',
-            variant === 'sidebar'
-              ? 'w-full h-auto px-0 py-0 hover:bg-transparent text-left'
-              : 'h-9 max-w-[200px] px-2 hover:bg-sidebar-accent',
-            className
-          )}
-        >
-          <span className="flex flex-col items-start min-w-0 flex-1">
-            <span
-              className={cn(
-                'truncate font-semibold',
-                variant === 'sidebar'
-                  ? 'text-sm text-sidebar-foreground'
-                  : 'text-sm text-sidebar-foreground'
+      {collapsed ? (
+        <Tooltip>
+          <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+          <TooltipContent side="right" align="center" sideOffset={10}>
+            <div className="space-y-0.5">
+              <p className="font-medium">{triggerLabel}</p>
+              {activeTeam && (
+                <p className="text-[11px] capitalize opacity-75">
+                  {roleLabels[activeTeam.role]}
+                </p>
               )}
-            >
-              {triggerLabel}
-            </span>
-            {variant === 'sidebar' && activeTeam && (
-              <span className="text-xs text-sidebar-foreground/50 capitalize flex items-center gap-1.5 mt-0.5">
-                <RoleBadge role={activeTeam.role} />
-              </span>
-            )}
-          </span>
-          <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        trigger
+      )}
       <PopoverContent
         className="w-[min(100vw-2rem,280px)] p-0"
         align={variant === 'navbar' ? 'end' : 'start'}
       >
         <Command shouldFilter={false}>
-          <div className="flex items-center border-b px-3">
-            <Search className="size-4 shrink-0 opacity-50" />
-            <CommandInput
-              placeholder="Search teams..."
-              value={query}
-              onValueChange={setQuery}
-              className="border-0 focus:ring-0"
-            />
-          </div>
+          <CommandInput
+            placeholder="Search teams..."
+            value={query}
+            onValueChange={setQuery}
+            className="focus:ring-0"
+          />
           <CommandList>
             <CommandEmpty>No team found.</CommandEmpty>
             <CommandGroup heading="Your teams">

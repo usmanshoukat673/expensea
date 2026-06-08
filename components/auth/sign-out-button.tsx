@@ -3,19 +3,40 @@
 import { useTransition } from 'react';
 import { LogOut } from 'lucide-react';
 import { signOut } from '@/lib/actions/auth';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
-export function SignOutButton() {
+export function SignOutButton({ collapsed = false }: { collapsed?: boolean }) {
   const [pending, startTransition] = useTransition();
 
-  return (
+  const button = (
     <button
       type="button"
       disabled={pending}
       onClick={() => startTransition(() => signOut())}
-      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent transition-colors disabled:opacity-50"
+      aria-label={collapsed ? 'Sign out' : undefined}
+      className={cn(
+        'flex rounded-lg text-sm font-medium text-sidebar-foreground outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+        collapsed ? 'h-10 w-full items-center justify-center px-0' : 'w-full items-center gap-3 px-4 py-2.5'
+      )}
     >
-      <LogOut className="w-5 h-5" />
-      <span>Sign out</span>
+      <LogOut className="size-5 shrink-0" />
+      {!collapsed && <span>Sign out</span>}
     </button>
+  );
+
+  if (!collapsed) return button;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side="right" align="center" sideOffset={10}>
+        Sign out
+      </TooltipContent>
+    </Tooltip>
   );
 }
