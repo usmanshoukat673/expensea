@@ -7,6 +7,7 @@ import { lunchEntrySchema, rejectionSchema, reimbursementSchema } from '@/lib/va
 import { notifyTeamMembers } from '@/lib/notifications';
 import { recordActivity } from '@/lib/activity';
 import { notifyBudgetThresholds } from '@/lib/budget-alerts';
+import { FINANCIAL_AMOUNT_MAX } from '@/lib/financial-input';
 
 export type ActionResult = { error?: string; success?: boolean };
 
@@ -44,7 +45,14 @@ function parseParticipantShares(formData: FormData): Record<string, number> {
     const shares: Record<string, number> = {};
     for (const [userId, value] of Object.entries(parsed)) {
       const amount = Number(value);
-      if (Number.isFinite(amount) && amount > 0) shares[userId] = amount;
+      if (
+        Number.isFinite(amount) &&
+        amount > 0 &&
+        amount <= FINANCIAL_AMOUNT_MAX &&
+        Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-8
+      ) {
+        shares[userId] = amount;
+      }
     }
     return shares;
   } catch {
@@ -214,7 +222,7 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
     assignmentType,
     assignedUserId: assignmentType === 'individual' ? formData.get('assignedUserId') || null : null,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const isShared = parsed.data.assignmentType === 'team' && (parsed.data.isShared ?? false);
   const splitType = isShared ? (parsed.data.splitType ?? 'equal') : 'none';
@@ -441,7 +449,7 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
     assignmentType,
     assignedUserId: assignmentType === 'individual' ? formData.get('assignedUserId') || null : null,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const isShared = parsed.data.assignmentType === 'team' && (parsed.data.isShared ?? false);
   const splitType = isShared ? (parsed.data.splitType ?? 'equal') : 'none';
@@ -970,6 +978,10 @@ export async function recordExpenseReimbursement(id: string, formData: FormData)
   }
 
   const amount = Number(entry.amount);
+  const remaining = Math.max(0, amount - Number(entry.amount_reimbursed ?? 0));
+  if (parsed.data.amount > remaining) {
+    return { error: 'Amount exceeds allowed limit' };
+  }
   const reimbursed = Math.min(amount, Number(entry.amount_reimbursed ?? 0) + parsed.data.amount);
   const reimbursementStatus = reimbursed >= amount ? 'fully_reimbursed' : 'partially_reimbursed';
   const { error } = await supabase

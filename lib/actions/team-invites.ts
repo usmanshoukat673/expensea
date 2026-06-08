@@ -183,7 +183,7 @@ export async function sendEmailInvite(formData: FormData): Promise<ActionResult<
     email: formData.get('email'),
     role: formData.get('role'),
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const expiry = (formData.get('expiry') as InviteExpiryOption) || '7d';
   const expiresAt = expiresAtFromOption(expiry);

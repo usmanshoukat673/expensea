@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { MoneyInput } from '@/components/ui/money-input';
+import { RequiredLabel } from '@/components/ui/required-label';
 import {
   Select,
   SelectContent,
@@ -74,9 +75,10 @@ export function BudgetDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<BudgetInput>({
     resolver: zodResolver(budgetSchema),
+    mode: 'onChange',
     defaultValues: budgetToForm(budget),
   });
 
@@ -115,7 +117,7 @@ export function BudgetDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Budget type</Label>
+            <RequiredLabel required>Budget type</RequiredLabel>
             <Select
               value={budgetType}
               onValueChange={(v: 'monthly' | 'category') => {
@@ -136,7 +138,7 @@ export function BudgetDialog({
 
           {budgetType === 'category' && (
             <div className="space-y-2">
-              <Label>Category</Label>
+              <RequiredLabel required>Category</RequiredLabel>
               <Select
                 value={watch('categoryId') ?? ''}
                 onValueChange={(v) => setValue('categoryId', v)}
@@ -160,15 +162,15 @@ export function BudgetDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Amount</Label>
-            <Input type="number" step="0.01" min="0" {...register('amount')} />
+            <RequiredLabel required>Amount</RequiredLabel>
+            <MoneyInput {...register('amount')} />
             {errors.amount && (
               <p className="text-sm text-destructive">{errors.amount.message}</p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label>Currency</Label>
+            <RequiredLabel>Currency</RequiredLabel>
             <Input
               value={`${currency.flag} ${currency.code}`}
               disabled
@@ -177,7 +179,7 @@ export function BudgetDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Month</Label>
+            <RequiredLabel required>Month</RequiredLabel>
             <Select
               value={watch('month') ?? 'recurring'}
               onValueChange={(v) => setValue('month', v)}
@@ -195,7 +197,7 @@ export function BudgetDialog({
             </Select>
           </div>
 
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="w-full" disabled={pending || !isValid}>
             {pending ? <Spinner /> : null}
             {isEdit ? 'Save' : 'Create'}
           </Button>

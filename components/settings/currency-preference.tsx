@@ -1,6 +1,6 @@
 'use client';
 
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { CurrencySelector } from '@/components/ui/currency-selector';
 import { useCurrency } from '@/hooks/use-currency';
 import type { CurrencyCode } from '@/lib/currency';
@@ -10,7 +10,7 @@ export function CurrencyPreference() {
 
   return (
     <div className="space-y-3">
-      <Label>Currency</Label>
+      <RequiredLabel>Currency</RequiredLabel>
       <CurrencySelector
         value={currencyCode}
         onChange={(code) => setCurrency(code as CurrencyCode)}

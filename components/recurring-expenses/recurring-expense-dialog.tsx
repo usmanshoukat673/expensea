@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { MoneyInput } from '@/components/ui/money-input';
+import { RequiredLabel } from '@/components/ui/required-label';
 import {
   Select,
   SelectContent,
@@ -63,9 +64,10 @@ export function RecurringExpenseDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<RecurringExpenseInput>({
     resolver: zodResolver(recurringExpenseSchema),
+    mode: 'onChange',
     defaultValues: {
       title: '',
       amount: 0,
@@ -126,7 +128,7 @@ export function RecurringExpenseDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
+            <RequiredLabel htmlFor="title" required>Title</RequiredLabel>
             <Input id="title" {...register('title')} />
             {errors.title && (
               <p className="text-sm text-destructive">{errors.title.message}</p>
@@ -134,7 +136,7 @@ export function RecurringExpenseDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Category</Label>
+            <RequiredLabel required>Category</RequiredLabel>
             <CategorySelector
               categories={categories}
               value={categoryId}
@@ -147,14 +149,14 @@ export function RecurringExpenseDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount ({currency.symbol})</Label>
-              <Input id="amount" type="number" step="0.01" {...register('amount')} />
+              <RequiredLabel htmlFor="amount" required>Amount ({currency.symbol})</RequiredLabel>
+              <MoneyInput id="amount" {...register('amount')} />
               {errors.amount && (
                 <p className="text-sm text-destructive">{errors.amount.message}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label>Frequency</Label>
+              <RequiredLabel required>Frequency</RequiredLabel>
               <Select
                 value={frequency}
                 onValueChange={(v) =>
@@ -176,7 +178,7 @@ export function RecurringExpenseDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="intervalValue">Every</Label>
+              <RequiredLabel htmlFor="intervalValue" required>Every</RequiredLabel>
               <Input id="intervalValue" type="number" min="1" {...register('intervalValue')} />
               {errors.intervalValue && (
                 <p className="text-sm text-destructive">
@@ -185,7 +187,7 @@ export function RecurringExpenseDialog({
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start date</Label>
+              <RequiredLabel htmlFor="startDate" required>Start date</RequiredLabel>
               <Input id="startDate" type="date" {...register('startDate')} />
               {errors.startDate && (
                 <p className="text-sm text-destructive">{errors.startDate.message}</p>
@@ -194,14 +196,14 @@ export function RecurringExpenseDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="endDate">End date</Label>
+            <RequiredLabel htmlFor="endDate" optional>End date</RequiredLabel>
             <Input id="endDate" type="date" {...register('endDate')} />
             {errors.endDate && (
               <p className="text-sm text-destructive">{errors.endDate.message}</p>
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="w-full" disabled={pending || !isValid}>
             {pending ? <Spinner /> : null}
             {isEdit ? 'Save changes' : 'Create rule'}
           </Button>

@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -69,9 +71,10 @@ export function LunchEntryDialog({
     setValue,
     watch,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm<LunchEntryInput>({
     resolver: zodResolver(lunchEntrySchema),
+    mode: 'onChange',
     defaultValues: {
       userId: entry?.user_id ?? members[0]?.user_id ?? '',
       amount: entry ? Number(entry.amount) : 0,
@@ -108,8 +111,8 @@ export function LunchEntryDialog({
     (sum, id) => sum + Number(participantShares[id] || 0),
     0,
   );
-  const customSplitExceedsAmount =
-    sharedEnabled && splitType === 'selected' && amount > 0 && customTotal > amount;
+  const customSplitMismatch =
+    sharedEnabled && splitType === 'selected' && amount > 0 && Math.abs(customTotal - amount) > 0.01;
 
   useEffect(() => {
     if (!open) return;
@@ -208,33 +211,8 @@ export function LunchEntryDialog({
     setParticipantShares({});
   };
 
-  const sanitizeNonNegativeAmount = (value: string) => {
-    if (value === '') return '';
-    const nextValue = Math.max(0, Number(value));
-    return Number.isFinite(nextValue) ? String(nextValue) : '';
-  };
-
   const updateParticipantShare = (userId: string, value: string) => {
-    const sanitizedValue = sanitizeNonNegativeAmount(value);
-    setParticipantShares((shares) => {
-      if (sanitizedValue === '') {
-        return { ...shares, [userId]: '' };
-      }
-
-      const currentValue = Number(shares[userId] || 0);
-      const totalFromLatestShares = participantIds.reduce(
-        (sum, id) => sum + Number(shares[id] || 0),
-        0,
-      );
-      const otherSharesTotal = totalFromLatestShares - currentValue;
-      const maxAllowed = Math.max(0, amount - otherSharesTotal);
-      const cappedValue = Math.min(Number(sanitizedValue), maxAllowed);
-
-      return {
-        ...shares,
-        [userId]: String(cappedValue),
-      };
-    });
+    setParticipantShares((shares) => ({ ...shares, [userId]: value }));
   };
 
   const submitExpense = (intent: 'draft' | 'submit') => {
@@ -242,8 +220,8 @@ export function LunchEntryDialog({
       shouldValidate: true,
     });
 
-    if (customSplitExceedsAmount) {
-      toast.error('Custom split amounts cannot exceed the expense amount');
+    if (customSplitMismatch) {
+      toast.error('Total split must equal expense amount');
       return;
     }
 
@@ -289,7 +267,7 @@ export function LunchEntryDialog({
         </DialogHeader>
         <form onSubmit={(event) => event.preventDefault()} className="space-y-4">
           <div className="space-y-2">
-            <Label>Paid by</Label>
+            <RequiredLabel required>Paid by</RequiredLabel>
             <Select value={payerId} onValueChange={(v) => setValue('userId', v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select member" />
@@ -306,7 +284,7 @@ export function LunchEntryDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Category</Label>
+            <RequiredLabel required>Category</RequiredLabel>
             <CategorySelector
               categories={categories}
               value={categoryId ?? null}
@@ -316,7 +294,7 @@ export function LunchEntryDialog({
           </div>
 
           <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
-            <Label>Assignment</Label>
+            <RequiredLabel required>Assignment</RequiredLabel>
             <RadioGroup
               value={assignmentType}
               onValueChange={(value) => {
@@ -344,7 +322,7 @@ export function LunchEntryDialog({
             </RadioGroup>
             {assignmentType === 'individual' && (
               <div className="space-y-2">
-                <Label>Assigned to</Label>
+                <RequiredLabel required>Assigned to</RequiredLabel>
                 <Select
                   value={assignedUserId ?? ''}
                   onValueChange={(v) => setValue('assignedUserId', v)}
@@ -367,27 +345,15 @@ export function LunchEntryDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount ({currency.symbol})</Label>
-              <Input
+              <RequiredLabel htmlFor="amount" required>Amount ({currency.symbol})</RequiredLabel>
+              <MoneyInput
                 id="amount"
-                type="number"
-                min="0"
-                step="0.01"
-                {...register('amount', {
-                  onChange: (event) => {
-                    const value = sanitizeNonNegativeAmount(event.target.value);
-                    if (value !== event.target.value) {
-                      setValue('amount', value === '' ? 0 : Number(value), {
-                        shouldValidate: true,
-                      });
-                    }
-                  },
-                })}
+                {...register('amount')}
               />
               {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lunchDate">Date</Label>
+              <RequiredLabel htmlFor="lunchDate" required>Date</RequiredLabel>
               <Input id="lunchDate" type="date" {...register('lunchDate')} />
             </div>
           </div>
@@ -414,7 +380,7 @@ export function LunchEntryDialog({
           {sharedEnabled && (
             <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-3">
               <div className="space-y-2">
-                <Label>Split type</Label>
+                <RequiredLabel required>Split type</RequiredLabel>
                 <Select
                   value={splitType ?? 'equal'}
                   onValueChange={(v) => {
@@ -434,7 +400,7 @@ export function LunchEntryDialog({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Label>Participants</Label>
+                  <RequiredLabel required>Participants</RequiredLabel>
                   <div className="flex gap-2">
                     <Button type="button" variant="ghost" size="sm" onClick={selectAllParticipants}>
                       Select all
@@ -471,10 +437,7 @@ export function LunchEntryDialog({
                       </Avatar>
                       <span className="min-w-0 flex-1 truncate">{m.name}</span>
                       {splitType === 'selected' && participantIds.includes(m.user_id) && (
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                        <MoneyInput
                           value={participantShares[m.user_id] ?? ''}
                           onChange={(event) => updateParticipantShare(m.user_id, event.target.value)}
                           placeholder="Amount"
@@ -495,9 +458,9 @@ export function LunchEntryDialog({
                     Custom shares total {customTotal.toFixed(2)} of {amount.toFixed(2)} {currency.symbol}.
                   </p>
                 )}
-                {customSplitExceedsAmount && (
+                {customSplitMismatch && (
                   <p className="text-sm text-destructive">
-                    Custom split amounts cannot exceed the expense amount.
+                    Total split must equal expense amount.
                   </p>
                 )}
                 {errors.participantIds && (
@@ -508,7 +471,7 @@ export function LunchEntryDialog({
           )}
 
           <div className="space-y-2">
-            <Label>Payment status</Label>
+            <RequiredLabel required>Payment status</RequiredLabel>
             <Select
               value={watch('paymentStatus')}
               onValueChange={(v) => setValue('paymentStatus', v as 'paid' | 'unpaid')}
@@ -523,7 +486,7 @@ export function LunchEntryDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <RequiredLabel htmlFor="notes" optional>Notes</RequiredLabel>
             <Textarea id="notes" rows={2} {...register('notes')} />
           </div>
           {selectedCategory && (
@@ -536,12 +499,12 @@ export function LunchEntryDialog({
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button type="button" variant="outline" disabled={pending} onClick={() => submitExpense('draft')}>
+            <Button type="button" variant="outline" disabled={pending || !isValid || customSplitMismatch} onClick={() => submitExpense('draft')}>
               {pending ? <Spinner /> : null}
               {isEdit ? 'Save changes' : 'Save draft'}
             </Button>
             {!isEdit && (
-              <Button type="button" disabled={pending} onClick={() => submitExpense('submit')}>
+              <Button type="button" disabled={pending || !isValid || customSplitMismatch} onClick={() => submitExpense('submit')}>
                 {pending ? <Spinner /> : null}
                 Submit for approval
               </Button>

@@ -20,7 +20,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { MoneyInput } from '@/components/ui/money-input';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -274,18 +275,26 @@ function ReasonDialog({
   onOpenChange: (open: boolean) => void;
   onSubmit: (entry: QueueEntry, mode: 'reject' | 'changes', formData: FormData) => void;
 }) {
+  const [reason, setReason] = useState('');
+  const isValid = reason.trim().length >= 3;
+
   return (
     <Dialog open={!!state} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>{state?.mode === 'reject' ? 'Reject expense' : 'Request changes'}</DialogTitle></DialogHeader>
         <form action={(formData) => {
+          if (!isValid) {
+            toast.error('Reason is required');
+            return;
+          }
           if (state) onSubmit(state.entry, state.mode, formData);
         }} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="reason">Reason</Label>
-            <Textarea id="reason" name="reason" required rows={3} />
+            <RequiredLabel htmlFor="reason" required>Reason</RequiredLabel>
+            <Textarea id="reason" name="reason" required rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
+            {!isValid && reason.length > 0 ? <p className="text-sm text-destructive">Reason is required</p> : null}
           </div>
-          <Button disabled={pending} type="submit">Submit</Button>
+          <Button disabled={pending || !isValid} type="submit">Submit</Button>
         </form>
       </DialogContent>
     </Dialog>
@@ -304,26 +313,52 @@ function ReimbursementDialog({
   onSubmit: (entry: QueueEntry, formData: FormData) => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
+  const [amount, setAmount] = useState('');
+  const remaining = entry
+    ? Math.max(0, Number(entry.amount) - Number(entry.amount_reimbursed ?? 0))
+    : 0;
+  const numericAmount = Number(amount);
+  const amountError =
+    amount.length === 0
+      ? 'This field is required'
+      : !Number.isFinite(numericAmount) || numericAmount <= 0
+        ? 'Amount must be greater than 0'
+        : numericAmount > remaining
+          ? 'Amount exceeds allowed limit'
+          : null;
+
   return (
     <Dialog open={!!entry} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>Record reimbursement</DialogTitle></DialogHeader>
         <form action={(formData) => {
+          if (amountError) {
+            toast.error(amountError);
+            return;
+          }
           if (entry) onSubmit(entry, formData);
         }} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
-            <Input id="amount" name="amount" type="number" min="0.01" step="0.01" required />
+            <RequiredLabel htmlFor="amount" required>Amount</RequiredLabel>
+            <MoneyInput
+              id="amount"
+              name="amount"
+              required
+              maxAmount={remaining}
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+            {amountError && amount.length > 0 ? <p className="text-sm text-destructive">{amountError}</p> : null}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="reimbursedAt">Date</Label>
+            <RequiredLabel htmlFor="reimbursedAt" required>Date</RequiredLabel>
             <Input id="reimbursedAt" name="reimbursedAt" type="date" defaultValue={today} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
+            <RequiredLabel htmlFor="notes" optional>Notes</RequiredLabel>
             <Textarea id="notes" name="notes" rows={2} />
           </div>
-          <Button disabled={pending} type="submit">Record reimbursement</Button>
+          <Button disabled={pending || !!amountError} type="submit">Record reimbursement</Button>
         </form>
       </DialogContent>
     </Dialog>

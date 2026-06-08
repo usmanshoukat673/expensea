@@ -13,7 +13,7 @@ export async function updateProfile(formData: FormData): Promise<ActionResult> {
     fullName: formData.get('fullName'),
     avatarUrl: formData.get('avatarUrl') || '',
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const supabase = await createClient();
   const { error } = await supabase

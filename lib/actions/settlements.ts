@@ -55,7 +55,7 @@ export async function createSettlement(formData: FormData): Promise<ActionResult
     note: formData.get('note') || undefined,
     proofUrl: formData.get('proofUrl') || undefined,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
   if (parsed.data.payerUserId === parsed.data.receiverUserId) {
     return { error: 'Payer and receiver must be different' };
   }

@@ -8,7 +8,7 @@ import { resetPassword } from '@/lib/actions/auth';
 import { resetPasswordSchema } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/auth/password-input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Spinner } from '@/components/ui/spinner';
 import { z } from 'zod';
 
@@ -19,8 +19,8 @@ export function ResetPasswordForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(resetPasswordSchema) });
+    formState: { errors, isValid },
+  } = useForm<FormData>({ resolver: zodResolver(resetPasswordSchema), mode: 'onChange' });
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -35,18 +35,18 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="password">New password</Label>
+        <RequiredLabel htmlFor="password" required>New password</RequiredLabel>
         <PasswordInput id="password" {...register('password')} />
         {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
+        <RequiredLabel htmlFor="confirmPassword" required>Confirm password</RequiredLabel>
         <PasswordInput id="confirmPassword" {...register('confirmPassword')} />
         {errors.confirmPassword && (
           <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
         )}
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? <Spinner /> : null}
         Update password
       </Button>

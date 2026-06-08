@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { MoneyInput } from '@/components/ui/money-input';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -38,8 +39,9 @@ export function SettlementDialog({
   const [pending, startTransition] = useTransition();
   const { currency } = useCurrency();
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<SettlementFormInput>({
+  const { register, handleSubmit, setValue, watch, formState: { errors, isValid } } = useForm<SettlementFormInput>({
     resolver: zodResolver(settlementSchema),
+    mode: 'onChange',
     defaultValues: {
       payerUserId: members[0]?.userId ?? '',
       receiverUserId: members[1]?.userId ?? members[0]?.userId ?? '',
@@ -74,7 +76,7 @@ export function SettlementDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Who paid</Label>
+            <RequiredLabel required>Who paid</RequiredLabel>
             <Select value={watch('payerUserId')} onValueChange={(v) => setValue('payerUserId', v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -85,7 +87,7 @@ export function SettlementDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Who receives</Label>
+            <RequiredLabel required>Who receives</RequiredLabel>
             <Select value={watch('receiverUserId')} onValueChange={(v) => setValue('receiverUserId', v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -96,19 +98,19 @@ export function SettlementDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Amount ({currency.symbol})</Label>
-            <Input type="number" step="0.01" {...register('amount')} />
+            <RequiredLabel required>Amount ({currency.symbol})</RequiredLabel>
+            <MoneyInput {...register('amount')} />
             {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label>Note</Label>
+            <RequiredLabel optional>Note</RequiredLabel>
             <Textarea rows={2} {...register('note')} />
           </div>
           <div className="space-y-2">
-            <Label>Proof URL (optional)</Label>
+            <RequiredLabel optional>Proof URL</RequiredLabel>
             <Input type="url" placeholder="https://..." {...register('proofUrl')} />
           </div>
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="w-full" disabled={pending || !isValid}>
             {pending ? <Spinner /> : null}
             Save
           </Button>

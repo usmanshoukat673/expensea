@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -39,8 +39,9 @@ export function CategoryDialog({
   const [pending, startTransition] = useTransition();
   const isEdit = !!category;
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<CategoryInput>({
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<CategoryInput>({
     resolver: zodResolver(categorySchema),
+    mode: 'onChange',
     defaultValues: {
       name: category?.name ?? '',
       icon: category?.icon ?? 'circle',
@@ -96,13 +97,13 @@ export function CategoryDialog({
             <span className="text-sm font-medium">{watch('name') || 'Preview'}</span>
           </div>
           <div className="space-y-2">
-            <Label>Name</Label>
+            <RequiredLabel required>Name</RequiredLabel>
             <Input {...register('name')} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Icon</Label>
+              <RequiredLabel required>Icon</RequiredLabel>
               <Select value={iconName} onValueChange={(v) => setValue('icon', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -113,15 +114,15 @@ export function CategoryDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Color</Label>
+              <RequiredLabel required>Color</RequiredLabel>
               <Input type="color" {...register('color')} className="h-10 p-1" />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Description</Label>
+            <RequiredLabel optional>Description</RequiredLabel>
             <Textarea rows={2} {...register('description')} />
           </div>
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="w-full" disabled={pending || !isValid}>
             {pending ? <Spinner /> : null}
             {isEdit ? 'Save' : 'Create'}
           </Button>

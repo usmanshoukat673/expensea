@@ -6,7 +6,7 @@ import { updateTeamSettings } from '@/lib/actions/teams';
 import type { Team } from '@/lib/database.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { CurrencySelector } from '@/components/ui/currency-selector';
@@ -33,11 +33,11 @@ export function TeamSettingsForm({ team }: { team: Team }) {
           className="space-y-4"
         >
           <div className="space-y-2">
-            <Label htmlFor="name">Workspace name</Label>
+            <RequiredLabel htmlFor="name" required>Workspace name</RequiredLabel>
             <Input id="name" name="name" defaultValue={team.name} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="brandName">App branding</Label>
+            <RequiredLabel htmlFor="brandName" optional>App branding</RequiredLabel>
             <Input
               id="brandName"
               name="brandName"
@@ -47,7 +47,7 @@ export function TeamSettingsForm({ team }: { team: Team }) {
           </div>
           <input type="hidden" name="currency" value={currencyCode} />
           <div className="space-y-2">
-            <Label>Currency</Label>
+            <RequiredLabel required>Currency</RequiredLabel>
             <CurrencySelector
               value={currencyCode}
               onChange={(code) => setCurrency(code as CurrencyCode)}
@@ -62,9 +62,9 @@ export function TeamSettingsForm({ team }: { team: Team }) {
               defaultChecked={team.is_public}
               className="rounded border-border"
             />
-            <Label htmlFor="isPublic" className="font-normal cursor-pointer">
+            <RequiredLabel htmlFor="isPublic" className="font-normal cursor-pointer">
               Enable public sharing
-            </Label>
+            </RequiredLabel>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -74,9 +74,9 @@ export function TeamSettingsForm({ team }: { team: Team }) {
               defaultChecked={team.show_category_analytics_on_public !== false}
               className="rounded border-border"
             />
-            <Label htmlFor="showCategoryAnalyticsOnPublic" className="font-normal cursor-pointer">
+            <RequiredLabel htmlFor="showCategoryAnalyticsOnPublic" className="font-normal cursor-pointer">
               Show category analytics on public page
-            </Label>
+            </RequiredLabel>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -86,9 +86,9 @@ export function TeamSettingsForm({ team }: { team: Team }) {
               defaultChecked={team.show_balances_on_public}
               className="rounded border-border"
             />
-            <Label htmlFor="showBalancesOnPublic" className="font-normal cursor-pointer">
+            <RequiredLabel htmlFor="showBalancesOnPublic" className="font-normal cursor-pointer">
               Show team balances on public page
-            </Label>
+            </RequiredLabel>
           </div>
           <p className="text-xs text-muted-foreground break-all">
             Public: /public/team/{team.id} · /share/{team.slug}
