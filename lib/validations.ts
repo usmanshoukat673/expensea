@@ -1,49 +1,77 @@
 import { z } from 'zod';
+import {
+  FINANCIAL_AMOUNT_INVALID_MESSAGE,
+  FINANCIAL_AMOUNT_MAX,
+  FINANCIAL_AMOUNT_MAX_MESSAGE,
+  FINANCIAL_AMOUNT_POSITIVE_MESSAGE,
+  FINANCIAL_AMOUNT_REQUIRED_MESSAGE,
+} from '@/lib/financial-input';
+
+const requiredString = (label: string, min = 1, max?: number) => {
+  const schema = z.string().trim().min(min, min === 1 ? 'This field is required' : `${label} is required`);
+  return max ? schema.max(max, `${label} is too long`) : schema;
+};
+
+const moneyAmountSchema = z.preprocess(
+  (value) => (typeof value === 'string' ? value.trim() : value),
+  z
+    .coerce
+    .number({
+      invalid_type_error: FINANCIAL_AMOUNT_INVALID_MESSAGE,
+      required_error: FINANCIAL_AMOUNT_REQUIRED_MESSAGE,
+    })
+    .finite(FINANCIAL_AMOUNT_INVALID_MESSAGE)
+    .positive(FINANCIAL_AMOUNT_POSITIVE_MESSAGE)
+    .max(FINANCIAL_AMOUNT_MAX, FINANCIAL_AMOUNT_MAX_MESSAGE)
+    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-8, {
+      message: 'Use up to 2 decimal places',
+    }),
+);
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().trim().min(1, 'This field is required').email('Enter a valid email address'),
+  password: z.string().min(1, 'This field is required').min(6, 'Password must be at least 6 characters'),
 });
 
 export const signupSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
+  fullName: requiredString('Name', 2, 100),
+  email: z.string().trim().min(1, 'This field is required').email('Enter a valid email address'),
+  password: z.string().min(1, 'This field is required').min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(1, 'This field is required'),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
 });
 
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email address'),
+  email: z.string().trim().min(1, 'This field is required').email('Enter a valid email address'),
 });
 
 export const resetPasswordSchema = z.object({
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string(),
+  password: z.string().min(1, 'This field is required').min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string().min(1, 'This field is required'),
 }).refine((d) => d.password === d.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
 });
 
 export const profileSchema = z.object({
-  fullName: z.string().min(2, 'Name is required').max(100),
-  avatarUrl: z.string().url().optional().or(z.literal('')),
+  fullName: requiredString('Name', 2, 100),
+  avatarUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
 });
 
 export const teamNameSchema = z.object({
-  name: z.string().min(2, 'Team name is required').max(50),
+  name: requiredString('Team name', 2, 50),
 });
 
 export const inviteSchema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.string().trim().min(1, 'This field is required').email('Enter a valid email address'),
   role: z.enum(['admin', 'viewer']),
 });
 
 export const lunchEntrySchema = z.object({
   userId: z.string().uuid('Select a member'),
-  amount: z.coerce.number().positive('Amount must be positive'),
+  amount: moneyAmountSchema,
   lunchDate: z.string().min(1, 'Date is required'),
   notes: z.string().max(500).optional(),
   paymentStatus: z.enum(['paid', 'unpaid']),
@@ -69,15 +97,15 @@ export const rejectionSchema = z.object({
 });
 
 export const reimbursementSchema = z.object({
-  amount: z.coerce.number().positive('Amount must be positive'),
+  amount: moneyAmountSchema,
   reimbursedAt: z.string().min(1, 'Date is required'),
   notes: z.string().max(500).optional(),
 });
 
 export const recurringExpenseSchema = z
   .object({
-    title: z.string().min(2, 'Title is required').max(120),
-    amount: z.coerce.number().positive('Amount must be positive'),
+    title: requiredString('Title', 2, 120),
+    amount: moneyAmountSchema,
     categoryId: z.string().uuid('Select a category'),
     frequency: z.enum(['daily', 'weekly', 'monthly', 'yearly']),
     intervalValue: z.coerce.number().int().positive('Interval must be at least 1').max(365),
@@ -90,7 +118,7 @@ export const recurringExpenseSchema = z
   });
 
 export const categorySchema = z.object({
-  name: z.string().min(2, 'Name is required').max(50),
+  name: requiredString('Name', 2, 50),
   icon: z.string().min(1).max(30),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color'),
   description: z.string().max(200).optional(),
@@ -99,13 +127,13 @@ export const categorySchema = z.object({
 export const settlementSchema = z.object({
   payerUserId: z.string().uuid(),
   receiverUserId: z.string().uuid(),
-  amount: z.coerce.number().positive('Amount must be positive'),
-  note: z.string().max(500).optional(),
-  proofUrl: z.string().url().optional().or(z.literal('')),
+  amount: moneyAmountSchema,
+  note: z.string().max(500, 'Note is too long').optional(),
+  proofUrl: z.string().url('Enter a valid URL').optional().or(z.literal('')),
 });
 
 export const onboardingNameSchema = z.object({
-  fullName: z.string().min(2, 'Name is required').max(100),
+  fullName: requiredString('Name', 2, 100),
 });
 
 export const joinTeamSchema = z.object({
@@ -122,7 +150,7 @@ export const budgetSchema = z
   .object({
     type: z.enum(['monthly', 'category']),
     categoryId: z.string().uuid().optional().nullable(),
-    amount: z.coerce.number().positive('Amount must be positive'),
+    amount: moneyAmountSchema,
     month: z.string().optional().nullable(),
   })
   .refine(

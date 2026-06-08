@@ -10,7 +10,7 @@ import { signUp } from '@/lib/actions/auth';
 import { signupSchema, type SignupInput } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Spinner } from '@/components/ui/spinner';
 import { PasswordInput } from '@/components/auth/password-input';
 
@@ -21,8 +21,8 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<SignupInput>({ resolver: zodResolver(signupSchema) });
+    formState: { errors, isValid },
+  } = useForm<SignupInput>({ resolver: zodResolver(signupSchema), mode: 'onChange' });
 
   const onSubmit = handleSubmit((data) => {
     setServerError(null);
@@ -56,29 +56,29 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Full name</Label>
+        <RequiredLabel htmlFor="fullName" required>Full name</RequiredLabel>
         <Input id="fullName" placeholder="Your name" {...register('fullName')} />
         {errors.fullName && <p className="text-sm text-destructive">{errors.fullName.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <RequiredLabel htmlFor="email" required>Email</RequiredLabel>
         <Input id="email" type="email" {...register('email')} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <RequiredLabel htmlFor="password" required>Password</RequiredLabel>
         <PasswordInput id="password" {...register('password')} />
         {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
+        <RequiredLabel htmlFor="confirmPassword" required>Confirm password</RequiredLabel>
         <PasswordInput id="confirmPassword" {...register('confirmPassword')} />
         {errors.confirmPassword && (
           <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
         )}
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? <Spinner /> : null}
         Create account
       </Button>

@@ -10,7 +10,7 @@ import { teamNameSchema } from '@/lib/validations';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Spinner } from '@/components/ui/spinner';
 import { Text } from 'lucide-react';
 
@@ -22,8 +22,8 @@ export function CreateTeamForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(teamNameSchema) });
+    formState: { errors, isValid },
+  } = useForm<FormData>({ resolver: zodResolver(teamNameSchema), mode: 'onChange' });
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -42,7 +42,7 @@ export function CreateTeamForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="name">Workspace name</Label>
+        <RequiredLabel htmlFor="name" required>Workspace name</RequiredLabel>
         <Input id="name" placeholder="e.g. Product Team" autoComplete="organization" {...register('name')} />
         {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
       </div>
@@ -61,7 +61,7 @@ export function CreateTeamForm() {
         </div>
       </div>
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? <Spinner /> : null}
         Create & continue
       </Button>

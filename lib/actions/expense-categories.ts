@@ -25,7 +25,7 @@ export async function createExpenseCategory(formData: FormData): Promise<ActionR
     color: formData.get('color'),
     description: formData.get('description') || undefined,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const slug = categorySlugify(parsed.data.name);
   const supabase = await createClient();
@@ -76,7 +76,7 @@ export async function updateExpenseCategory(id: string, formData: FormData): Pro
     color: formData.get('color'),
     description: formData.get('description') || undefined,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const supabase = await createClient();
   const { error } = await supabase

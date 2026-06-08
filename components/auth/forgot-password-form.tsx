@@ -9,7 +9,7 @@ import { forgotPassword } from '@/lib/actions/auth';
 import { forgotPasswordSchema } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Spinner } from '@/components/ui/spinner';
 import { z } from 'zod';
 
@@ -21,8 +21,8 @@ export function ForgotPasswordForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(forgotPasswordSchema) });
+    formState: { errors, isValid },
+  } = useForm<FormData>({ resolver: zodResolver(forgotPasswordSchema), mode: 'onChange' });
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -51,11 +51,11 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <RequiredLabel htmlFor="email" required>Email</RequiredLabel>
         <Input id="email" type="email" {...register('email')} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? <Spinner /> : null}
         Send reset link
       </Button>

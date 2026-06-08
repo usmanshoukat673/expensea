@@ -6,7 +6,7 @@ import { updateProfile } from '@/lib/actions/profile';
 import type { Profile } from '@/lib/database.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { ThemePreference } from '@/components/settings/theme-preference';
@@ -33,15 +33,15 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
           className="space-y-4"
         >
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full name</Label>
+            <RequiredLabel htmlFor="fullName" required>Full name</RequiredLabel>
             <Input id="fullName" name="fullName" defaultValue={profile.full_name ?? ''} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <RequiredLabel htmlFor="email">Email</RequiredLabel>
             <Input id="email" value={profile.email ?? ''} disabled className="bg-muted" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="avatarUrl">Avatar URL</Label>
+            <RequiredLabel htmlFor="avatarUrl" optional>Avatar URL</RequiredLabel>
             <Input id="avatarUrl" name="avatarUrl" defaultValue={profile.avatar_url ?? ''} placeholder="https://..." />
           </div>
           <Button type="submit" disabled={pending}>

@@ -55,7 +55,7 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
     amount: formData.get('amount'),
     month: formData.get('month') || null,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const supabase = await createClient();
   const categoryError = await validateBudgetCategory(
@@ -126,7 +126,7 @@ export async function updateTeamBudget(
     amount: formData.get('amount'),
     month: formData.get('month') || null,
   });
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const supabase = await createClient();
   const categoryError = await validateBudgetCategory(

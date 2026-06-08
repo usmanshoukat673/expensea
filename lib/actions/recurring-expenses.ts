@@ -50,7 +50,7 @@ export async function createRecurringExpense(formData: FormData): Promise<Action
   if (!canEdit(session.role)) return { error: 'Viewers cannot create recurring expenses' };
 
   const parsed = parseRecurringExpenseForm(formData);
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const supabase = await createClient();
   const refError = await validateCategory(supabase, session.teamId, parsed.data.categoryId);
@@ -95,7 +95,7 @@ export async function updateRecurringExpense(id: string, formData: FormData): Pr
   if (!canEdit(session.role)) return { error: 'Viewers cannot edit recurring expenses' };
 
   const parsed = parseRecurringExpenseForm(formData);
-  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+  if (!parsed.success) return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
 
   const supabase = await createClient();
   const refError = await validateCategory(supabase, session.teamId, parsed.data.categoryId);

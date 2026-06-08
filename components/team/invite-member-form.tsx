@@ -10,7 +10,7 @@ import { INVITE_EXPIRY_OPTIONS, type InviteExpiryOption } from '@/lib/invites/ut
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import {
   Select,
   SelectContent,
@@ -32,10 +32,11 @@ export function InviteMemberForm() {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isValid },
     reset,
   } = useForm<FormData>({
     resolver: zodResolver(inviteSchema),
+    mode: 'onChange',
     defaultValues: { role: 'viewer' },
   });
 
@@ -62,12 +63,12 @@ export function InviteMemberForm() {
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <RequiredLabel htmlFor="email" required>Email</RequiredLabel>
               <Input id="email" type="email" placeholder="colleague@company.com" {...register('email')} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label>Role</Label>
+              <RequiredLabel required>Role</RequiredLabel>
               <Select
                 value={watch('role')}
                 onValueChange={(v) => setValue('role', v as 'admin' | 'viewer')}
@@ -82,7 +83,7 @@ export function InviteMemberForm() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Invitation expires</Label>
+              <RequiredLabel required>Invitation expires</RequiredLabel>
               <Select value={expiry} onValueChange={(v) => setExpiry(v as InviteExpiryOption)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -96,7 +97,7 @@ export function InviteMemberForm() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || !isValid}>
               {pending ? <Spinner /> : null}
               Send email invite
             </Button>

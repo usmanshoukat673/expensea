@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import {
   Select,
   SelectContent,
@@ -70,7 +70,7 @@ export function InviteMemberDialog() {
               }
             >
               <div className="space-y-2">
-                <Label htmlFor="invite-email">Email</Label>
+                <RequiredLabel htmlFor="invite-email" required>Email</RequiredLabel>
                 <Input
                   id="invite-email"
                   name="email"
@@ -80,7 +80,7 @@ export function InviteMemberDialog() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Role</Label>
+                <RequiredLabel required>Role</RequiredLabel>
                 <Select value={role} onValueChange={(v) => setRole(v as 'admin' | 'viewer')}>
                   <SelectTrigger>
                     <SelectValue />
@@ -92,7 +92,7 @@ export function InviteMemberDialog() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Invitation expires</Label>
+                <RequiredLabel required>Invitation expires</RequiredLabel>
                 <Select value={expiry} onValueChange={(v) => setExpiry(v as InviteExpiryOption)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -133,11 +133,11 @@ export function InviteMemberDialog() {
               }
             >
               <div className="space-y-2">
-                <Label htmlFor="manual-email">Existing user email</Label>
+                <RequiredLabel htmlFor="manual-email" required>Existing user email</RequiredLabel>
                 <Input id="manual-email" name="email" type="email" required />
               </div>
               <div className="space-y-2">
-                <Label>Role</Label>
+                <RequiredLabel required>Role</RequiredLabel>
                 <Select name="role" defaultValue="viewer">
                   <SelectTrigger>
                     <SelectValue />

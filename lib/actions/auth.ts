@@ -25,7 +25,7 @@ export async function signIn(formData: FormData): Promise<ActionResult> {
     password: formData.get('password'),
   });
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+    return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
   }
 
   try {
@@ -66,7 +66,7 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     confirmPassword: formData.get('confirmPassword'),
   });
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+    return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
   }
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -145,7 +145,7 @@ export async function signOut() {
 export async function forgotPassword(formData: FormData): Promise<ActionResult> {
   const parsed = forgotPasswordSchema.safeParse({ email: formData.get('email') });
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Invalid email' };
+    return { error: parsed.error.errors[0]?.message ?? 'Enter a valid email address' };
   }
 
   const supabase = await createClient();
@@ -163,7 +163,7 @@ export async function resetPassword(formData: FormData): Promise<ActionResult> {
     confirmPassword: formData.get('confirmPassword'),
   });
   if (!parsed.success) {
-    return { error: parsed.error.errors[0]?.message ?? 'Invalid input' };
+    return { error: parsed.error.errors[0]?.message ?? 'Please check the form and try again' };
   }
 
   const supabase = await createClient();

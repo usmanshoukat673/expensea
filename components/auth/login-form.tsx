@@ -10,7 +10,7 @@ import { signIn } from '@/lib/actions/auth';
 import { loginSchema, type LoginInput } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { RequiredLabel } from '@/components/ui/required-label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Spinner } from '@/components/ui/spinner';
 import { PasswordInput } from '@/components/auth/password-input';
@@ -22,8 +22,8 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   const {
     register,
     handleSubmit,
-    formState: { errors },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+    formState: { errors, isValid },
+  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema), mode: 'onChange' });
 
   const onSubmit = handleSubmit((data) => {
     setServerError(null);
@@ -54,13 +54,13 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <RequiredLabel htmlFor="email" required>Email</RequiredLabel>
         <Input id="email" type="email" placeholder="you@company.com" {...register('email')} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <RequiredLabel htmlFor="password" required>Password</RequiredLabel>
           <Link href="/forgot-password" className="text-xs text-accent hover:underline">
             Forgot password?
           </Link>
@@ -70,12 +70,12 @@ export function LoginForm({ redirect }: { redirect?: string }) {
       </div>
       <div className="flex items-center gap-2">
         <Checkbox id="remember" name="remember" />
-        <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+        <RequiredLabel htmlFor="remember" className="text-sm font-normal cursor-pointer">
           Remember me
-        </Label>
+        </RequiredLabel>
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || !isValid}>
         {pending ? <Spinner /> : null}
         Sign in
       </Button>
