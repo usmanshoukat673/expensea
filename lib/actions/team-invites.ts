@@ -26,6 +26,7 @@ export type TeamInvitePreview = {
   invited_email?: string | null;
   expires_at?: string | null;
   inviter_name?: string;
+  member_count?: number | null;
 };
 
 export type TeamInviteRow = {
