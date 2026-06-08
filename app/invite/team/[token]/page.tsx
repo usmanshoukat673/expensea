@@ -27,11 +27,6 @@ export default async function TeamInviteAcceptPage({ params }: Props) {
     if (!validation.valid) {
       if (validation.reason !== 'no_session') {
         await invalidateCurrentSession();
-        const authStatus =
-          validation.reason === 'profile_missing' ? 'account_deleted' : validation.reason;
-        redirect(
-          `/signup?invite=${encodeURIComponent(token)}&authStatus=${authStatus}`,
-        );
       }
       redirect(signupHref);
     }

@@ -12,13 +12,15 @@ export const metadata = { title: 'Join team' };
 export default async function JoinTeamPage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ invite?: string; token?: string }>;
 }) {
-  await requireAuth();
   const params = await searchParams;
-  if (params.token) {
-    redirect(`/invite/team/${params.token}`);
+  const inviteToken = params.invite ?? params.token;
+  if (inviteToken) {
+    redirect(`/invite/team/${inviteToken}`);
   }
+
+  await requireAuth();
 
   return (
     <div className="min-h-dvh overflow-x-hidden bg-background">
