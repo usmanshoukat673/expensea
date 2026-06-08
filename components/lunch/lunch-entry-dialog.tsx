@@ -108,33 +108,57 @@ export function LunchEntryDialog({
     (sum, id) => sum + Number(participantShares[id] || 0),
     0,
   );
+  const customSplitExceedsAmount =
+    sharedEnabled && splitType === 'selected' && amount > 0 && customTotal > amount;
 
   useEffect(() => {
-    if (entry) {
+    if (!open) return;
+
+    if (!entry) {
       reset({
-        userId: entry.user_id,
-        amount: Number(entry.amount),
-        lunchDate: entry.lunch_date,
-        notes: entry.notes ?? '',
-        paymentStatus: entry.payment_status,
-        categoryId: entry.category_id ?? defaultCategory?.id ?? null,
-        isShared: entry.is_shared ?? false,
-        splitType: entry.split_type ?? 'equal',
-        assignmentType: entry.assignment_type ?? 'team',
-        assignedUserId: entry.assigned_user_id ?? null,
+        userId: members[0]?.user_id ?? '',
+        amount: 0,
+        lunchDate: defaultLunchDate,
+        notes: '',
+        paymentStatus: 'unpaid',
+        categoryId: defaultCategory?.id ?? null,
+        isShared: false,
+        splitType: 'equal',
+        assignmentType: 'team',
+        assignedUserId: null,
+        participantIds: [],
       });
-      setParticipantIds(
-        entry.lunch_entry_participants?.map((p) => p.user_id) ?? [],
-      );
-      setParticipantShares(
-        Object.fromEntries(
-          (entry.lunch_entry_participants ?? [])
-            .filter((p) => p.share_amount != null)
-            .map((p) => [p.user_id, String(p.share_amount)]),
-        ),
-      );
+      setParticipantIds([]);
+      setParticipantShares({});
+      setMemberSearch('');
+      return;
     }
-  }, [entry, reset, defaultCategory?.id]);
+
+    reset({
+      userId: entry.user_id,
+      amount: Number(entry.amount),
+      lunchDate: entry.lunch_date,
+      notes: entry.notes ?? '',
+      paymentStatus: entry.payment_status,
+      categoryId: entry.category_id ?? defaultCategory?.id ?? null,
+      isShared: entry.is_shared ?? false,
+      splitType: entry.split_type ?? 'equal',
+      assignmentType: entry.assignment_type ?? 'team',
+      assignedUserId: entry.assigned_user_id ?? null,
+      participantIds: entry.lunch_entry_participants?.map((p) => p.user_id) ?? [],
+    });
+    setParticipantIds(
+      entry.lunch_entry_participants?.map((p) => p.user_id) ?? [],
+    );
+    setParticipantShares(
+      Object.fromEntries(
+        (entry.lunch_entry_participants ?? [])
+          .filter((p) => p.share_amount != null)
+          .map((p) => [p.user_id, String(p.share_amount)]),
+      ),
+    );
+    setMemberSearch('');
+  }, [entry, open, reset, defaultCategory?.id, defaultLunchDate, members]);
 
   useEffect(() => {
     if (assignmentType !== 'individual') return;
@@ -146,10 +170,17 @@ export function LunchEntryDialog({
   }, [assignmentType, assignedUserId, payerId, setValue]);
 
   useEffect(() => {
+    if (isEdit) return;
     if (assignmentType !== 'team' || !isShared || splitType !== 'equal') return;
     setParticipantIds(members.map((member) => member.user_id));
     setParticipantShares({});
-  }, [assignmentType, isShared, splitType, members]);
+  }, [assignmentType, isShared, splitType, members, isEdit]);
+
+  useEffect(() => {
+    setValue('participantIds', sharedEnabled ? participantIds : [], {
+      shouldValidate: sharedEnabled,
+    });
+  }, [participantIds, setValue, sharedEnabled]);
 
   useEffect(() => {
     const handler = () => onOpenChange(true);
@@ -177,36 +208,76 @@ export function LunchEntryDialog({
     setParticipantShares({});
   };
 
-  const submitExpense = (intent: 'draft' | 'submit') => handleSubmit((data) => {
-    const fd = new FormData();
-    fd.set('userId', data.userId);
-    fd.set('amount', String(data.amount));
-    fd.set('lunchDate', data.lunchDate);
-    fd.set('notes', data.notes ?? '');
-    fd.set('paymentStatus', data.paymentStatus);
-    fd.set('categoryId', data.categoryId ?? '');
-    const isTeamExpense = data.assignmentType !== 'individual';
-    fd.set('isShared', String(isTeamExpense && !!data.isShared));
-    fd.set('splitType', isTeamExpense && data.isShared ? (data.splitType ?? 'equal') : 'none');
-    fd.set('assignmentType', data.assignmentType ?? 'team');
-    fd.set('assignedUserId', data.assignmentType === 'individual' ? (data.assignedUserId ?? '') : '');
-    fd.set('participantIds', JSON.stringify(isTeamExpense && data.isShared ? participantIds : []));
-    fd.set('participantShares', JSON.stringify(data.splitType === 'selected' ? participantShares : {}));
-    fd.set('intent', intent);
-    startTransition(async () => {
-      const result = isEdit
-        ? await updateLunchEntry(entry!.id, fd)
-        : await createLunchEntry(fd);
-      if (result?.error) toast.error(result.error);
-      else {
-        toast.success(isEdit ? 'Entry updated' : intent === 'submit' ? 'Submitted for approval' : 'Draft saved');
-        router.refresh();
-        onOpenChange(false);
-        reset();
-        setParticipantIds([]);
+  const sanitizeNonNegativeAmount = (value: string) => {
+    if (value === '') return '';
+    const nextValue = Math.max(0, Number(value));
+    return Number.isFinite(nextValue) ? String(nextValue) : '';
+  };
+
+  const updateParticipantShare = (userId: string, value: string) => {
+    const sanitizedValue = sanitizeNonNegativeAmount(value);
+    setParticipantShares((shares) => {
+      if (sanitizedValue === '') {
+        return { ...shares, [userId]: '' };
       }
+
+      const currentValue = Number(shares[userId] || 0);
+      const totalFromLatestShares = participantIds.reduce(
+        (sum, id) => sum + Number(shares[id] || 0),
+        0,
+      );
+      const otherSharesTotal = totalFromLatestShares - currentValue;
+      const maxAllowed = Math.max(0, amount - otherSharesTotal);
+      const cappedValue = Math.min(Number(sanitizedValue), maxAllowed);
+
+      return {
+        ...shares,
+        [userId]: String(cappedValue),
+      };
     });
-  })();
+  };
+
+  const submitExpense = (intent: 'draft' | 'submit') => {
+    setValue('participantIds', sharedEnabled ? participantIds : [], {
+      shouldValidate: true,
+    });
+
+    if (customSplitExceedsAmount) {
+      toast.error('Custom split amounts cannot exceed the expense amount');
+      return;
+    }
+
+    return handleSubmit((data) => {
+      const fd = new FormData();
+      fd.set('userId', data.userId);
+      fd.set('amount', String(data.amount));
+      fd.set('lunchDate', data.lunchDate);
+      fd.set('notes', data.notes ?? '');
+      fd.set('paymentStatus', data.paymentStatus);
+      fd.set('categoryId', data.categoryId ?? '');
+      const isTeamExpense = data.assignmentType !== 'individual';
+      fd.set('isShared', String(isTeamExpense && !!data.isShared));
+      fd.set('splitType', isTeamExpense && data.isShared ? (data.splitType ?? 'equal') : 'none');
+      fd.set('assignmentType', data.assignmentType ?? 'team');
+      fd.set('assignedUserId', data.assignmentType === 'individual' ? (data.assignedUserId ?? '') : '');
+      fd.set('participantIds', JSON.stringify(isTeamExpense && data.isShared ? participantIds : []));
+      fd.set('participantShares', JSON.stringify(data.splitType === 'selected' ? participantShares : {}));
+      fd.set('intent', intent);
+      startTransition(async () => {
+        const result = isEdit
+          ? await updateLunchEntry(entry!.id, fd)
+          : await createLunchEntry(fd);
+        if (result?.error) toast.error(result.error);
+        else {
+          toast.success(isEdit ? 'Entry updated' : intent === 'submit' ? 'Submitted for approval' : 'Draft saved');
+          router.refresh();
+          onOpenChange(false);
+          reset();
+          setParticipantIds([]);
+        }
+      });
+    })();
+  };
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
 
@@ -297,7 +368,22 @@ export function LunchEntryDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="amount">Amount ({currency.symbol})</Label>
-              <Input id="amount" type="number" step="0.01" {...register('amount')} />
+              <Input
+                id="amount"
+                type="number"
+                min="0"
+                step="0.01"
+                {...register('amount', {
+                  onChange: (event) => {
+                    const value = sanitizeNonNegativeAmount(event.target.value);
+                    if (value !== event.target.value) {
+                      setValue('amount', value === '' ? 0 : Number(value), {
+                        shouldValidate: true,
+                      });
+                    }
+                  },
+                })}
+              />
               {errors.amount && <p className="text-sm text-destructive">{errors.amount.message}</p>}
             </div>
             <div className="space-y-2">
@@ -390,12 +476,7 @@ export function LunchEntryDialog({
                           min="0"
                           step="0.01"
                           value={participantShares[m.user_id] ?? ''}
-                          onChange={(event) =>
-                            setParticipantShares((shares) => ({
-                              ...shares,
-                              [m.user_id]: event.target.value,
-                            }))
-                          }
+                          onChange={(event) => updateParticipantShare(m.user_id, event.target.value)}
                           placeholder="Amount"
                           className="h-8 w-24"
                           onClick={(event) => event.preventDefault()}
@@ -413,6 +494,14 @@ export function LunchEntryDialog({
                   <p className="text-xs text-muted-foreground">
                     Custom shares total {customTotal.toFixed(2)} of {amount.toFixed(2)} {currency.symbol}.
                   </p>
+                )}
+                {customSplitExceedsAmount && (
+                  <p className="text-sm text-destructive">
+                    Custom split amounts cannot exceed the expense amount.
+                  </p>
+                )}
+                {errors.participantIds && (
+                  <p className="text-sm text-destructive">{errors.participantIds.message}</p>
                 )}
               </div>
             </div>

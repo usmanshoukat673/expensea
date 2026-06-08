@@ -46,6 +46,12 @@ export function EntriesPageContent({
     }
   }, [searchParams, canCreateEntry, setOpen, router]);
 
+  useEffect(() => {
+    const openAddModal = () => setEditEntry(null);
+    window.addEventListener('open-lunch-modal', openAddModal);
+    return () => window.removeEventListener('open-lunch-modal', openAddModal);
+  }, []);
+
   const openAdd = () => {
     setEditEntry(null);
     setOpen(true);
