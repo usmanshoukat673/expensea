@@ -10,6 +10,21 @@ function matches(pathname: string, routes: string[]) {
   return routes.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 }
 
+function isInviteFlowRequest(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+  if (pathname.startsWith('/invite')) return true;
+  if ((pathname === '/signup' || pathname.startsWith('/signup/')) && searchParams.has('invite')) {
+    return true;
+  }
+  if (
+    (pathname === '/join' || pathname.startsWith('/join/') || pathname === '/join-team') &&
+    (searchParams.has('invite') || searchParams.has('token'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function redirectWithSession(url: URL, supabaseResponse: NextResponse) {
   const redirect = NextResponse.redirect(url);
   supabaseResponse.cookies.getAll().forEach((cookie) => {
@@ -22,16 +37,13 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const { user, supabase, supabaseResponse } = await updateSession(request);
   const hadSessionCookie = request.cookies.getAll().some((cookie) => SESSION_COOKIE_RE.test(cookie.name));
+  const inviteFlowActive = isInviteFlowRequest(request);
 
   if (pathname.startsWith('/auth/callback')) {
     return supabaseResponse;
   }
 
-  if (
-    pathname.startsWith('/share') ||
-    pathname.startsWith('/public') ||
-    pathname.startsWith('/invite')
-  ) {
+  if (pathname.startsWith('/share') || pathname.startsWith('/public') || inviteFlowActive) {
     return supabaseResponse;
   }
 
@@ -42,7 +54,9 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirect', pathname);
-    if (hadSessionCookie) url.searchParams.set('authStatus', 'session_expired');
+    if (hadSessionCookie && !matches(pathname, AUTH_ROUTES)) {
+      url.searchParams.set('authStatus', 'session_expired');
+    }
     return redirectWithSession(url, supabaseResponse);
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -14,15 +14,32 @@ import { RequiredLabel } from '@/components/ui/required-label';
 import { Spinner } from '@/components/ui/spinner';
 import { PasswordInput } from '@/components/auth/password-input';
 
+const STORED_INVITE_TOKEN_KEY = 'expensea.inviteToken';
+
 export function SignupForm({ inviteToken }: { inviteToken?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [activeInviteToken, setActiveInviteToken] = useState(inviteToken?.trim() ?? '');
   const {
     register,
     handleSubmit,
     formState: { errors, isValid },
   } = useForm<SignupInput>({ resolver: zodResolver(signupSchema), mode: 'onChange' });
+
+  useEffect(() => {
+    const normalizedInviteToken = inviteToken?.trim();
+    if (normalizedInviteToken) {
+      window.sessionStorage.setItem(STORED_INVITE_TOKEN_KEY, normalizedInviteToken);
+      setActiveInviteToken(normalizedInviteToken);
+      return;
+    }
+
+    const storedInviteToken = window.sessionStorage.getItem(STORED_INVITE_TOKEN_KEY)?.trim();
+    if (storedInviteToken) {
+      setActiveInviteToken(storedInviteToken);
+    }
+  }, [inviteToken]);
 
   const onSubmit = handleSubmit((data) => {
     setServerError(null);
@@ -31,7 +48,7 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
     fd.set('email', data.email);
     fd.set('password', data.password);
     fd.set('confirmPassword', data.confirmPassword);
-    if (inviteToken) fd.set('inviteToken', inviteToken);
+    if (activeInviteToken) fd.set('inviteToken', activeInviteToken);
     startTransition(async () => {
       try {
         const result = await signUp(fd);
@@ -41,6 +58,7 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
           return;
         }
         if (result?.success) {
+          window.sessionStorage.removeItem(STORED_INVITE_TOKEN_KEY);
           toast.success(result.message ?? 'Account created');
           router.refresh();
           router.push(result.redirectTo ?? '/onboarding');
