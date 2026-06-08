@@ -91,20 +91,44 @@ async function syncParticipants(
   amount: number,
   splitType: 'equal' | 'selected' | 'none',
   participantShares: Record<string, number> = {},
-) {
-  await supabase.from('lunch_entry_participants').delete().eq('entry_id', entryId);
-  if (!participantIds.length || splitType === 'none') return;
+): Promise<string | null> {
+  const { error: deleteError } = await supabase
+    .from('lunch_entry_participants')
+    .delete()
+    .eq('entry_id', entryId);
+
+  if (deleteError) {
+    console.error('Failed to clear shared expense participants', {
+      entryId,
+      error: deleteError.message,
+    });
+    return deleteError.message;
+  }
+
+  if (!participantIds.length || splitType === 'none') return null;
 
   const share =
     splitType === 'equal' ? amount / participantIds.length : null;
 
-  await supabase.from('lunch_entry_participants').insert(
+  const { error: insertError } = await supabase.from('lunch_entry_participants').insert(
     participantIds.map((userId) => ({
       entry_id: entryId,
       user_id: userId,
       share_amount: splitType === 'selected' ? participantShares[userId] ?? null : share,
     })),
   );
+
+  if (insertError) {
+    console.error('Failed to save shared expense participants', {
+      entryId,
+      splitType,
+      participantIds,
+      error: insertError.message,
+    });
+    return insertError.message;
+  }
+
+  return null;
 }
 
 function validateSplitRules(params: {
@@ -249,7 +273,30 @@ export async function createLunchEntry(formData: FormData): Promise<ActionResult
   if (error || !row) return { error: error?.message ?? 'Failed to create entry' };
 
   if (isShared && participants.length) {
-    await syncParticipants(supabase, row.id, participants, parsed.data.amount, splitType, participantShares);
+    const participantError = await syncParticipants(
+      supabase,
+      row.id,
+      participants,
+      parsed.data.amount,
+      splitType,
+      participantShares,
+    );
+    if (participantError) {
+      const { error: rollbackError } = await supabase
+        .from('lunch_entries')
+        .delete()
+        .eq('id', row.id)
+        .eq('team_id', session.teamId);
+
+      if (rollbackError) {
+        console.error('Failed to roll back shared expense after participant save failure', {
+          entryId: row.id,
+          error: rollbackError.message,
+        });
+      }
+
+      return { error: `Failed to save shared expense participants: ${participantError}` };
+    }
   }
 
   const categoryName = await getCategoryName(supabase, session.teamId, parsed.data.categoryId);
@@ -466,9 +513,29 @@ export async function updateLunchEntry(id: string, formData: FormData): Promise<
   if (error) return { error: error.message };
 
   if (isShared) {
-    await syncParticipants(supabase, id, participants, parsed.data.amount, splitType, participantShares);
+    const participantError = await syncParticipants(
+      supabase,
+      id,
+      participants,
+      parsed.data.amount,
+      splitType,
+      participantShares,
+    );
+    if (participantError) {
+      return { error: `Failed to save shared expense participants: ${participantError}` };
+    }
   } else {
-    await supabase.from('lunch_entry_participants').delete().eq('entry_id', id);
+    const { error: participantDeleteError } = await supabase
+      .from('lunch_entry_participants')
+      .delete()
+      .eq('entry_id', id);
+    if (participantDeleteError) {
+      console.error('Failed to clear participants for non-shared expense', {
+        entryId: id,
+        error: participantDeleteError.message,
+      });
+      return { error: participantDeleteError.message };
+    }
   }
 
   const categoryName = await getCategoryName(supabase, session.teamId, parsed.data.categoryId);
