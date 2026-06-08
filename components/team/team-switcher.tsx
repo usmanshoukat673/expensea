@@ -97,7 +97,7 @@ export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false
             ? 'size-11 justify-center rounded-lg px-0 hover:bg-sidebar-accent'
             : variant === 'sidebar'
               ? 'w-full h-auto justify-between px-0 py-0 hover:bg-transparent text-left'
-              : 'h-9 max-w-[200px] justify-between px-2 hover:bg-sidebar-accent',
+              : 'group h-9 max-w-[200px] justify-between px-2 text-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/20 dark:hover:text-accent-foreground',
           className
         )}
       >
@@ -113,7 +113,7 @@ export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false
                   'truncate font-semibold',
                   variant === 'sidebar'
                     ? 'text-sm text-sidebar-foreground'
-                    : 'text-sm text-sidebar-foreground'
+                    : 'text-sm text-foreground group-hover:text-accent-foreground'
                 )}
               >
                 {triggerLabel}

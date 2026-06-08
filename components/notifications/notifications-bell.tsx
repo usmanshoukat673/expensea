@@ -28,10 +28,12 @@ export function NotificationsBell({
   initialNotifications,
   teamId,
   userId,
+  className,
 }: {
   initialNotifications: Notification[];
   teamId: string;
   userId: string;
+  className?: string;
 }) {
   const [items, setItems] = useState(initialNotifications);
   const [loading, setLoading] = useState(false);
@@ -123,7 +125,7 @@ export function NotificationsBell({
         <Button
           variant="ghost"
           size="icon"
-          className="relative size-9 hover:translate-y-0 active:scale-100"
+          className={cn('relative size-9 hover:translate-y-0 active:scale-100', className)}
         >
           <Bell className="size-5" />
           {unread > 0 && (

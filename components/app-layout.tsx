@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react"
 import { Sidebar } from "./sidebar"
-import { Navbar } from "./navbar"
+import { DesktopHeader, Navbar } from "./navbar"
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav"
 import { FloatingActionButton } from "@/components/layout/floating-action-button"
 import { PageTransition } from "@/components/layout/page-transition"
@@ -11,6 +11,8 @@ import { useTeam } from "@/hooks/use-team"
 import type { Notification, TeamRole } from "@/lib/database.types"
 
 const SIDEBAR_COLLAPSED_KEY = "expensea:sidebar-collapsed"
+const HEADER_ICON_BUTTON_CLASS =
+  "text-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/20 dark:hover:text-accent-foreground"
 
 export type AppLayoutUser = {
   name: string
@@ -75,21 +77,26 @@ export function AppLayout({
       />
       <Sidebar
         role={effectiveRole}
-        teamSlug={teamSlug}
-        teamId={teamId}
         collapsed={sidebarCollapsed}
         onToggleCollapsed={toggleSidebar}
       />
-      <main
-        className={`relative mt-16 min-w-0 flex-1 overflow-x-hidden p-4 pb-24 transition-[margin,opacity] duration-200 md:mt-0 md:py-6 md:pl-6 md:pr-20 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"} ${switching ? "opacity-60 pointer-events-none" : ""}`}
-      >
-        <div className="fixed right-5 top-4 z-30 hidden md:block">
+      <DesktopHeader
+        user={user}
+        teamSlug={teamSlug}
+        teamId={teamId}
+        notificationBell={
           <NotificationsBell
             initialNotifications={initialNotifications}
             teamId={teamId}
             userId={userId}
+            className={HEADER_ICON_BUTTON_CLASS}
           />
-        </div>
+        }
+        className={sidebarCollapsed ? "md:left-20" : "md:left-64"}
+      />
+      <main
+        className={`relative mt-16 min-w-0 flex-1 overflow-x-hidden p-4 pb-24 transition-[margin,opacity] duration-200 md:mt-0 md:pb-8 md:pl-6 md:pr-6 md:pt-24 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"} ${switching ? "opacity-60 pointer-events-none" : ""}`}
+      >
         <PageTransition>{children}</PageTransition>
       </main>
       <MobileBottomNav role={effectiveRole} />
