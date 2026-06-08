@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BudgetDialog } from '@/components/budgets/budget-dialog';
 import { BudgetProgress } from '@/components/budgets/budget-progress';
 import { EmptyState } from '@/components/ui/empty-states';
@@ -43,6 +44,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { getCategoryIcon } from '@/lib/categories/icons';
 import type { DateRangeValue } from '@/lib/date-ranges';
 import { DateRangeFilter } from '@/components/filters/date-range-filter';
+import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
 
 export function BudgetsContent({
   budgets,
@@ -62,6 +64,8 @@ export function BudgetsContent({
   const { format: fmt } = useCurrency();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'monthly' | 'category'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'safe' | 'near' | 'over'>('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const debounced = useDebouncedValue(search, 300);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<TeamBudget | null>(null);
@@ -77,6 +81,8 @@ export function BudgetsContent({
     return budgets.filter((b) => {
       if (typeFilter !== 'all' && b.type !== typeFilter) return false;
       const usage = usageMap.get(b.id);
+      if (statusFilter !== 'all' && usage?.status !== statusFilter) return false;
+      if (categoryFilter !== 'all' && b.category_id !== categoryFilter) return false;
       const name =
         b.type === 'category'
           ? usage?.categoryName ?? ''
@@ -87,7 +93,18 @@ export function BudgetsContent({
         budgetTypeLabel(b.type).toLowerCase().includes(q)
       );
     });
-  }, [budgets, debounced, typeFilter, usageMap]);
+  }, [budgets, debounced, typeFilter, statusFilter, categoryFilter, usageMap]);
+
+  const activeFilterCount =
+    (typeFilter !== 'all' ? 1 : 0) +
+    (statusFilter !== 'all' ? 1 : 0) +
+    (categoryFilter !== 'all' ? 1 : 0);
+
+  const resetFilters = () => {
+    setTypeFilter('all');
+    setStatusFilter('all');
+    setCategoryFilter('all');
+  };
 
   const monthLabel = format(new Date(monthStart), 'MMMM yyyy');
 
@@ -121,18 +138,47 @@ export function BudgetsContent({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {(['all', 'monthly', 'category'] as const).map((t) => (
-            <Button
-              key={t}
-              variant={typeFilter === t ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setTypeFilter(t)}
-            >
-              {t === 'all' ? 'All' : t === 'monthly' ? 'Monthly' : 'Category'}
-            </Button>
-          ))}
-        </div>
+        <FilterSheet
+          activeCount={activeFilterCount}
+          title="Budget filters"
+          description="Filter budgets by type, category, and spending status."
+          onReset={resetFilters}
+        >
+          <FilterField label="Budget type">
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as typeof typeFilter)}>
+              <SelectTrigger><SelectValue placeholder="Budget type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All types</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Budget status">
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="safe">Safe</SelectItem>
+                <SelectItem value="near">Near limit</SelectItem>
+                <SelectItem value="over">Over budget</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Category">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterSheet>
       </div>
 
       {filtered.length === 0 ? (

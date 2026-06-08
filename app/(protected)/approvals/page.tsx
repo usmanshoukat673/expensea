@@ -53,6 +53,8 @@ export default async function ApprovalsPage({
       categories={categories}
       submitters={submitters}
       dateRange={range}
+      categoryFilter={params?.category ?? 'all'}
+      submitterFilter={canReview ? params?.submitter ?? 'all' : session.user.id}
       canReview={canReview}
     />
   );

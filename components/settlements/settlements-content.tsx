@@ -26,6 +26,8 @@ import { SettlementDialog } from '@/components/settlements/settlement-dialog';
 import { EmptyState } from '@/components/ui/empty-states';
 import type { DateRangeValue } from '@/lib/date-ranges';
 import { DateRangeFilter } from '@/components/filters/date-range-filter';
+import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type MemberName = { userId: string; name: string };
 
@@ -55,6 +57,8 @@ export function SettlementsContent({
   const { format } = useCurrency();
   const [search, setSearch] = useState('');
   const debounced = useDebouncedValue(search, 300);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [memberFilter, setMemberFilter] = useState('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [items, setItems] = useState(settlements);
   const [pending, startTransition] = useTransition();
@@ -70,8 +74,10 @@ export function SettlementsContent({
 
   const filterList = (list: SettlementWithProfiles[]) => {
     const q = debounced.toLowerCase();
-    if (!q) return list;
     return list.filter((s) => {
+      if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+      if (memberFilter !== 'all' && s.payer_user_id !== memberFilter && s.receiver_user_id !== memberFilter) return false;
+      if (!q) return true;
       const payer = s.payer?.full_name ?? '';
       const receiver = s.receiver?.full_name ?? '';
       return (
@@ -80,6 +86,15 @@ export function SettlementsContent({
         (s.note?.toLowerCase().includes(q) ?? false)
       );
     });
+  };
+
+  const activeFilterCount =
+    (statusFilter !== 'all' ? 1 : 0) +
+    (memberFilter !== 'all' ? 1 : 0);
+
+  const resetFilters = () => {
+    setStatusFilter('all');
+    setMemberFilter('all');
   };
 
   const pendingList = filterList(items.filter((s) => s.status === 'pending'));
@@ -199,14 +214,47 @@ export function SettlementsContent({
         </Card>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Search settlements..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex max-w-2xl flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search settlements..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <FilterSheet
+          activeCount={activeFilterCount}
+          title="Settlement filters"
+          description="Filter settlements by status and participating member."
+          onReset={resetFilters}
+        >
+          <FilterField label="Status">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </FilterField>
+          <FilterField label="Member">
+            <Select value={memberFilter} onValueChange={setMemberFilter}>
+              <SelectTrigger><SelectValue placeholder="Member" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All members</SelectItem>
+                {members.map((member) => (
+                  <SelectItem key={member.userId} value={member.userId}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterSheet>
       </div>
 
       <Tabs defaultValue="pending">

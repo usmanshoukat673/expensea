@@ -53,6 +53,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { LoadingOverlay } from "@/components/loaders/loading-overlay"
+import { FilterField, FilterSheet } from "@/components/filters/filter-sheet"
 import {
   Empty,
   EmptyDescription,
@@ -63,6 +64,7 @@ import {
 
 export function EntriesTable({
   entries: initialEntries,
+  members = [],
   categories = [],
   canManageEntries,
   currentUserId,
@@ -71,6 +73,7 @@ export function EntriesTable({
   onEditEntry,
 }: {
   entries: LunchEntryWithProfile[]
+  members?: { user_id: string; name: string }[]
   categories?: ExpenseCategory[]
   canManageEntries: boolean
   currentUserId: string
@@ -84,7 +87,11 @@ export function EntriesTable({
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebouncedValue(search, 300)
   const [statusFilter, setStatusFilter] = useState("all")
+  const [approvalFilter, setApprovalFilter] = useState("all")
   const [assignmentFilter, setAssignmentFilter] = useState("all")
+  const [memberFilter, setMemberFilter] = useState("all")
+  const [minAmount, setMinAmount] = useState("")
+  const [maxAmount, setMaxAmount] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string[]>([])
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [pending, startTransition] = useTransition()
@@ -98,9 +105,18 @@ export function EntriesTable({
     return entries.filter((e) => {
       const matchStatus =
         statusFilter === "all" || e.payment_status === statusFilter
+      const matchApproval =
+        approvalFilter === "all" || e.approval_status === approvalFilter
       const matchCategory =
         !categoryFilter.length ||
         (e.category_id && categoryFilter.includes(e.category_id))
+      const matchMember =
+        memberFilter === "all" || e.created_by === memberFilter
+      const amount = Number(e.amount)
+      const min = minAmount ? Number(minAmount) : null
+      const max = maxAmount ? Number(maxAmount) : null
+      const matchAmount =
+        (min === null || amount >= min) && (max === null || amount <= max)
       const matchAssignment =
         assignmentFilter === "all" ||
         e.assignment_type === assignmentFilter ||
@@ -112,9 +128,27 @@ export function EntriesTable({
         (e.profiles?.full_name?.toLowerCase().includes(q) ?? false) ||
         (e.assigned_profile?.full_name?.toLowerCase().includes(q) ?? false) ||
         (e.expense_categories?.name?.toLowerCase().includes(q) ?? false)
-      return matchStatus && matchSearch && matchCategory && matchAssignment
+      return matchStatus && matchApproval && matchSearch && matchCategory && matchMember && matchAmount && matchAssignment
     })
-  }, [entries, debouncedSearch, statusFilter, categoryFilter, assignmentFilter])
+  }, [entries, debouncedSearch, statusFilter, approvalFilter, categoryFilter, memberFilter, minAmount, maxAmount, assignmentFilter])
+
+  const activeFilterCount =
+    (statusFilter !== "all" ? 1 : 0) +
+    (approvalFilter !== "all" ? 1 : 0) +
+    (assignmentFilter !== "all" ? 1 : 0) +
+    (memberFilter !== "all" ? 1 : 0) +
+    (categoryFilter.length ? 1 : 0) +
+    (minAmount || maxAmount ? 1 : 0)
+
+  const resetFilters = () => {
+    setStatusFilter("all")
+    setApprovalFilter("all")
+    setAssignmentFilter("all")
+    setMemberFilter("all")
+    setCategoryFilter([])
+    setMinAmount("")
+    setMaxAmount("")
+  }
 
   const columns = useMemo<ColumnDef<LunchEntryWithProfile>[]>(
     () => [
@@ -354,46 +388,91 @@ export function EntriesTable({
             onChange={(e) => setSearch(e.target.value)}
             className="bg-background"
           />
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[140px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="unpaid">Unpaid</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue placeholder="Assignment" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All assignments</SelectItem>
-              <SelectItem value="team">Team expenses</SelectItem>
-              <SelectItem value="individual">Individual</SelectItem>
-            </SelectContent>
-          </Select>
-          {categories.length > 0 && (
-            <Select
-              value={categoryFilter[0] ?? "all"}
-              onValueChange={(v) =>
-                setCategoryFilter(v === "all" ? [] : [v])
-              }
-            >
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All categories</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <FilterSheet
+            activeCount={activeFilterCount}
+            title="Expense filters"
+            description="Narrow expenses by member, category, amount, split type, and status."
+            onReset={resetFilters}
+          >
+            <FilterField label="Payment status">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All statuses</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+            <FilterField label="Approval status">
+              <Select value={approvalFilter} onValueChange={setApprovalFilter}>
+                <SelectTrigger><SelectValue placeholder="Approval" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All approvals</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="pending_approval">Pending</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="reimbursed">Reimbursed</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+            <FilterField label="Member">
+              <Select value={memberFilter} onValueChange={setMemberFilter}>
+                <SelectTrigger><SelectValue placeholder="Member" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All members</SelectItem>
+                  {members.map((member) => (
+                    <SelectItem key={member.user_id} value={member.user_id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FilterField>
+            <FilterField label="Split type">
+              <Select value={assignmentFilter} onValueChange={setAssignmentFilter}>
+                <SelectTrigger><SelectValue placeholder="Split type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All split types</SelectItem>
+                  <SelectItem value="team">Team expenses</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                </SelectContent>
+              </Select>
+            </FilterField>
+            {categories.length > 0 && (
+              <FilterField label="Category">
+                <Select
+                  value={categoryFilter[0] ?? "all"}
+                  onValueChange={(v) => setCategoryFilter(v === "all" ? [] : [v])}
+                >
+                  <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+            )}
+            <FilterField label="Amount range">
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  inputMode="decimal"
+                  placeholder="Min"
+                  value={minAmount}
+                  onChange={(e) => setMinAmount(e.target.value)}
+                />
+                <Input
+                  inputMode="decimal"
+                  placeholder="Max"
+                  value={maxAmount}
+                  onChange={(e) => setMaxAmount(e.target.value)}
+                />
+              </div>
+            </FilterField>
+          </FilterSheet>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canManageEntries && selectedIds.length > 0 && (
@@ -462,7 +541,7 @@ export function EntriesTable({
                       </EmptyMedia>
                       <EmptyTitle>No entries found</EmptyTitle>
                       <EmptyDescription>
-                        {search || statusFilter !== "all"
+                        {search || activeFilterCount > 0
                           ? "Try adjusting your search or filters."
                           : "Record your first team expense to get started."}
                       </EmptyDescription>
@@ -470,7 +549,7 @@ export function EntriesTable({
                     {canManageEntries &&
                       onAddEntry &&
                       !search &&
-                      statusFilter === "all" && (
+                      activeFilterCount === 0 && (
                         <Button size="sm" className="mt-2" onClick={onAddEntry}>
                           Add entry
                         </Button>

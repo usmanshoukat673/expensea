@@ -15,6 +15,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-states';
 import { cn } from '@/lib/utils';
+import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statuses = [
   { value: 'all', label: 'All' },
@@ -55,6 +57,7 @@ export function NotificationsContent({
   const [items, setItems] = useState(initialNotifications);
   const [selected, setSelected] = useState<string[]>([]);
   const [query, setQuery] = useState(search);
+  const [statusDraft, setStatusDraft] = useState(status);
   const [isPending, startTransition] = useTransition();
   const pages = Math.max(1, Math.ceil(total / limit));
   const selectedCount = selected.length;
@@ -63,7 +66,8 @@ export function NotificationsContent({
   useEffect(() => {
     setItems(initialNotifications);
     setSelected([]);
-  }, [initialNotifications]);
+    setStatusDraft(status);
+  }, [initialNotifications, status]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -142,13 +146,30 @@ export function NotificationsContent({
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {statuses.map((s) => (
-            <Button key={s.value} variant={status === s.value ? 'default' : 'outline'} size="sm" asChild>
-              <Link href={hrefFor(s.value, search)}>{s.label}</Link>
-            </Button>
-          ))}
-        </div>
+        <FilterSheet
+          activeCount={status !== 'all' ? 1 : 0}
+          title="Notification filters"
+          description="Filter inbox items by read and archive status."
+          align="start"
+          onReset={() => {
+            setStatusDraft('all');
+            router.push(hrefFor('all', search));
+          }}
+          onApply={() => router.push(hrefFor(statusDraft, query))}
+        >
+          <FilterField label="Status">
+            <Select value={statusDraft} onValueChange={setStatusDraft}>
+              <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                {statuses.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FilterField>
+        </FilterSheet>
         <div className="flex gap-2">
           <Input
             value={query}

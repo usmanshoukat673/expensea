@@ -86,6 +86,7 @@ export function EntriesPageContent({
 
       <EntriesTable
         entries={entries}
+        members={members}
         categories={categories}
         canManageEntries={canManageEntries}
         currentUserId={currentUserId}
