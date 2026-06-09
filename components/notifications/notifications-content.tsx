@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
-import { Archive, Bell, CheckCheck, ExternalLink, Search, Trash2 } from 'lucide-react';
+import { Archive, Bell, CheckCheck, ExternalLink, Trash2 } from 'lucide-react';
 import type { Notification } from '@/lib/database.types';
 import { bulkUpdateNotifications, deleteNotification, markAllNotificationsRead, markNotificationRead } from '@/lib/actions/notifications';
 import { createClient } from '@/lib/supabase/client';
@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { EmptyState } from '@/components/ui/empty-states';
 import { cn } from '@/lib/utils';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
@@ -33,6 +33,23 @@ function hrefFor(status: string, search: string, page = 1) {
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `/notifications?${qs}` : '/notifications';
+}
+
+function notificationTypeStatus(type: string) {
+  const normalized = type.toLowerCase();
+  if (normalized.includes('warning') || normalized.includes('reminder') || normalized.includes('submitted') || normalized.includes('assigned')) return 'pending';
+  if (normalized.includes('rejected')) return 'rejected';
+  if (normalized.includes('approved') || normalized.includes('completed') || normalized.includes('new')) return 'success';
+  if (normalized.includes('invite') || normalized.includes('team')) return 'team';
+  if (normalized.includes('settlement')) return 'not_reimbursed';
+  if (normalized.includes('expense')) return 'expense';
+  return normalized;
+}
+
+function notificationTypeLabel(type: string) {
+  return type
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export function NotificationsContent({
@@ -127,7 +144,7 @@ export function NotificationsContent({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Notifications</h1>
@@ -146,7 +163,21 @@ export function NotificationsContent({
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex max-w-2xl flex-col gap-3 sm:flex-row">
+        <form
+          className="min-w-0 flex-1"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitSearch();
+          }}
+        >
+          <SearchInput
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search notifications..."
+            aria-label="Search notifications"
+          />
+        </form>
         <FilterSheet
           activeCount={status !== 'all' ? 1 : 0}
           title="Notification filters"
@@ -171,20 +202,6 @@ export function NotificationsContent({
             </Select>
           </FilterField>
         </FilterSheet>
-        <div className="flex gap-2">
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') submitSearch();
-            }}
-            placeholder="Search notifications"
-            className="w-full sm:w-72"
-          />
-          <Button variant="outline" size="icon" onClick={submitSearch} aria-label="Search notifications">
-            <Search className="size-4" />
-          </Button>
-        </div>
       </div>
 
       {selectedCount > 0 && (
@@ -205,7 +222,7 @@ export function NotificationsContent({
         </div>
       )}
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Bell className="size-5" />
@@ -220,13 +237,20 @@ export function NotificationsContent({
             <Badge variant="outline">{total} total</Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {visibleItems.length === 0 ? (
             <EmptyState icon={Bell} title="No notifications" description="New alerts will appear here as work happens." />
           ) : (
             <div className="divide-y divide-border">
               {visibleItems.map((item) => (
-                <div key={item.id} className={cn('flex gap-3 py-4', !item.is_read && 'bg-muted/20 px-2')}>
+                <div
+                  key={item.id}
+                  data-state={selected.includes(item.id) ? 'selected' : undefined}
+                  className={cn(
+                    'flex gap-3 px-4 py-4 transition-colors hover:bg-accent/10 data-[state=selected]:bg-accent/10 dark:hover:bg-muted/50 dark:data-[state=selected]:bg-muted/70 sm:px-6',
+                    !item.is_read && 'bg-muted/30',
+                  )}
+                >
                   <Checkbox
                     checked={selected.includes(item.id)}
                     onCheckedChange={(checked) =>
@@ -238,17 +262,21 @@ export function NotificationsContent({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-medium leading-tight">{item.title}</h2>
-                      {!item.is_read && <StatusBadge status="unread" />}
-                      <Badge variant="secondary" className="capitalize">{item.type.replace(/_/g, ' ')}</Badge>
+                      <StatusBadge status={item.is_read ? 'read' : 'unread'} />
+                      {item.archived_at && <StatusBadge status="archived" />}
+                      <StatusBadge
+                        status={notificationTypeStatus(item.type)}
+                        label={notificationTypeLabel(item.type)}
+                      />
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">{item.message ?? item.body}</p>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                     </p>
                   </div>
-                  <div className="flex shrink-0 flex-col gap-2">
+                  <div className="flex shrink-0 flex-col gap-1">
                     {item.link && (
-                      <Button variant="outline" size="icon" asChild aria-label="Open notification">
+                      <Button variant="ghost" size="icon-sm" asChild aria-label="Open notification">
                         <Link href={item.link}>
                           <ExternalLink className="size-4" />
                         </Link>
@@ -256,8 +284,8 @@ export function NotificationsContent({
                     )}
                     {!item.is_read && (
                       <Button
-                        variant="outline"
-                        size="icon"
+                        variant="ghost"
+                        size="icon-sm"
                         onClick={() => startTransition(async () => {
                           await markNotificationRead(item.id);
                           setItems((prev) => prev.map((row) => (row.id === item.id ? { ...row, is_read: true, read: true, read_at: new Date().toISOString() } : row)));
@@ -269,7 +297,8 @@ export function NotificationsContent({
                     )}
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="icon-sm"
+                      className="text-destructive hover:text-destructive"
                       onClick={() => startTransition(async () => {
                         await deleteNotification(item.id);
                         setItems((prev) => prev.filter((row) => row.id !== item.id));

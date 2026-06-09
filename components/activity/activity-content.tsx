@@ -9,7 +9,6 @@ import {
   BookOpen,
   CircleDollarSign,
   ClipboardCheck,
-  Search,
   CalendarClock,
   PiggyBank,
   Scale,
@@ -22,7 +21,8 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-states';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -70,6 +70,17 @@ function activityHref(type: string, search: string, page = 1) {
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `/activity?${qs}` : '/activity';
+}
+
+function actionStatus(actionType: string) {
+  const action = actionType.toLowerCase();
+  if (action.includes('rejected')) return 'rejected';
+  if (action.includes('cancelled')) return 'cancelled';
+  if (action.includes('canceled')) return 'canceled';
+  if (action.includes('deleted')) return 'deleted';
+  if (action.includes('updated')) return 'updated';
+  if (action.includes('created') || action.includes('joined') || action.includes('accepted') || action.includes('approved') || action.includes('completed')) return 'success';
+  return action.split('_').at(-1) ?? action;
 }
 
 export function ActivityContent({
@@ -151,7 +162,7 @@ export function ActivityContent({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Activity</h1>
@@ -162,7 +173,21 @@ export function ActivityContent({
         <Badge variant="outline">{total} events</Badge>
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex max-w-2xl flex-col gap-3 sm:flex-row">
+        <form
+          className="min-w-0 flex-1"
+          onSubmit={(event) => {
+            event.preventDefault();
+            router.push(activityHref(activeType, query));
+          }}
+        >
+          <SearchInput
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search activity..."
+            aria-label="Search activity"
+          />
+        </form>
         <FilterSheet
           activeCount={activeType !== 'all' ? 1 : 0}
           title="Activity filters"
@@ -187,35 +212,16 @@ export function ActivityContent({
             </Select>
           </FilterField>
         </FilterSheet>
-        <div className="flex gap-2">
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') router.push(activityHref(activeType, query));
-            }}
-            placeholder="Search activity"
-            className="w-full sm:w-72"
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Search activity"
-            onClick={() => router.push(activityHref(activeType, query))}
-          >
-            <Search className="size-4" />
-          </Button>
-        </div>
       </div>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <BookOpen className="size-5" />
             Timeline
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {filteredActivity.length === 0 ? (
             <EmptyState
               icon={Bell}
@@ -223,13 +229,16 @@ export function ActivityContent({
               description="Important team actions will appear here as they happen."
             />
           ) : (
-            <div className="space-y-1">
+            <div className="divide-y divide-border">
               {filteredActivity.map((item, index) => {
                 const Icon = iconMap[item.entity_type as keyof typeof iconMap] ?? Bell;
                 return (
-                  <div key={item.id} className="relative flex gap-3 pb-5 last:pb-0">
+                  <div
+                    key={item.id}
+                    className="relative flex gap-3 px-4 py-4 transition-colors hover:bg-accent/10 dark:hover:bg-muted/50 sm:px-6"
+                  >
                     {index !== filteredActivity.length - 1 && (
-                      <span className="absolute left-[18px] top-10 h-[calc(100%-2.5rem)] w-px bg-border" />
+                      <span className="absolute left-[34px] top-12 h-[calc(100%-2.25rem)] w-px bg-border sm:left-[42px]" />
                     )}
                     <span
                       className={cn(
@@ -239,10 +248,11 @@ export function ActivityContent({
                     >
                       <Icon className="size-4" />
                     </span>
-                    <div className="min-w-0 flex-1 border-b border-border pb-4 last:border-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium leading-tight">{item.description ?? item.message}</p>
-                        <Badge variant="secondary" className="capitalize">
+                        <StatusBadge status={actionStatus(item.action_type)} />
+                        <Badge variant="outline" className="h-6 rounded-md capitalize">
                           {item.entity_type}
                         </Badge>
                       </div>
