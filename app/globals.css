@@ -143,11 +143,11 @@
   }
 
   .transition-smooth {
-    @apply transition-all duration-300 ease-in-out;
+    @apply transition-all duration-200 ease-out;
   }
 
   .hover-lift {
-    @apply hover:translate-y-[-2px] hover:shadow-lg transition-all duration-300;
+    @apply hover:translate-y-[-2px] hover:shadow-lg transition-all duration-200 ease-out dark:hover:shadow-md;
   }
 }
 
@@ -182,7 +182,7 @@
 
 @layer components {
   .input-focus {
-    @apply focus-visible:ring-2 focus-visible:ring-accent/30 transition-all;
+    @apply focus-visible:ring-2 focus-visible:ring-accent/30 transition-all duration-200 ease-out;
   }
 }
 

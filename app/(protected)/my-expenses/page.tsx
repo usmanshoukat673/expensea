@@ -48,7 +48,9 @@ export default async function MyExpensesPage({
         canManageEntries={canEdit(session.role)}
         currentUserId={session.user.id}
         defaultLunchDate={formatDateYMD(new Date())}
-        dateRange={{ ...range, label: `My expenses · ${range.label}` }}
+        dateRange={range}
+        title="My Expenses"
+        description="Manage your expense records"
       />
     </Suspense>
   )

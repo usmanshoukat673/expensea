@@ -33,7 +33,7 @@ export default async function SettingsTeamPage() {
                 'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
                 t.href === '/settings/team'
                   ? 'border-accent text-foreground'
-                  : 'border-transparent text-muted-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-transparent'
+                  : 'border-transparent text-muted-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-muted/50'
               )}
             >
               {t.label}

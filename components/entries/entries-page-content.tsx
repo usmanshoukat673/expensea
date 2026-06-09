@@ -20,6 +20,8 @@ export function EntriesPageContent({
   currentUserId,
   defaultLunchDate,
   dateRange,
+  title = 'Expenses',
+  description = 'Manage team expense records',
 }: {
   entries: LunchEntryWithProfile[];
   members: { user_id: string; name: string }[];
@@ -30,6 +32,8 @@ export function EntriesPageContent({
   currentUserId: string;
   defaultLunchDate: string;
   dateRange: DateRangeValue;
+  title?: string;
+  description?: string;
 }) {
   const { open, setOpen } = useLunchEntryModal();
   const [editEntry, setEditEntry] = useState<LunchEntryWithProfile | null>(null);
@@ -67,9 +71,9 @@ export function EntriesPageContent({
       <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 py-4 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Manage team expense records for {dateRange.label}.
+              {description} for {dateRange.label}.
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end">

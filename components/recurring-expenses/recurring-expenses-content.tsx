@@ -170,7 +170,7 @@ export function RecurringExpensesContent({
                 const cat = rule.expense_categories;
                 const Icon = cat ? getCategoryIcon(cat.icon) : CalendarClock;
                 return (
-                  <TableRow key={rule.id} className="hover:bg-accent/10 dark:hover:bg-muted/40">
+                  <TableRow key={rule.id} className="hover:bg-accent/10 dark:hover:bg-muted/50">
                     <TableCell className="font-medium">{rule.title}</TableCell>
                     <TableCell>
                       {cat ? (
