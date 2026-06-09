@@ -506,11 +506,11 @@ export function EntriesTable({
       <div className="relative max-h-[calc(100dvh-280px)] min-h-[220px] min-w-0 overflow-auto rounded-lg border border-border bg-card">
         <LoadingOverlay show={pending} />
         <Table>
-          <TableHeader className="sticky top-0 bg-card z-10 shadow-sm">
+          <TableHeader className="sticky top-0 z-10 shadow-sm">
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id} className="hover:bg-transparent">
                 {hg.headers.map((h) => (
-                  <TableHead key={h.id} className="bg-card">
+                  <TableHead key={h.id}>
                     {flexRender(h.column.columnDef.header, h.getContext())}
                   </TableHead>
                 ))}
