@@ -94,10 +94,10 @@ export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false
         className={cn(
           'font-normal transition-all duration-200',
           collapsed
-            ? 'size-11 justify-center rounded-lg px-0 hover:bg-sidebar-accent'
+            ? 'size-11 justify-center rounded-lg px-0 hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent'
             : variant === 'sidebar'
               ? 'w-full h-auto justify-between px-0 py-0 hover:bg-transparent text-left'
-              : 'group h-9 max-w-[200px] justify-between px-2 text-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/20 dark:hover:text-accent-foreground',
+              : 'group h-9 max-w-[200px] justify-between px-2 text-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-accent/20 dark:hover:text-accent-foreground',
           className
         )}
       >
@@ -113,7 +113,7 @@ export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false
                   'truncate font-semibold',
                   variant === 'sidebar'
                     ? 'text-sm text-sidebar-foreground'
-                    : 'text-sm text-foreground group-hover:text-accent-foreground'
+                    : 'text-sm text-foreground dark:group-hover:text-accent-foreground'
                 )}
               >
                 {triggerLabel}
@@ -212,7 +212,7 @@ export function TeamSwitcherCreateLink() {
   return (
     <Link
       href="/create-team"
-      className="flex items-center gap-2 px-4 py-1 text-xs text-muted-foreground hover:text-accent"
+      className="flex items-center gap-2 rounded-md px-4 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent/10 hover:text-accent"
     >
       <Plus className="size-3" />
       New team

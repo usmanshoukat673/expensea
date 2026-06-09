@@ -32,7 +32,7 @@ export function MobileBottomNav({ role }: { role: TeamRole | null }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-[10px] font-medium leading-none",
+                "flex min-w-[56px] flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-[10px] font-medium leading-none transition-colors hover:bg-accent/10 dark:hover:bg-sidebar-accent/50",
                 active ? "text-accent" : "text-muted-foreground",
               )}
             >

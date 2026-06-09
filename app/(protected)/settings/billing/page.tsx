@@ -28,10 +28,10 @@ export default async function BillingSettingsPage() {
               key={t.href}
               href={t.href}
               className={cn(
-                'pb-3 text-sm font-medium border-b-2 -mb-px',
+                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
                 t.href === '/settings/billing'
                   ? 'border-accent text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                  : 'border-transparent text-muted-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-transparent'
               )}
             >
               {t.label}

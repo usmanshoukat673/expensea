@@ -166,7 +166,7 @@ export function NotificationsBell({
                 key={n.id}
                 type="button"
                 className={cn(
-                  'w-full border-b border-border px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-muted/50',
+                  'w-full border-b border-border px-3 py-2.5 text-left transition-colors last:border-0 hover:bg-accent/10 dark:hover:bg-muted/50',
                   !n.is_read && 'bg-muted/30',
                 )}
                 onClick={() => !n.is_read && markRead(n.id)}

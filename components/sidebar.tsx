@@ -64,7 +64,7 @@ const navSections = [
 ]
 
 const collapsedSidebarItemClass =
-  "group relative flex h-11 w-full items-center justify-center rounded-lg px-0 text-sm font-medium leading-none text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-150 hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
+  "group relative flex h-11 w-full items-center justify-center rounded-lg px-0 text-sm font-medium leading-none text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-150 hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
 
 function CollapsedTooltip({
   collapsed,
@@ -132,8 +132,8 @@ export function Sidebar({
             aria-pressed={collapsed}
             className={cn(
               collapsed
-                ? "group relative flex size-10 items-center justify-center rounded-lg px-0 text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-150 hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
-                : "inline-flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                ? "group relative flex size-10 items-center justify-center rounded-lg px-0 text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-150 hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
+                : "inline-flex size-8 items-center justify-center rounded-lg text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/10 hover:text-sidebar-foreground dark:hover:bg-sidebar-accent dark:hover:text-sidebar-accent-foreground",
             )}
           >
             {collapsed ? (
@@ -180,7 +180,7 @@ export function Sidebar({
                         collapsed ? collapsedSidebarItemClass : "gap-3 px-4 py-2.5",
                         isActive
                           ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50",
                       )}
                     >
                       {collapsed && isActive && (
@@ -210,7 +210,7 @@ export function Sidebar({
                 collapsed ? collapsedSidebarItemClass : "gap-3 px-4 py-2.5",
                 pathname === "/team/invite"
                   ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50",
               )}
             >
               {collapsed && pathname === "/team/invite" && (

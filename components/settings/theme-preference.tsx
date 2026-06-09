@@ -32,7 +32,7 @@ export function ThemePreference() {
               onClick={() => setTheme(opt.value)}
               className={cn(
                 'flex flex-col items-center gap-2 rounded-lg border px-3 py-3 text-sm font-medium transition-colors',
-                'hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'hover:bg-accent/10 dark:hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 active
                   ? 'border-accent bg-accent/10 text-foreground'
                   : 'border-border bg-card text-muted-foreground'

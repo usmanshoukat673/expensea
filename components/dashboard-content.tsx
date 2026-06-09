@@ -903,7 +903,7 @@ function NotificationsWidget({ summary }: { summary: DashboardProps["notificatio
           </div>
         </div>
         {summary.latest.length === 0 ? <p className="text-sm text-muted-foreground">No notifications</p> : summary.latest.slice(0, 3).map((item) => (
-          <Link key={item.id} href={item.link ?? "/notifications"} className="block rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-muted/50">
+          <Link key={item.id} href={item.link ?? "/notifications"} className="block rounded-md border border-border px-3 py-2 text-sm transition-colors hover:bg-accent/10 dark:hover:bg-muted/50">
             <span className="block truncate font-medium">{item.title}</span>
             <span className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{item.message ?? item.body}</span>
           </Link>

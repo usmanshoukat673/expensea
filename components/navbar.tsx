@@ -38,7 +38,7 @@ import type { AppLayoutUser } from '@/components/app-layout';
 import type { TeamRole } from '@/lib/database.types';
 
 const headerIconButtonClass =
-  'text-foreground hover:bg-accent hover:text-accent-foreground hover:translate-y-0 active:scale-100 dark:hover:bg-accent/20 dark:hover:text-accent-foreground';
+  'text-foreground hover:bg-accent/10 hover:text-foreground hover:translate-y-0 active:scale-100 dark:hover:bg-accent/20 dark:hover:text-accent-foreground';
 
 const navItems = [
   { href: '/', icon: Home, label: 'Dashboard' },
@@ -94,7 +94,7 @@ export function Navbar({
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className="inline-flex size-9 items-center justify-center rounded-lg hover:bg-sidebar-accent"
+            className="inline-flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent"
             aria-label="Menu"
           >
             {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -113,7 +113,7 @@ export function Navbar({
                 onClick={() => setIsOpen(false)}
                 className={cn(
                   'flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium leading-none',
-                  isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground',
+                  isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50',
                 )}
               >
                 <Icon className="size-5 shrink-0" />
