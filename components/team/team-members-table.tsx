@@ -177,7 +177,7 @@ export function TeamMembersTable({
 
       <div className="rounded-lg border border-border overflow-x-auto">
         <Table>
-          <TableHeader className="sticky top-0 bg-card z-10">
+          <TableHeader className="sticky top-0 z-10">
             <TableRow>
               <TableHead>Member</TableHead>
               <TableHead>Role</TableHead>

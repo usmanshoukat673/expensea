@@ -153,7 +153,7 @@ export function RecurringExpensesContent({
       <div className="relative min-h-[220px] min-w-0 overflow-auto rounded-lg border border-border bg-card">
         <LoadingOverlay show={pending} />
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-card shadow-sm">
+          <TableHeader className="sticky top-0 z-10 shadow-sm">
             <TableRow className="hover:bg-transparent">
               <TableHead>Title</TableHead>
               <TableHead>Category</TableHead>
