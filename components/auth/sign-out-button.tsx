@@ -20,7 +20,7 @@ export function SignOutButton({ collapsed = false }: { collapsed?: boolean }) {
       onClick={() => startTransition(() => signOut())}
       aria-label={collapsed ? 'Sign out' : undefined}
       className={cn(
-        'flex rounded-lg text-sm font-medium text-sidebar-foreground outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
+        'flex rounded-lg text-sm font-medium text-sidebar-foreground outline-none transition-colors hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50',
         collapsed ? 'h-10 w-full items-center justify-center px-0' : 'w-full items-center gap-3 px-4 py-2.5'
       )}
     >
