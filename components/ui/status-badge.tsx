@@ -23,14 +23,18 @@ const STATUS_META: Record<string, StatusMeta> = {
   active: { tone: 'success', label: 'Active' },
   approved: { tone: 'success', label: 'Approved' },
   completed: { tone: 'success', label: 'Completed' },
+  create: { tone: 'success', label: 'Create' },
+  created: { tone: 'success', label: 'Created' },
   fully_reimbursed: { tone: 'success', label: 'Fully reimbursed' },
   healthy: { tone: 'success', label: 'Healthy' },
   on_track: { tone: 'success', label: 'On track' },
   paid: { tone: 'success', label: 'Paid' },
   reimbursed: { tone: 'success', label: 'Reimbursed' },
   safe: { tone: 'success', label: 'On track' },
+  success: { tone: 'success', label: 'Success' },
 
   awaiting_approval: { tone: 'warning', label: 'Awaiting approval' },
+  assigned: { tone: 'warning', label: 'Assigned' },
   near: { tone: 'warning', label: 'Near limit' },
   near_limit: { tone: 'warning', label: 'Near limit' },
   partially_reimbursed: { tone: 'warning', label: 'Partially reimbursed' },
@@ -42,6 +46,8 @@ const STATUS_META: Record<string, StatusMeta> = {
 
   cancelled: { tone: 'error', label: 'Cancelled' },
   canceled: { tone: 'error', label: 'Canceled' },
+  delete: { tone: 'error', label: 'Delete' },
+  deleted: { tone: 'error', label: 'Deleted' },
   expired: { tone: 'error', label: 'Expired' },
   failed: { tone: 'error', label: 'Failed' },
   over: { tone: 'error', label: 'Over budget' },
@@ -49,10 +55,13 @@ const STATUS_META: Record<string, StatusMeta> = {
   rejected: { tone: 'error', label: 'Rejected' },
 
   draft: { tone: 'info', label: 'Draft' },
+  expense: { tone: 'info', label: 'Expense' },
   new: { tone: 'info', label: 'New' },
   processing: { tone: 'info', label: 'Processing' },
   review: { tone: 'info', label: 'Review' },
   unread: { tone: 'info', label: 'Unread' },
+  update: { tone: 'info', label: 'Update' },
+  updated: { tone: 'info', label: 'Updated' },
 
   archived: { tone: 'neutral', label: 'Archived' },
   disabled: { tone: 'neutral', label: 'Disabled' },
@@ -62,6 +71,7 @@ const STATUS_META: Record<string, StatusMeta> = {
   read: { tone: 'neutral', label: 'Read' },
   revoked: { tone: 'neutral', label: 'Revoked' },
   suspended: { tone: 'neutral', label: 'Suspended' },
+  team: { tone: 'neutral', label: 'Team' },
 };
 
 const toneClasses: Record<StatusTone, string> = {
