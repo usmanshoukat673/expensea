@@ -17,7 +17,7 @@ import {
 import { describeRecurringInterval } from '@/lib/recurring-expenses';
 import { useCurrency } from '@/hooks/use-currency';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -192,9 +192,7 @@ export function RecurringExpensesContent({
                     </TableCell>
                     <TableCell>{format(parseISO(rule.next_run_date), 'dd MMM yyyy')}</TableCell>
                     <TableCell>
-                      <Badge variant={rule.is_active ? 'default' : 'secondary'}>
-                        {rule.is_active ? 'Active' : 'Paused'}
-                      </Badge>
+                      <StatusBadge status={rule.is_active ? 'active' : 'paused'} />
                     </TableCell>
                     {canEdit && (
                       <TableCell>

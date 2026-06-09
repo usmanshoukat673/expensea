@@ -12,6 +12,7 @@ import type { TeamInvite } from '@/lib/database.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Copy, Ban, RefreshCw } from 'lucide-react';
 
 export function TeamInvitesSection({
@@ -49,9 +50,7 @@ export function TeamInvitesSection({
           <Badge variant="secondary" className="capitalize text-xs">
             {inv.role}
           </Badge>
-          <Badge variant={expired ? 'destructive' : 'outline'} className="text-xs">
-            {expired ? 'Expired' : 'Active'}
-          </Badge>
+          <StatusBadge status={expired ? 'expired' : 'active'} className="text-xs" />
           <span className="text-xs text-muted-foreground">
             Uses {inv.usage_count}
             {inv.usage_limit != null ? ` / ${inv.usage_limit}` : ''}

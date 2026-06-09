@@ -10,12 +10,11 @@ import type { BudgetWithUsage } from '@/lib/budget/engine';
 import {
   budgetTypeLabel,
   budgetStatusLabel,
-  statusBadgeVariant,
 } from '@/lib/budget/engine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   Table,
   TableBody,
@@ -251,12 +250,12 @@ export function BudgetsContent({
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusBadgeVariant(u.status)}>
+                        <StatusBadge status={u.status}>
                           {budgetStatusLabel(u.status)}
                           {u.alertLevel !== 'none' && (
                             <span className="ml-1 opacity-70">!</span>
                           )}
-                        </Badge>
+                        </StatusBadge>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1 min-w-[120px]">
@@ -344,9 +343,9 @@ export function BudgetsContent({
                             : 'Recurring'}
                         </CardDescription>
                       </div>
-                      <Badge variant={statusBadgeVariant(u.status)}>
+                      <StatusBadge status={u.status}>
                         {budgetStatusLabel(u.status)}
-                      </Badge>
+                      </StatusBadge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">

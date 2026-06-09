@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ArrowDownLeft, ArrowUpRight, Scale } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { useCurrency } from '@/hooks/use-currency';
 import type { SettlementWithProfiles } from '@/lib/database.types';
 
@@ -73,9 +73,7 @@ export function DashboardBalanceWidgets({
                 <span className="truncate">
                   {s.payer?.full_name} → {s.receiver?.full_name}
                 </span>
-                <Badge variant="outline" className="shrink-0 text-[10px]">
-                  {s.status}
-                </Badge>
+                <StatusBadge status={s.status} className="shrink-0 text-[10px]" />
               </div>
             ))
           )}

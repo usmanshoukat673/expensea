@@ -16,7 +16,7 @@ import type { DateRangeValue } from '@/lib/date-ranges';
 import { useCurrency } from '@/hooks/use-currency';
 import { DateRangeFilter } from '@/components/filters/date-range-filter';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -275,9 +275,9 @@ function ApprovalTable({
                   <TableCell>{entry.expense_categories?.name ?? 'Uncategorized'}</TableCell>
                   <TableCell>{format(Number(entry.amount))}</TableCell>
                   <TableCell>{formatDate(parseISO(entry.lunch_date), 'dd MMM yyyy')}</TableCell>
-                  <TableCell><Badge>{entry.approval_status.replace(/_/g, ' ')}</Badge></TableCell>
+                  <TableCell><StatusBadge status={entry.approval_status} /></TableCell>
                   <TableCell>
-                    <span className="text-sm">{entry.reimbursement_status.replace(/_/g, ' ')}</span>
+                    <StatusBadge status={entry.reimbursement_status} />
                     <span className="block text-xs text-muted-foreground">{format(Number(entry.amount_reimbursed ?? 0))} reimbursed</span>
                   </TableCell>
                   {canReview && (

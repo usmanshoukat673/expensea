@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-states"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -708,7 +709,7 @@ function RecentEntriesWidget({ entries, format }: { entries: LunchEntryWithProfi
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2 text-right">
-                  <Badge variant={entry.payment_status === "paid" ? "default" : "secondary"}>{entry.payment_status}</Badge>
+                  <StatusBadge status={entry.payment_status} />
                   <span className="font-semibold">{format(Number(entry.amount))}</span>
                 </div>
               </div>

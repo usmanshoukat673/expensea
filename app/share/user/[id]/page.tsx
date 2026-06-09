@@ -5,7 +5,7 @@ import { getPublicUserSummary } from '@/lib/data/dashboard';
 import { formatCurrency } from '@/lib/formatters';
 import { PublicPageShell } from '@/components/public/public-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -61,7 +61,7 @@ export default async function PublicUserPage({ params }: Props) {
                 {e.notes ? ` · ${e.notes}` : ''}
               </span>
               <div className="flex gap-2 items-center">
-                <Badge variant="outline">{e.payment_status}</Badge>
+                <StatusBadge status={e.payment_status} />
                 <span className="font-medium">{formatCurrency(Number(e.amount), currency)}</span>
               </div>
             </div>

@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/components/ui/empty-states';
@@ -237,7 +238,7 @@ export function NotificationsContent({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-medium leading-tight">{item.title}</h2>
-                      {!item.is_read && <Badge>Unread</Badge>}
+                      {!item.is_read && <StatusBadge status="unread" />}
                       <Badge variant="secondary" className="capitalize">{item.type.replace(/_/g, ' ')}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">{item.message ?? item.body}</p>

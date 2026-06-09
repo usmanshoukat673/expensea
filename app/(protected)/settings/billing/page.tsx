@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { canEdit, requireTeam } from '@/lib/auth/session';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 
 const tabs = [
   { href: '/settings/profile', label: 'Profile' },
@@ -43,7 +43,7 @@ export default async function BillingSettingsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Free plan</CardTitle>
-            <Badge>Active</Badge>
+            <StatusBadge status="active" />
           </div>
           <CardDescription>
             Expensea is free for teams. Billing integrations can be added when you scale.
