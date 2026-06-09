@@ -520,7 +520,7 @@ export function EntriesTable({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-accent/10 dark:hover:bg-muted/40">
+                <TableRow key={row.id} className="hover:bg-accent/10 dark:hover:bg-muted/50">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(

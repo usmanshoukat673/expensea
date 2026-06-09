@@ -92,12 +92,12 @@ export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false
         aria-expanded={open}
         aria-label={collapsed ? `Switch team: ${triggerLabel}` : undefined}
         className={cn(
-          'font-normal transition-all duration-200',
+          'font-normal transition-[background-color,color,box-shadow,transform] duration-200 ease-out',
           collapsed
-            ? 'size-11 justify-center rounded-lg px-0 hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent'
+            ? 'size-11 justify-center rounded-lg px-0 hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50'
             : variant === 'sidebar'
               ? 'w-full h-auto justify-between px-0 py-0 hover:bg-transparent text-left'
-              : 'group h-9 max-w-[200px] justify-between px-2 text-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-accent/20 dark:hover:text-accent-foreground',
+              : 'group h-9 max-w-[200px] justify-between px-2 text-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-muted/50 dark:hover:text-foreground',
           className
         )}
       >
@@ -113,7 +113,7 @@ export function TeamSwitcher({ variant = 'sidebar', className, collapsed = false
                   'truncate font-semibold',
                   variant === 'sidebar'
                     ? 'text-sm text-sidebar-foreground'
-                    : 'text-sm text-foreground dark:group-hover:text-accent-foreground'
+                    : 'text-sm text-foreground dark:group-hover:text-foreground'
                 )}
               >
                 {triggerLabel}

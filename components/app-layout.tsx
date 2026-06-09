@@ -12,7 +12,7 @@ import type { Notification, TeamRole } from "@/lib/database.types"
 
 const SIDEBAR_COLLAPSED_KEY = "expensea:sidebar-collapsed"
 const HEADER_ICON_BUTTON_CLASS =
-  "text-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-accent/20 dark:hover:text-accent-foreground"
+  "text-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-muted/50 dark:hover:text-foreground"
 
 export type AppLayoutUser = {
   name: string
