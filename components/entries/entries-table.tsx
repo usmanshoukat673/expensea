@@ -24,7 +24,7 @@ import type { ExpenseCategory, LunchEntryWithProfile } from "@/lib/database.type
 import { getCategoryIcon } from "@/lib/categories/icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
@@ -219,30 +219,14 @@ export function EntriesTable({
         accessorKey: "payment_status",
         header: "Payment",
         cell: ({ row }) => (
-          <Badge
-            variant={
-              row.original.payment_status === "paid" ? "default" : "secondary"
-            }
-          >
-            {row.original.payment_status}
-          </Badge>
+          <StatusBadge status={row.original.payment_status} />
         ),
       },
       {
         accessorKey: "approval_status",
         header: "Approval",
         cell: ({ row }) => (
-          <Badge
-            variant={
-              row.original.approval_status === "approved" || row.original.approval_status === "reimbursed"
-                ? "default"
-                : row.original.approval_status === "rejected"
-                  ? "destructive"
-                  : "secondary"
-            }
-          >
-            {row.original.approval_status.replace(/_/g, " ")}
-          </Badge>
+          <StatusBadge status={row.original.approval_status} />
         ),
       },
       ...(canManageEntries

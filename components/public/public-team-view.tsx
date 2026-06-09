@@ -6,7 +6,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { EmptyState } from '@/components/ui/empty-states';
 import { BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCategoryIcon } from '@/lib/categories/icons';
 import type { DebtEdge } from '@/lib/balance/engine';
@@ -145,7 +145,7 @@ export function PublicTeamView({
                     )}
                   </span>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{e.payment_status}</Badge>
+                    <StatusBadge status={e.payment_status} />
                     <span className="font-medium">{fmt(Number(e.amount))}</span>
                   </div>
                 </div>

@@ -9,7 +9,7 @@ import type { SettlementWithProfiles } from '@/lib/database.types';
 import type { DebtEdge, UserBalance } from '@/lib/balance/engine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -361,17 +361,7 @@ function SettlementTable({
               <TableCell>{s.receiver?.full_name ?? '—'}</TableCell>
               <TableCell className="font-medium">{format(Number(s.amount))}</TableCell>
               <TableCell>
-                <Badge
-                  variant={
-                    s.status === 'completed'
-                      ? 'default'
-                      : s.status === 'cancelled'
-                        ? 'outline'
-                        : 'secondary'
-                  }
-                >
-                  {s.status}
-                </Badge>
+                <StatusBadge status={s.status} />
               </TableCell>
               <TableCell className="text-muted-foreground text-xs">
                 {formatDistanceToNow(new Date(s.created_at), { addSuffix: true })}

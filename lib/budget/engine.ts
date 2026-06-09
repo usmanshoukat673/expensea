@@ -218,19 +218,6 @@ export function statusProgressColor(status: BudgetStatus): string {
   }
 }
 
-export function statusBadgeVariant(
-  status: BudgetStatus,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
-    case 'over':
-      return 'destructive';
-    case 'warning':
-      return 'secondary';
-    default:
-      return 'outline';
-  }
-}
-
 export function budgetTypeLabel(type: BudgetType): string {
   return type === 'monthly' ? 'Monthly team' : 'Category';
 }

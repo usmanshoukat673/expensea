@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import { format as formatDate } from "date-fns"
 import { Download, FileSpreadsheet, FileText, TrendingDown, TrendingUp } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { DateRangeFilter } from "@/components/filters/date-range-filter"
 import { Badge } from "@/components/ui/badge"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -201,7 +202,10 @@ export function ReportsContent({ data }: { data: ReportsData }) {
               format(month.budget),
               format(month.spent),
               `${month.utilization}%`,
-              month.exceeded ? "Over budget" : "On track",
+              <StatusBadge
+                key={`${month.month}-status`}
+                status={month.exceeded ? "over_budget" : "on_track"}
+              />,
             ])}
           />
         </CardContent>
@@ -210,7 +214,7 @@ export function ReportsContent({ data }: { data: ReportsData }) {
   )
 }
 
-function PlainReportTable({ headers, rows }: { headers: string[]; rows: (string | number)[][] }) {
+function PlainReportTable({ headers, rows }: { headers: string[]; rows: ReactNode[][] }) {
   return (
     <div className="min-w-0 overflow-auto rounded-lg border border-border">
       <Table>

@@ -13,6 +13,7 @@ import {
 import type { TeamRole, MemberStatus } from '@/lib/database.types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -246,9 +247,7 @@ export function TeamMembersTable({
                           </span>
                         </div>
                       ) : (
-                        <Badge variant={active ? 'default' : 'secondary'}>
-                          {active ? 'Active' : 'Inactive'}
-                        </Badge>
+                        <StatusBadge status={active ? 'active' : 'inactive'} />
                       )}
                     </TableCell>
                     <TableCell className="text-sm">
