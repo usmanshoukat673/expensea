@@ -66,7 +66,7 @@ export async function proxy(request: NextRequest) {
     await supabase.auth.signOut();
     const url = request.nextUrl.clone();
     url.pathname = '/login';
-    url.searchParams.set('authStatus', matches(pathname, AUTH_ROUTES) ? 'profile_missing' : 'account_deleted');
+    url.searchParams.set('authStatus', 'profile_missing');
     return redirectWithSession(url, supabaseResponse);
   }
 

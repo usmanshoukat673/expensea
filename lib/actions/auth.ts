@@ -76,12 +76,14 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
   try {
     const supabase = await createClient();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const inviteToken = String(formData.get('inviteToken') ?? '').trim();
+    const postSignupPath = inviteToken ? `/invite/team/${inviteToken}` : '/onboarding';
     const { data, error } = await supabase.auth.signUp({
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
         data: { full_name: parsed.data.fullName },
-        emailRedirectTo: `${appUrl}/auth/callback?next=/onboarding`,
+        emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent(postSignupPath)}`,
       },
     });
     if (error) {
@@ -104,8 +106,6 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
       }
     }
 
-    const inviteToken = String(formData.get('inviteToken') ?? '').trim();
-
     if (!data.session) {
       const loginRedirect = inviteToken
         ? `/login?redirect=${encodeURIComponent(`/invite/team/${inviteToken}`)}`
@@ -118,15 +118,10 @@ export async function signUp(formData: FormData): Promise<ActionResult> {
     }
 
     if (inviteToken) {
-      const { acceptTeamInvite } = await import('@/lib/actions/team-invites');
-      const joinResult = await acceptTeamInvite(inviteToken);
-      if (joinResult.success) {
-        return { success: true, redirectTo: '/' };
-      }
       return {
         success: true,
         redirectTo: `/invite/team/${inviteToken}`,
-        message: joinResult.error,
+        message: 'Account created. Review the invitation to join your team.',
       };
     }
 

@@ -20,6 +20,9 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
   const [pending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const [activeInviteToken, setActiveInviteToken] = useState(inviteToken?.trim() ?? '');
+  const loginHref = activeInviteToken
+    ? `/login?redirect=${encodeURIComponent(`/invite/team/${activeInviteToken}`)}`
+    : '/login';
   const {
     register,
     handleSubmit,
@@ -100,7 +103,7 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link href="/login" className="text-accent font-medium hover:underline">
+        <Link href={loginHref} className="text-accent font-medium hover:underline">
           Sign in
         </Link>
       </p>
