@@ -30,13 +30,23 @@ export default async function PublicTeamByIdPage({ params }: Props) {
     >
       <PublicTeamView
         teamName={data.team.name}
+        brandName={data.team.brand_name}
+        logoUrl={data.team.logo_url}
+        currencyCode={data.team.currency}
         total={data.total}
         pending={data.pending}
-        memberCount={data.members.length}
+        currentMonthSpend={data.currentMonthSpend}
+        lastMonthSpend={data.lastMonthSpend}
+        monthlyDifferencePercent={data.monthlyDifferencePercent}
+        settlementCount={data.settlementCount}
+        members={data.members}
         entries={data.entries}
+        analyticsEntries={data.analyticsEntries}
         showCategoryAnalytics={data.team.show_category_analytics_on_public !== false}
         showBalances={!!data.team.show_balances_on_public}
-        balanceEdges={data.balanceSummary?.debtSummary.edges ?? []}
+        balanceEdges={data.debtEdges}
+        outstandingSettlements={data.outstandingSettlements}
+        leaderboard={data.leaderboard}
       />
     </PublicPageShell>
   );
