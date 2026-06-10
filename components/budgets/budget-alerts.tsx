@@ -6,6 +6,7 @@ import { AlertTriangle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { useCurrency } from '@/hooks/use-currency';
 import type { BudgetWithUsage, DashboardBudgetSummary } from '@/lib/budget/engine';
 
 export function BudgetAlertBanner({
@@ -55,6 +56,7 @@ export function BudgetAlertBanner({
 }
 
 export function BudgetAlertToasts({ budgets }: { budgets: BudgetWithUsage[] }) {
+  const { format } = useCurrency();
   const shown = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export function BudgetAlertToasts({ budgets }: { budgets: BudgetWithUsage[] }) {
 
       if (b.alertLevel === 'exceeded') {
         toast.error(`${label} exceeded`, {
-          description: `Spent ${b.utilization}% of ${Number(b.amount)} limit.`,
+          description: `Spent ${b.utilization}% of ${format(Number(b.amount))} limit.`,
         });
       } else if (b.alertLevel === 'warning80') {
         toast.warning(`${label} at ${b.utilization}%`, {
@@ -77,7 +79,7 @@ export function BudgetAlertToasts({ budgets }: { budgets: BudgetWithUsage[] }) {
         });
       }
     });
-  }, [budgets]);
+  }, [budgets, format]);
 
   return null;
 }

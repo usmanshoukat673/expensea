@@ -41,6 +41,17 @@ function addDebt(map: Map<string, number>, from: string, to: string, amount: num
   else map.set(key, next);
 }
 
+function splitCents(amount: number, count: number): number[] {
+  if (count <= 0) return [];
+  const cents = Math.round(amount * 100);
+  const base = Math.trunc(cents / count);
+  const remainder = cents - base * count;
+
+  return Array.from({ length: count }, (_, index) =>
+    (base + (index < remainder ? 1 : 0)) / 100,
+  );
+}
+
 function netPair(map: Map<string, number>, a: string, b: string): number {
   const ab = map.get(debtKey(a, b)) ?? 0;
   const ba = map.get(debtKey(b, a)) ?? 0;
@@ -55,8 +66,19 @@ export function computeParticipantShares(entry: BalanceEntry): Map<string, numbe
   if (!ids.length) return shares;
 
   if (entry.splitType === 'equal') {
-    const share = entry.amount / ids.length;
-    ids.forEach((id) => shares.set(id, share));
+    const storedTotal = entry.participants.reduce(
+      (s, p) => s + (p.shareAmount != null ? Number(p.shareAmount) : 0),
+      0,
+    );
+    if (storedTotal > 0) {
+      entry.participants.forEach((p) => {
+        shares.set(p.userId, p.shareAmount != null ? Number(p.shareAmount) : 0);
+      });
+      return shares;
+    }
+
+    const allocated = splitCents(entry.amount, ids.length);
+    ids.forEach((id, index) => shares.set(id, allocated[index] ?? 0));
     return shares;
   }
 

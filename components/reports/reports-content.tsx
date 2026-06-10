@@ -46,12 +46,12 @@ export function ReportsContent({ data }: { data: ReportsData }) {
           Member: entry.profiles?.full_name ?? entry.profiles?.email ?? "Member",
           Assigned: assignmentType === "individual" ? assignedProfile?.full_name ?? assignedProfile?.email ?? "Member" : "Team",
           Category: entry.expense_categories?.name ?? "Uncategorized",
-          Amount: Number(entry.amount),
+          Amount: format(Number(entry.amount)),
           Status: entry.payment_status,
           Notes: entry.notes ?? "",
         }
       }),
-    [data.entries],
+    [data.entries, format],
   )
 
   const exportCsv = () => {
