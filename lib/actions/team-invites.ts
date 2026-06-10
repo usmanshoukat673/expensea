@@ -3,7 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { requireAuth, requireTeam, canEdit } from '@/lib/auth/session';
+import {
+  requireAuth,
+  requireTeam,
+  canEdit,
+  validateCurrentUser,
+  invalidateCurrentSession,
+} from '@/lib/auth/session';
 import { persistActiveTeam } from '@/lib/auth/teams';
 import { inviteSchema } from '@/lib/validations';
 import type { TeamRole } from '@/lib/database.types';
@@ -22,11 +28,19 @@ export type TeamInvitePreview = {
   reason?: string | null;
   team_id?: string;
   team_name?: string;
+  team_description?: string | null;
+  team_logo_url?: string | null;
+  team_currency?: string | null;
   role?: TeamRole;
   invited_email?: string | null;
   expires_at?: string | null;
   inviter_name?: string;
   member_count?: number | null;
+};
+
+export type InviteViewerState = {
+  isAuthenticated: boolean;
+  alreadyMember: boolean;
 };
 
 export type TeamInviteRow = {
@@ -85,7 +99,58 @@ export async function getInvitePreview(token: string): Promise<TeamInvitePreview
   if (!normalized) return null;
   const { data, error } = await supabase.rpc('get_team_invite_preview', { p_token: normalized });
   if (error || !data) return null;
-  return data as TeamInvitePreview;
+  const preview = data as TeamInvitePreview;
+
+  if (!preview.valid || !preview.team_id) return preview;
+
+  const admin = createAdminClient();
+  if (!admin) return preview;
+
+  const [teamResult, memberCountResult] = await Promise.all([
+    admin
+      .from('teams')
+      .select('brand_name, logo_url, currency')
+      .eq('id', preview.team_id)
+      .maybeSingle(),
+    admin
+      .from('team_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_id', preview.team_id)
+      .eq('status', 'active'),
+  ]);
+
+  return {
+    ...preview,
+    team_description: preview.team_description ?? teamResult.data?.brand_name ?? null,
+    team_logo_url: preview.team_logo_url ?? teamResult.data?.logo_url ?? null,
+    team_currency: preview.team_currency ?? teamResult.data?.currency ?? null,
+    member_count: preview.member_count ?? memberCountResult.count ?? null,
+  };
+}
+
+export async function getInviteViewerState(teamId?: string): Promise<InviteViewerState> {
+  const validation = await validateCurrentUser();
+  if (!validation.valid) {
+    if (validation.reason !== 'no_session') {
+      await invalidateCurrentSession();
+    }
+    return { isAuthenticated: false, alreadyMember: false };
+  }
+
+  if (!teamId) return { isAuthenticated: true, alreadyMember: false };
+
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const client = admin ?? supabase;
+  const { data } = await client
+    .from('team_members')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('user_id', validation.session.user.id)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  return { isAuthenticated: true, alreadyMember: Boolean(data) };
 }
 
 export async function getActiveShareableInvite(): Promise<ActionResult<{ url: string; token: string }>> {

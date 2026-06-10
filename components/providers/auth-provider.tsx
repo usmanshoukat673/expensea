@@ -36,7 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadProfile = useCallback(
     async (uid: string) => {
       const { data: p } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
-      if (!p || p.status !== 'active') {
+      if (!p) {
+        clearLocalAuthState();
+        await supabase.auth.signOut();
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+          window.location.assign('/login?authStatus=profile_missing');
+        }
+        return;
+      }
+      if (p.status !== 'active') {
         clearLocalAuthState();
         await supabase.auth.signOut();
         if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {

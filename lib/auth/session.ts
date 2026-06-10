@@ -78,9 +78,7 @@ export async function requireAuth(): Promise<SessionContext> {
     if (validation.reason !== "no_session") {
       await invalidateCurrentSession()
     }
-    const authStatus =
-      validation.reason === "profile_missing" ? "account_deleted" : validation.reason
-    redirect(`/login?authStatus=${authStatus}`)
+    redirect(`/login?authStatus=${validation.reason}`)
   }
   return validation.session
 }

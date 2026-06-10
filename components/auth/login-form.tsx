@@ -18,6 +18,10 @@ export function LoginForm({ redirect }: { redirect?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
+  const inviteTokenFromRedirect = redirect?.match(/^\/invite\/team\/([^/?#]+)/)?.[1];
+  const signupHref = inviteTokenFromRedirect
+    ? `/signup?invite=${encodeURIComponent(inviteTokenFromRedirect)}`
+    : '/signup';
   const {
     register,
     handleSubmit,
@@ -79,7 +83,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         No account?{' '}
-        <Link href="/signup" className="text-accent font-medium hover:underline">
+        <Link href={signupHref} className="text-accent font-medium hover:underline">
           Sign up
         </Link>
       </p>

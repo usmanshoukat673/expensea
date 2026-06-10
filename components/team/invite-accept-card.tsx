@@ -7,18 +7,31 @@ import { toast } from 'sonner';
 import { acceptTeamInvite, type TeamInvitePreview } from '@/lib/actions/team-invites';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, CalendarClock, Mail, ShieldCheck, Users } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getCurrencyLabel } from '@/lib/currency';
+import {
+  AlertCircle,
+  CalendarClock,
+  CheckCircle2,
+  CircleDollarSign,
+  Mail,
+  ShieldCheck,
+  UserRoundCheck,
+  Users,
+} from 'lucide-react';
 
 export function InviteAcceptCard({
   token,
   preview,
   isAuthenticated,
+  alreadyMember,
   loginHref,
   signupHref,
 }: {
   token: string;
   preview: TeamInvitePreview;
   isAuthenticated: boolean;
+  alreadyMember: boolean;
   loginHref: string;
   signupHref: string;
 }) {
@@ -27,12 +40,20 @@ export function InviteAcceptCard({
 
   const invalidMessage =
     preview.reason === 'expired'
-      ? 'This invitation has expired'
+      ? 'This invitation is no longer valid because it has expired'
       : preview.reason === 'disabled'
-        ? 'This invitation has been disabled'
+        ? 'This invitation is no longer valid because it has been revoked'
         : preview.reason === 'usage_exceeded'
-          ? 'This invitation has been used too many times'
-          : 'Invalid invite link';
+          ? 'This invitation has already been used'
+          : 'This invitation link is invalid';
+  const invalidTitle =
+    preview.reason === 'expired'
+      ? 'Invite expired'
+      : preview.reason === 'disabled'
+        ? 'Invite revoked'
+        : preview.reason === 'usage_exceeded'
+          ? 'Invite unavailable'
+          : 'Invalid invite';
   const teamInitials = preview.team_name
     ?.split(' ')
     .map((part) => part[0])
@@ -46,6 +67,13 @@ export function InviteAcceptCard({
   const expiresAt = preview.expires_at
     ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(preview.expires_at))
     : null;
+  const roleLabel =
+    preview.role === 'admin'
+      ? 'Admin'
+      : preview.role === 'viewer'
+        ? 'Member'
+        : 'Team member';
+  const currencyLabel = preview.team_currency ? getCurrencyLabel(preview.team_currency) : null;
 
   const onJoin = () => {
     startTransition(async () => {
@@ -62,39 +90,48 @@ export function InviteAcceptCard({
 
   if (!preview.valid) {
     return (
-      <div className="space-y-5 text-center">
-        <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
-          <AlertCircle className="size-6" />
+      <div className="space-y-6 text-center">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-xl bg-destructive/10 text-destructive">
+          <AlertCircle className="size-7" />
         </div>
-        <div className="space-y-2">
-          <p className="font-semibold">Invite unavailable</p>
-          <p className="text-sm leading-6 text-muted-foreground">{invalidMessage}. Ask your team admin for a fresh invitation.</p>
+        <div className="space-y-2.5">
+          <h3 className="text-xl font-semibold tracking-tight">{invalidTitle}</h3>
+          <p className="mx-auto max-w-sm text-sm leading-6 text-muted-foreground">
+            {invalidMessage}. Ask the team owner for a fresh invitation before trying again.
+          </p>
         </div>
-        <Button variant="outline" asChild>
-          <Link href="/login">Sign in</Link>
-        </Button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button variant="outline" className="w-full" asChild>
+            <Link href="/login">Sign in</Link>
+          </Button>
+          <Button variant="secondary" className="w-full" disabled>
+            Contact team owner
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+    <div className="space-y-6">
+      <div className="rounded-xl border border-border/70 bg-muted/20 p-4 sm:p-5">
         <div className="flex items-start gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-accent/10 font-semibold text-accent">
-            {teamInitials}
-          </div>
+          <Avatar className="size-16 rounded-xl border border-border bg-background">
+            <AvatarImage src={preview.team_logo_url ?? undefined} alt={`${preview.team_name} logo`} />
+            <AvatarFallback className="rounded-xl bg-accent/10 font-semibold text-accent">
+              {teamInitials}
+            </AvatarFallback>
+          </Avatar>
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="break-words text-lg font-semibold leading-tight">{preview.team_name}</h2>
-              {preview.role ? (
-                <Badge variant="secondary" className="capitalize">
-                  {preview.role}
-                </Badge>
-              ) : null}
+              <Badge variant="secondary">{roleLabel}</Badge>
             </div>
             <p className="text-sm leading-6 text-muted-foreground">
-              {preview.inviter_name ? `${preview.inviter_name} invited you to collaborate in Expensea.` : 'You have been invited to collaborate in Expensea.'}
+              {preview.team_description ||
+                (preview.inviter_name
+                  ? `${preview.inviter_name} invited you to collaborate in Expensea.`
+                  : 'You have been invited to collaborate in Expensea.')}
             </p>
           </div>
         </div>
@@ -106,7 +143,7 @@ export function InviteAcceptCard({
             <ShieldCheck className="size-4 text-accent" />
             Invited role
           </div>
-          <p className="mt-2 font-medium capitalize">{preview.role ?? 'Team member'}</p>
+          <p className="mt-2 font-medium">{roleLabel}</p>
         </div>
         <div className="rounded-xl border border-border/70 bg-background/40 p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -122,6 +159,15 @@ export function InviteAcceptCard({
           <span className="text-muted-foreground">Invited by</span>
           <span className="text-right font-medium">{preview.inviter_name ?? 'Team admin'}</span>
         </div>
+        {currencyLabel ? (
+          <div className="flex justify-between gap-3">
+            <span className="inline-flex items-center gap-2 text-muted-foreground">
+              <CircleDollarSign className="size-4" />
+              Currency
+            </span>
+            <span className="text-right font-medium">{currencyLabel}</span>
+          </div>
+        ) : null}
         {preview.invited_email ? (
           <div className="flex justify-between gap-3">
             <span className="inline-flex items-center gap-2 text-muted-foreground">
@@ -142,8 +188,24 @@ export function InviteAcceptCard({
         ) : null}
       </div>
 
-      {isAuthenticated ? (
+      {alreadyMember ? (
+        <div className="space-y-4 border-t border-border/70 pt-5">
+          <div className="flex gap-3 rounded-xl border border-border/70 bg-accent/10 p-4 text-sm">
+            <UserRoundCheck className="mt-0.5 size-4 shrink-0 text-accent" />
+            <div className="space-y-1">
+              <p className="font-medium">You are already a member of this team.</p>
+              <p className="leading-6 text-muted-foreground">
+                Open Expensea to continue in this workspace.
+              </p>
+            </div>
+          </div>
+          <Button className="w-full" asChild>
+            <Link href="/">Open team</Link>
+          </Button>
+        </div>
+      ) : isAuthenticated ? (
         <Button type="button" className="w-full" isLoading={pending} loadingText="Joining team..." onClick={onJoin}>
+          <CheckCircle2 className="size-4" />
           Join team
         </Button>
       ) : (
