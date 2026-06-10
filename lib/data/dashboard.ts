@@ -10,8 +10,45 @@ import type {
 } from "@/lib/database.types"
 import { getMonthEnd, getMonthStart } from "@/lib/budget/engine"
 import { attachActivityProfiles, getNotificationSummary } from "@/lib/data/notifications"
+import type { DebtEdge, UserBalance } from "@/lib/balance/engine"
 
 const FINANCIAL_APPROVAL_STATUSES = ["approved", "reimbursed"] as const
+
+type PublicMember = {
+  key: string
+  name: string
+  avatarUrl: string | null
+  role: string
+  joinedAt: string | null
+  totalPaid: number
+  totalOwed: number
+  netBalance: number
+  recentExpenses: PublicExpense[]
+  settlementSummary: PublicDebtEdge[]
+}
+
+type PublicExpense = {
+  amount: number
+  lunch_date: string
+  payment_status: string
+  payerKey: string
+  payerName: string
+  title: string
+  category_id?: string | null
+  expense_categories?: { id: string; name: string; icon: string; color: string } | null
+}
+
+type PublicDebtEdge = {
+  fromKey: string
+  fromName: string
+  toKey: string
+  toName: string
+  amount: number
+}
+
+type PublicSettlement = PublicDebtEdge & {
+  status: string
+}
 
 async function attachProfiles<T extends { user_id: string }>(
   items: T[],
@@ -22,6 +59,23 @@ async function attachProfiles<T extends { user_id: string }>(
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, full_name, email, avatar_url")
+    .in("id", ids)
+  const map = new Map((profiles ?? []).map((p) => [p.id, p]))
+  return items.map((item) => ({
+    ...item,
+    profiles: map.get(item.user_id) ?? null,
+  }))
+}
+
+async function attachPublicProfiles<T extends { user_id: string }>(
+  items: T[],
+): Promise<(T & { profiles: Pick<Profile, "id" | "full_name" | "avatar_url"> | null })[]> {
+  if (!items.length) return []
+  const supabase = await createClient()
+  const ids = [...new Set(items.map((i) => i.user_id))]
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url")
     .in("id", ids)
   const map = new Map((profiles ?? []).map((p) => [p.id, p]))
   return items.map((item) => ({
@@ -352,18 +406,87 @@ export async function getTeamData(teamId: string) {
   }
 }
 
-export async function getPublicTeamById(teamId: string) {
+function monthTotal(entries: { lunch_date: string; amount: number }[], month: string) {
+  return entries.reduce((sum, entry) => {
+    return getMonthStart(new Date(entry.lunch_date)) === month ? sum + Number(entry.amount) : sum
+  }, 0)
+}
+
+function percentDifference(current: number, previous: number) {
+  if (previous > 0) return ((current - previous) / previous) * 100
+  return current > 0 ? 100 : 0
+}
+
+function safeExpenseTitle(entry: {
+  expense_categories?: { name: string } | null
+}) {
+  return entry.expense_categories?.name ? `${entry.expense_categories.name} expense` : "Team expense"
+}
+
+function publicDebtEdges(
+  edges: DebtEdge[],
+  memberKeys: Map<string, string>,
+  memberNames: Map<string, string>,
+): PublicDebtEdge[] {
+  return edges
+    .map((edge) => {
+      const fromKey = memberKeys.get(edge.from)
+      const toKey = memberKeys.get(edge.to)
+      if (!fromKey || !toKey || edge.amount <= 0.01) return null
+      return {
+        fromKey,
+        fromName: memberNames.get(edge.from) ?? "Member",
+        toKey,
+        toName: memberNames.get(edge.to) ?? "Member",
+        amount: edge.amount,
+      }
+    })
+    .filter(Boolean) as PublicDebtEdge[]
+}
+
+function publicBalances(
+  balances: UserBalance[],
+  memberKeys: Map<string, string>,
+): Map<string, Pick<PublicMember, "totalPaid" | "totalOwed" | "netBalance">> {
+  return new Map(
+    balances.flatMap((balance) => {
+      const key = memberKeys.get(balance.userId)
+      if (!key) return []
+      return [
+        [
+          key,
+          {
+            totalPaid: balance.totalPaid,
+            totalOwed: balance.totalOwed,
+            netBalance: balance.netBalance,
+          },
+        ],
+      ]
+    }),
+  )
+}
+
+async function getPublicTeam(teamFilter: "id" | "slug", value: string) {
   const supabase = await createClient()
   const { data: team } = await supabase
     .from("teams")
     .select("*")
-    .eq("id", teamId)
+    .eq(teamFilter, value)
     .eq("is_public", true)
     .single()
 
   if (!team) return null
 
-  const [entries, summaries, membersRes, categories] = await Promise.all([
+  const now = new Date()
+  const currentMonth = getMonthStart(now)
+  const previousMonthDate = new Date(now)
+  previousMonthDate.setMonth(previousMonthDate.getMonth() - 1)
+  const previousMonth = getMonthStart(previousMonthDate)
+  const yearAgo = new Date(now)
+  yearAgo.setMonth(yearAgo.getMonth() - 11)
+  const historyFrom = getMonthStart(yearAgo)
+
+  const [entries, allEntries, summaries, membersRes, categories, settlementsRes] = await Promise.all([
     supabase
       .from("lunch_entries")
       .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
@@ -371,93 +494,158 @@ export async function getPublicTeamById(teamId: string) {
       .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
       .order("lunch_date", { ascending: false })
       .limit(100),
+    supabase
+      .from("lunch_entries")
+      .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
+      .eq("team_id", team.id)
+      .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
+      .gte("lunch_date", historyFrom)
+      .order("lunch_date", { ascending: false }),
     supabase.from("monthly_summaries").select("*").eq("team_id", team.id),
-    supabase.from("team_members").select("user_id").eq("team_id", team.id),
+    supabase.from("team_members").select("user_id, role, joined_at").eq("team_id", team.id).order("joined_at"),
     team.show_category_analytics_on_public !== false
       ? supabase.from("expense_categories").select("*").eq("team_id", team.id)
       : Promise.resolve({ data: [] }),
+    supabase.from("settlements").select("payer_user_id, receiver_user_id, amount, status").eq("team_id", team.id),
   ])
 
-  const members = await attachProfiles(
-    (membersRes.data ?? []).map((m) => ({ user_id: m.user_id })),
+  const membersWithProfiles = await attachPublicProfiles(membersRes.data ?? [])
+  const memberKeys = new Map(membersWithProfiles.map((member, index) => [member.user_id, `member-${index + 1}`]))
+  const memberNames = new Map(
+    membersWithProfiles.map((member) => [
+      member.user_id,
+      member.profiles?.full_name?.trim() || "Member",
+    ]),
   )
 
-  const total = (entries.data ?? []).reduce((s, e) => s + Number(e.amount), 0)
+  const safeEntries: PublicExpense[] = (entries.data ?? []).map((entry) => {
+    const payerKey = memberKeys.get(entry.user_id) ?? "member"
+    const payerName = memberNames.get(entry.user_id) ?? "Member"
+    return {
+      amount: Number(entry.amount),
+      lunch_date: entry.lunch_date,
+      payment_status: entry.payment_status,
+      payerKey,
+      payerName,
+      title: safeExpenseTitle(entry),
+      category_id: entry.category_id,
+      expense_categories: entry.expense_categories,
+    }
+  })
+
+  const safeAllEntries: PublicExpense[] = (allEntries.data ?? []).map((entry) => {
+    const payerKey = memberKeys.get(entry.user_id) ?? "member"
+    const payerName = memberNames.get(entry.user_id) ?? "Member"
+    return {
+      amount: Number(entry.amount),
+      lunch_date: entry.lunch_date,
+      payment_status: entry.payment_status,
+      payerKey,
+      payerName,
+      title: safeExpenseTitle(entry),
+      category_id: entry.category_id,
+      expense_categories: entry.expense_categories,
+    }
+  })
+
+  const total = (allEntries.data ?? []).reduce((s, e) => s + Number(e.amount), 0)
   const pending = (summaries.data ?? []).reduce(
     (s, r) => s + Number(r.pending_amount),
     0,
   )
+  const currentMonthSpend = monthTotal(allEntries.data ?? [], currentMonth)
+  const lastMonthSpend = monthTotal(allEntries.data ?? [], previousMonth)
 
-  let balanceSummary = null
+  let debtEdges: PublicDebtEdge[] = []
+  let balancesByKey = new Map<string, Pick<PublicMember, "totalPaid" | "totalOwed" | "netBalance">>()
   if (team.show_balances_on_public) {
     const { getBalanceContext } = await import("@/lib/data/settlements")
-    balanceSummary = await getBalanceContext(team.id)
+    const balanceSummary = await getBalanceContext(team.id)
+    debtEdges = publicDebtEdges(balanceSummary.debtSummary.edges, memberKeys, memberNames)
+    balancesByKey = publicBalances(balanceSummary.userBalances, memberKeys)
   }
 
+  const members: PublicMember[] = membersWithProfiles.map((member) => {
+    const key = memberKeys.get(member.user_id) ?? "member"
+    const balance = balancesByKey.get(key) ?? { totalPaid: 0, totalOwed: 0, netBalance: 0 }
+    const recentExpenses = safeEntries.filter((entry) => entry.payerKey === key).slice(0, 5)
+    const settlementSummary = debtEdges.filter((edge) => edge.fromKey === key || edge.toKey === key)
+    return {
+      key,
+      name: member.profiles?.full_name?.trim() || "Member",
+      avatarUrl: member.profiles?.avatar_url ?? null,
+      role: member.role ?? "member",
+      joinedAt: member.joined_at ?? null,
+      ...balance,
+      recentExpenses,
+      settlementSummary,
+    }
+  })
+
+  const outstandingSettlements: PublicSettlement[] = team.show_balances_on_public
+    ? (settlementsRes.data ?? [])
+        .filter((settlement) => settlement.status === "pending" && Number(settlement.amount) > 0.01)
+        .map((settlement) => {
+          const fromKey = memberKeys.get(settlement.payer_user_id)
+          const toKey = memberKeys.get(settlement.receiver_user_id)
+          if (!fromKey || !toKey) return null
+          return {
+            fromKey,
+            fromName: memberNames.get(settlement.payer_user_id) ?? "Member",
+            toKey,
+            toName: memberNames.get(settlement.receiver_user_id) ?? "Member",
+            amount: Number(settlement.amount),
+            status: settlement.status,
+          }
+        })
+        .filter(Boolean) as PublicSettlement[]
+    : []
+
+  const leaderboard = members
+    .map((member) => ({
+      key: member.key,
+      name: member.name,
+      avatarUrl: member.avatarUrl,
+      total: safeAllEntries
+        .filter((entry) => entry.payerKey === member.key)
+        .reduce((sum, entry) => sum + Number(entry.amount), 0),
+    }))
+    .filter((member) => member.total > 0)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5)
+
   return {
-    team,
-    entries: entries.data ?? [],
+    team: {
+      name: team.name,
+      brand_name: team.brand_name,
+      logo_url: team.logo_url,
+      currency: team.currency,
+      show_balances_on_public: team.show_balances_on_public,
+      show_category_analytics_on_public: team.show_category_analytics_on_public,
+    },
+    entries: safeEntries,
+    analyticsEntries: safeAllEntries,
     summaries: summaries.data ?? [],
     members,
     categories: categories.data ?? [],
     total,
     pending,
-    balanceSummary,
+    currentMonthSpend,
+    lastMonthSpend,
+    monthlyDifferencePercent: percentDifference(currentMonthSpend, lastMonthSpend),
+    settlementCount: settlementsRes.data?.length ?? 0,
+    debtEdges,
+    outstandingSettlements,
+    leaderboard,
   }
 }
 
+export async function getPublicTeamById(teamId: string) {
+  return getPublicTeam("id", teamId)
+}
+
 export async function getPublicTeamBySlug(slug: string) {
-  const supabase = await createClient()
-  const { data: team } = await supabase
-    .from("teams")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_public", true)
-    .single()
-
-  if (!team) return null
-
-  const [entries, summaries, membersRes, categories] = await Promise.all([
-    supabase
-      .from("lunch_entries")
-      .select("amount, lunch_date, payment_status, user_id, category_id, expense_categories(id, name, icon, color)")
-      .eq("team_id", team.id)
-      .in("approval_status", FINANCIAL_APPROVAL_STATUSES)
-      .order("lunch_date", { ascending: false })
-      .limit(100),
-    supabase.from("monthly_summaries").select("*").eq("team_id", team.id),
-    supabase.from("team_members").select("user_id").eq("team_id", team.id),
-    team.show_category_analytics_on_public !== false
-      ? supabase.from("expense_categories").select("*").eq("team_id", team.id)
-      : Promise.resolve({ data: [] }),
-  ])
-
-  const members = await attachProfiles(
-    (membersRes.data ?? []).map((m) => ({ user_id: m.user_id })),
-  )
-
-  const total = (entries.data ?? []).reduce((s, e) => s + Number(e.amount), 0)
-  const pending = (summaries.data ?? []).reduce(
-    (s, r) => s + Number(r.pending_amount),
-    0,
-  )
-
-  let balanceSummary = null
-  if (team.show_balances_on_public) {
-    const { getBalanceContext } = await import("@/lib/data/settlements")
-    balanceSummary = await getBalanceContext(team.id)
-  }
-
-  return {
-    team,
-    entries: entries.data ?? [],
-    summaries: summaries.data ?? [],
-    members,
-    categories: categories.data ?? [],
-    total,
-    pending,
-    balanceSummary,
-  }
+  return getPublicTeam("slug", slug)
 }
 
 export async function getPublicUserSummary(userId: string) {

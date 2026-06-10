@@ -19,12 +19,12 @@ export function PublicPageShell({
   return (
     <div className="min-h-dvh overflow-x-hidden bg-background transition-colors">
       <header className="sticky top-0 z-10 border-b border-border/60 bg-card/30 backdrop-blur-md">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <BrandLogo href="/" size="sm" />
           <ThemeToggle />
         </div>
       </header>
-      <main className="mx-auto max-w-4xl space-y-8 px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6">
         <div className="min-w-0">
           <p className="text-sm text-accent font-medium">Expense Summary</p>
           <h1 className="text-3xl font-bold mt-1">{title}</h1>
@@ -34,7 +34,7 @@ export function PublicPageShell({
           {children}
         </CurrencyProvider>
       </main>
-      <footer className="mx-auto max-w-4xl border-t border-border px-4 py-8 text-center text-xs text-muted-foreground sm:px-6">
+      <footer className="mx-auto max-w-6xl border-t border-border px-4 py-8 text-center text-xs text-muted-foreground sm:px-6">
         © {new Date().getFullYear()} Expensea — Smarter Expense Tracking
       </footer>
     </div>
