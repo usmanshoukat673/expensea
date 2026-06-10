@@ -31,6 +31,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCurrency } from '@/hooks/use-currency';
+import { useUnsavedDialogGuard } from '@/hooks/use-unsaved-changes';
+import { UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
 import { CategorySelector } from '@/components/categories/category-selector';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -71,7 +73,7 @@ export function LunchEntryDialog({
     setValue,
     watch,
     reset,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isDirty },
   } = useForm<LunchEntryInput>({
     resolver: zodResolver(lunchEntrySchema),
     mode: 'onChange',
@@ -192,6 +194,10 @@ export function LunchEntryDialog({
   }, [onOpenChange]);
 
   const toggleParticipant = (id: string) => {
+    setValue('participantIds', participantIds.includes(id) ? participantIds.filter((x) => x !== id) : [...participantIds, id], {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
     setParticipantIds((prev) => {
       if (prev.includes(id)) {
         setParticipantShares((shares) => {
@@ -205,13 +211,19 @@ export function LunchEntryDialog({
     });
   };
 
-  const selectAllParticipants = () => setParticipantIds(members.map((member) => member.user_id));
+  const selectAllParticipants = () => {
+    const ids = members.map((member) => member.user_id);
+    setValue('participantIds', ids, { shouldDirty: true, shouldValidate: true });
+    setParticipantIds(ids);
+  };
   const deselectAllParticipants = () => {
+    setValue('participantIds', [], { shouldDirty: true, shouldValidate: true });
     setParticipantIds([]);
     setParticipantShares({});
   };
 
   const updateParticipantShare = (userId: string, value: string) => {
+    setValue('participantIds', participantIds, { shouldDirty: true, shouldValidate: true });
     setParticipantShares((shares) => ({ ...shares, [userId]: value }));
   };
 
@@ -263,9 +275,20 @@ export function LunchEntryDialog({
   };
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
+  const closeDialog = () => {
+    reset();
+    setParticipantIds([]);
+    setParticipantShares({});
+    setMemberSearch('');
+    onOpenChange(false);
+  };
+  const unsavedGuard = useUnsavedDialogGuard(
+    open && isDirty && !pending,
+    closeDialog,
+  );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => unsavedGuard.requestClose(nextOpen)}>
       <DialogContent className="border-border/80 shadow-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit expense' : 'Add expense'}</DialogTitle>
@@ -273,7 +296,7 @@ export function LunchEntryDialog({
         <form onSubmit={(event) => event.preventDefault()} className="space-y-4">
           <div className="space-y-2">
             <RequiredLabel required>Paid by</RequiredLabel>
-            <Select value={payerId} onValueChange={(v) => setValue('userId', v)}>
+            <Select value={payerId} onValueChange={(v) => setValue('userId', v, { shouldDirty: true, shouldValidate: true })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select member" />
               </SelectTrigger>
@@ -293,7 +316,7 @@ export function LunchEntryDialog({
             <CategorySelector
               categories={categories}
               value={categoryId ?? null}
-              onChange={(id) => setValue('categoryId', id)}
+              onChange={(id) => setValue('categoryId', id, { shouldDirty: true, shouldValidate: true })}
               recentIds={recentCategoryIds}
             />
           </div>
@@ -303,13 +326,13 @@ export function LunchEntryDialog({
             <RadioGroup
               value={assignmentType}
               onValueChange={(value) => {
-                setValue('assignmentType', value as 'team' | 'individual');
+                setValue('assignmentType', value as 'team' | 'individual', { shouldDirty: true, shouldValidate: true });
                 if (value === 'team') {
-                  setValue('assignedUserId', null);
+                  setValue('assignedUserId', null, { shouldDirty: true, shouldValidate: true });
                 } else {
-                  setValue('isShared', false);
-                  setValue('splitType', 'none');
-                  setValue('assignedUserId', assignedUserId || payerId);
+                  setValue('isShared', false, { shouldDirty: true, shouldValidate: true });
+                  setValue('splitType', 'none', { shouldDirty: true, shouldValidate: true });
+                  setValue('assignedUserId', assignedUserId || payerId, { shouldDirty: true, shouldValidate: true });
                   setParticipantIds([]);
                   setParticipantShares({});
                 }
@@ -330,7 +353,7 @@ export function LunchEntryDialog({
                 <RequiredLabel required>Assigned to</RequiredLabel>
                 <Select
                   value={assignedUserId ?? ''}
-                  onValueChange={(v) => setValue('assignedUserId', v)}
+                  onValueChange={(v) => setValue('assignedUserId', v, { shouldDirty: true, shouldValidate: true })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select member" />
@@ -370,8 +393,8 @@ export function LunchEntryDialog({
                 checked={!!isShared}
                 onCheckedChange={(v) => {
                   const checked = !!v;
-                  setValue('isShared', checked);
-                  setValue('splitType', checked ? 'equal' : 'none');
+                  setValue('isShared', checked, { shouldDirty: true, shouldValidate: true });
+                  setValue('splitType', checked ? 'equal' : 'none', { shouldDirty: true, shouldValidate: true });
                   if (checked) selectAllParticipants();
                   else deselectAllParticipants();
                 }}
@@ -389,7 +412,7 @@ export function LunchEntryDialog({
                 <Select
                   value={splitType ?? 'equal'}
                   onValueChange={(v) => {
-                    setValue('splitType', v as 'equal' | 'selected');
+                    setValue('splitType', v as 'equal' | 'selected', { shouldDirty: true, shouldValidate: true });
                     if (v === 'equal') {
                       selectAllParticipants();
                       setParticipantShares({});
@@ -479,7 +502,7 @@ export function LunchEntryDialog({
             <RequiredLabel required>Payment status</RequiredLabel>
             <Select
               value={watch('paymentStatus')}
-              onValueChange={(v) => setValue('paymentStatus', v as 'paid' | 'unpaid')}
+              onValueChange={(v) => setValue('paymentStatus', v as 'paid' | 'unpaid', { shouldDirty: true, shouldValidate: true })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -528,6 +551,11 @@ export function LunchEntryDialog({
           </div>
         </form>
       </DialogContent>
+      <UnsavedChangesDialog
+        open={unsavedGuard.confirmOpen}
+        onOpenChange={unsavedGuard.setConfirmOpen}
+        onDiscard={unsavedGuard.discardChanges}
+      />
     </Dialog>
   );
 }

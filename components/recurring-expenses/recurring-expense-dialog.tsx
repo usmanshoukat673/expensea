@@ -36,6 +36,8 @@ import {
 } from '@/components/ui/select';
 import { CategorySelector } from '@/components/categories/category-selector';
 import { useCurrency } from '@/hooks/use-currency';
+import { useUnsavedDialogGuard } from '@/hooks/use-unsaved-changes';
+import { UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
 
 export function RecurringExpenseDialog({
   categories,
@@ -63,7 +65,7 @@ export function RecurringExpenseDialog({
     setValue,
     watch,
     reset,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isDirty },
   } = useForm<RecurringExpenseInput>({
     resolver: zodResolver(recurringExpenseSchema),
     mode: 'onChange',
@@ -93,6 +95,20 @@ export function RecurringExpenseDialog({
 
   const categoryId = watch('categoryId');
   const frequency = watch('frequency');
+  const resetValues = () => reset({
+    title: recurringExpense?.title ?? '',
+    amount: recurringExpense ? Number(recurringExpense.amount) : 0,
+    categoryId: recurringExpense?.category_id ?? defaultCategory?.id ?? '',
+    frequency: recurringExpense?.frequency ?? 'monthly',
+    intervalValue: recurringExpense?.interval_value ?? 1,
+    startDate: recurringExpense?.start_date ?? defaultStartDate,
+    endDate: recurringExpense?.end_date ?? '',
+  });
+  const closeDialog = () => {
+    resetValues();
+    onOpenChange(false);
+  };
+  const unsavedGuard = useUnsavedDialogGuard(open && isDirty && !pending, closeDialog);
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -128,7 +144,7 @@ export function RecurringExpenseDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => unsavedGuard.requestClose(nextOpen)}>
       <DialogContent className="border-border/80 shadow-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
@@ -149,7 +165,7 @@ export function RecurringExpenseDialog({
             <CategorySelector
               categories={categories}
               value={categoryId}
-              onChange={(id) => setValue('categoryId', id ?? '')}
+              onChange={(id) => setValue('categoryId', id ?? '', { shouldDirty: true, shouldValidate: true })}
             />
             {errors.categoryId && (
               <p className="text-sm text-destructive">{errors.categoryId.message}</p>
@@ -169,7 +185,7 @@ export function RecurringExpenseDialog({
               <Select
                 value={frequency}
                 onValueChange={(v) =>
-                  setValue('frequency', v as RecurringExpenseInput['frequency'])
+                  setValue('frequency', v as RecurringExpenseInput['frequency'], { shouldDirty: true, shouldValidate: true })
                 }
               >
                 <SelectTrigger>
@@ -223,6 +239,11 @@ export function RecurringExpenseDialog({
           </Button>
         </form>
       </DialogContent>
+      <UnsavedChangesDialog
+        open={unsavedGuard.confirmOpen}
+        onOpenChange={unsavedGuard.setConfirmOpen}
+        onDiscard={unsavedGuard.discardChanges}
+      />
     </Dialog>
   );
 }

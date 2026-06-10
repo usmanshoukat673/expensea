@@ -9,6 +9,8 @@ import { createTeamBudget, updateTeamBudget } from '@/lib/actions/team-budgets';
 import { budgetSchema, type BudgetInput } from '@/lib/validations';
 import type { ExpenseCategory, TeamBudget } from '@/lib/database.types';
 import { useCurrency } from '@/hooks/use-currency';
+import { useUnsavedDialogGuard } from '@/hooks/use-unsaved-changes';
+import { UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
 import {
   Dialog,
   DialogContent,
@@ -74,7 +76,7 @@ export function BudgetDialog({
     setValue,
     watch,
     reset,
-    formState: { errors, isValid },
+    formState: { errors, isValid, isDirty },
   } = useForm<BudgetInput>({
     resolver: zodResolver(budgetSchema),
     mode: 'onChange',
@@ -87,6 +89,11 @@ export function BudgetDialog({
   }, [budget, open, reset]);
 
   const budgetType = watch('type');
+  const closeDialog = () => {
+    reset(budgetToForm(budget));
+    onOpenChange(false);
+  };
+  const unsavedGuard = useUnsavedDialogGuard(open && isDirty && !pending, closeDialog);
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -110,7 +117,7 @@ export function BudgetDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => unsavedGuard.requestClose(nextOpen)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit budget' : 'Create budget'}</DialogTitle>
@@ -121,8 +128,8 @@ export function BudgetDialog({
             <Select
               value={budgetType}
               onValueChange={(v: 'monthly' | 'category') => {
-                setValue('type', v);
-                if (v === 'monthly') setValue('categoryId', null);
+                setValue('type', v, { shouldDirty: true, shouldValidate: true });
+                if (v === 'monthly') setValue('categoryId', null, { shouldDirty: true, shouldValidate: true });
               }}
               disabled={isEdit}
             >
@@ -141,7 +148,7 @@ export function BudgetDialog({
               <RequiredLabel required>Category</RequiredLabel>
               <Select
                 value={watch('categoryId') ?? ''}
-                onValueChange={(v) => setValue('categoryId', v)}
+                onValueChange={(v) => setValue('categoryId', v, { shouldDirty: true, shouldValidate: true })}
                 disabled={isEdit}
               >
                 <SelectTrigger>
@@ -182,7 +189,7 @@ export function BudgetDialog({
             <RequiredLabel required>Month</RequiredLabel>
             <Select
               value={watch('month') ?? 'recurring'}
-              onValueChange={(v) => setValue('month', v)}
+              onValueChange={(v) => setValue('month', v, { shouldDirty: true, shouldValidate: true })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -208,6 +215,11 @@ export function BudgetDialog({
           </Button>
         </form>
       </DialogContent>
+      <UnsavedChangesDialog
+        open={unsavedGuard.confirmOpen}
+        onOpenChange={unsavedGuard.setConfirmOpen}
+        onDiscard={unsavedGuard.discardChanges}
+      />
     </Dialog>
   );
 }

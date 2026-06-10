@@ -384,6 +384,7 @@ export async function updateTeamSettings(formData: FormData): Promise<ActionResu
   const showCategoryAnalyticsOnPublic = formData.get('showCategoryAnalyticsOnPublic') === 'on';
   const currency = normalizeCurrencyCode(String(formData.get('currency') ?? 'PKR'));
   const brandName = String(formData.get('brandName') ?? '').trim() || null;
+  const logoUrl = String(formData.get('logoUrl') ?? '').trim() || null;
   if (name.length < 2) return { error: 'Team name is required' };
 
   const supabase = await createClient();
@@ -394,6 +395,7 @@ export async function updateTeamSettings(formData: FormData): Promise<ActionResu
       is_public: isPublic,
       currency,
       brand_name: brandName,
+      logo_url: logoUrl,
       show_balances_on_public: showBalancesOnPublic,
       show_category_analytics_on_public: showCategoryAnalyticsOnPublic,
     })
@@ -412,6 +414,7 @@ export async function updateTeamSettings(formData: FormData): Promise<ActionResu
       isPublic,
       currency,
       brandName,
+      logoUrl,
       showBalancesOnPublic,
       showCategoryAnalyticsOnPublic,
     },

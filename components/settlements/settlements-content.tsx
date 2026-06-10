@@ -28,6 +28,7 @@ import type { DateRangeValue } from '@/lib/date-ranges';
 import { DateRangeFilter } from '@/components/filters/date-range-filter';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 type MemberName = { userId: string; name: string };
 
@@ -63,6 +64,7 @@ export function SettlementsContent({
   const [items, setItems] = useState(settlements);
   const [pending, startTransition] = useTransition();
   const [actionKey, setActionKey] = useState<string | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
 
   useEffect(() => {
     setItems(settlements);
@@ -277,6 +279,7 @@ export function SettlementsContent({
             pending={pending}
             actionKey={actionKey}
             onMark={markStatus}
+            onCancelRequest={setCancelId}
           />
         </TabsContent>
         <TabsContent value="completed" className="mt-4">
@@ -296,6 +299,7 @@ export function SettlementsContent({
             pending={pending}
             actionKey={actionKey}
             onMark={markStatus}
+            onCancelRequest={setCancelId}
           />
         </TabsContent>
       </Tabs>
@@ -323,6 +327,22 @@ export function SettlementsContent({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+      <ConfirmationDialog
+        open={!!cancelId}
+        onOpenChange={(open) => {
+          if (!open) setCancelId(null);
+        }}
+        title="Cancel settlement?"
+        description="This settlement will be marked cancelled and removed from pending settlement totals."
+        confirmLabel="Cancel settlement"
+        loadingLabel="Cancelling..."
+        pending={pending && !!cancelId}
+        onConfirm={() => {
+          if (!cancelId) return;
+          markStatus(cancelId, 'cancelled');
+          setCancelId(null);
+        }}
+      />
     </div>
   );
 }
@@ -334,6 +354,7 @@ function SettlementTable({
   pending,
   actionKey,
   onMark,
+  onCancelRequest,
 }: {
   rows: SettlementWithProfiles[];
   format: (n: number) => string;
@@ -341,6 +362,7 @@ function SettlementTable({
   pending: boolean;
   actionKey?: string | null;
   onMark?: (id: string, status: 'completed' | 'cancelled') => void;
+  onCancelRequest?: (id: string) => void;
 }) {
   if (!rows.length) {
     return (
@@ -395,7 +417,7 @@ function SettlementTable({
                     disabled={pending && actionKey !== `cancelled:${s.id}`}
                     isLoading={actionKey === `cancelled:${s.id}`}
                     loadingText="Cancelling..."
-                    onClick={() => onMark(s.id, 'cancelled')}
+                    onClick={() => onCancelRequest?.(s.id)}
                   >
                     Cancel
                   </Button>

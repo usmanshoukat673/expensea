@@ -61,7 +61,7 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
   const monthStart = range?.from ?? getMonthStart(now)
   const monthEnd = range?.to ?? getMonthEnd(monthStart)
 
-  const [entriesRes, rangeEntriesRes, membersRes, activityRes] =
+  const [entriesRes, rangeEntriesRes, workflowRowsRes, membersRes, activityRes] =
     await Promise.all([
       supabase
         .from("lunch_entries")
@@ -79,6 +79,12 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
         .gte("lunch_date", monthStart)
         .lte("lunch_date", monthEnd)
         .order("lunch_date", { ascending: true }),
+      supabase
+        .from("lunch_entries")
+        .select("amount, lunch_date, approval_status, reimbursement_status, amount_reimbursed, user_id, assigned_user_id, submitted_by")
+        .eq("team_id", teamId)
+        .gte("lunch_date", monthStart)
+        .lte("lunch_date", monthEnd),
       supabase.from("team_members").select("*").eq("team_id", teamId),
       supabase
         .from("activity_logs")
@@ -96,9 +102,10 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
   ])
 
   const rangeEntries = rangeEntriesRes.data ?? []
-  const pendingApprovals = entriesRaw.filter((e) => e.approval_status === "pending_approval").length
+  const workflowRows = workflowRowsRes.data ?? []
+  const pendingApprovals = workflowRows.filter((e) => e.approval_status === "pending_approval").length
   const approvedThisMonth = rangeEntries.length
-  const rejectedExpenses = entriesRaw.filter((e) => e.approval_status === "rejected").length
+  const rejectedExpenses = workflowRows.filter((e) => e.approval_status === "rejected").length
   const reimbursementsOutstanding = rangeEntries
     .filter((e) => e.reimbursement_status !== "fully_reimbursed")
     .reduce((s, r) => s + Math.max(0, Number(r.amount) - Number((r as { amount_reimbursed?: number }).amount_reimbursed ?? 0)), 0)
@@ -193,6 +200,12 @@ export async function getDashboardData(teamId: string, range?: Pick<DateRangeVal
     leaderboard,
     mostActiveMembers,
     highestAssignedExpenses,
+    personalPendingApprovals: userId
+      ? workflowRows.filter((entry) =>
+          entry.approval_status === "pending_approval" &&
+          (entry.user_id === userId || entry.assigned_user_id === userId || entry.submitted_by === userId),
+        ).length
+      : 0,
   }
 }
 

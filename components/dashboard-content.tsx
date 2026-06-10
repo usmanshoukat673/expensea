@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import dynamic from "next/dynamic"
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { format as formatDate, formatDistanceToNow, parseISO } from "date-fns"
 import { motion } from "framer-motion"
+import { toast } from "sonner"
 import {
   ArrowDown,
   ArrowDownLeft,
@@ -192,6 +193,7 @@ export function DashboardContent(props: DashboardProps) {
   const [renameValue, setRenameValue] = useState("")
   const [importValue, setImportValue] = useState("")
   const [dragging, setDragging] = useState<DashboardWidgetId | null>(null)
+  const [dragOverWidget, setDragOverWidget] = useState<DashboardWidgetId | null>(null)
 
   const hiddenSet = useMemo(() => new Set(hidden), [hidden])
   const filters: DashboardFilters = {
@@ -200,9 +202,24 @@ export function DashboardContent(props: DashboardProps) {
     to: props.dateRange.to,
   }
 
+  useEffect(() => {
+    setOrder(props.customization.preference.layout.widgets)
+    setHidden(props.customization.preference.hiddenWidgets)
+    setPinned(props.customization.preference.pinnedWidgets)
+    setActiveViewId(props.customization.preference.defaultViewId ?? "")
+  }, [
+    props.customization.preference.defaultViewId,
+    props.customization.preference.hiddenWidgets,
+    props.customization.preference.layout.widgets,
+    props.customization.preference.pinnedWidgets,
+  ])
+
   const persist = (nextOrder = order, nextHidden = hidden, nextPinned = pinned) => {
-    startTransition(() => {
-      saveDashboardPreference({ widgets: nextOrder, hiddenWidgets: nextHidden, pinnedWidgets: nextPinned })
+    startTransition(async () => {
+      const result = await saveDashboardPreference({ widgets: nextOrder, hiddenWidgets: nextHidden, pinnedWidgets: nextPinned })
+      if (result?.error) {
+        toast.error(result.error)
+      }
     })
   }
 
@@ -218,6 +235,11 @@ export function DashboardContent(props: DashboardProps) {
   const updateOrder = (nextOrder: DashboardWidgetId[]) => {
     setOrder(nextOrder)
     persist(nextOrder, hidden, pinned)
+  }
+
+  const moveWidget = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return
+    updateOrder(moveItem(order, from, to))
   }
 
   const updateHidden = (widget: DashboardWidgetId, visible: boolean) => {
@@ -388,31 +410,51 @@ export function DashboardContent(props: DashboardProps) {
           hiddenSet.has(widget) ? null : (
             <section
               key={widget}
-              draggable
-              onDragStart={() => setDragging(widget)}
-              onDragOver={(event) => event.preventDefault()}
+              onDragOver={(event) => {
+                if (!dragging) return
+                event.preventDefault()
+                setDragOverWidget(widget)
+              }}
+              onDragLeave={() => setDragOverWidget((current) => (current === widget ? null : current))}
               onDrop={() => {
                 if (!dragging || dragging === widget) return
-                updateOrder(moveItem(order, order.indexOf(dragging), index))
+                moveWidget(order.indexOf(dragging), index)
                 setDragging(null)
+                setDragOverWidget(null)
               }}
-              className="group rounded-lg outline-none transition-all"
+              className={`group rounded-lg outline-none transition-all ${dragOverWidget === widget ? "bg-accent/10 ring-2 ring-accent/40" : ""}`}
             >
-              <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground opacity-70 transition-opacity group-hover:opacity-100">
-                <span className="inline-flex items-center gap-2">
-                  <GripVertical className="size-4 cursor-grab" />
+              <div className="mb-2 flex items-center justify-between gap-2 rounded-md border border-transparent px-1 py-1 text-xs text-muted-foreground transition-colors group-hover:border-border group-hover:bg-muted/40">
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  <button
+                    type="button"
+                    draggable
+                    aria-label={`Drag ${WIDGET_LABELS[widget]} widget`}
+                    className="flex size-9 touch-none items-center justify-center rounded-md border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-accent/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move"
+                      event.dataTransfer.setData("text/plain", widget)
+                      setDragging(widget)
+                    }}
+                    onDragEnd={() => {
+                      setDragging(null)
+                      setDragOverWidget(null)
+                    }}
+                  >
+                    <GripVertical className="size-4" />
+                  </button>
                   {WIDGET_LABELS[widget]}
                 </span>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="size-7" disabled={index === 0} onClick={() => updateOrder(moveItem(order, index, index - 1))}>
+                  <Button variant="ghost" size="icon" className="size-8" disabled={index === 0} onClick={() => moveWidget(index, index - 1)}>
                     <ArrowUp className="size-3.5" />
                     <span className="sr-only">Move up</span>
                   </Button>
-                  <Button variant="ghost" size="icon" className="size-7" disabled={index === order.length - 1} onClick={() => updateOrder(moveItem(order, index, index + 1))}>
+                  <Button variant="ghost" size="icon" className="size-8" disabled={index === order.length - 1} onClick={() => moveWidget(index, index + 1)}>
                     <ArrowDown className="size-3.5" />
                     <span className="sr-only">Move down</span>
                   </Button>
-                  <Button variant="ghost" size="icon" className="size-7" onClick={() => updateHidden(widget, false)}>
+                  <Button variant="ghost" size="icon" className="size-8" onClick={() => updateHidden(widget, false)}>
                     <EyeOff className="size-3.5" />
                     <span className="sr-only">Hide widget</span>
                   </Button>

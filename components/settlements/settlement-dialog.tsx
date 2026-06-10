@@ -25,6 +25,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCurrency } from '@/hooks/use-currency';
+import { useUnsavedDialogGuard } from '@/hooks/use-unsaved-changes';
+import { UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
 
 export function SettlementDialog({
   members,
@@ -49,7 +51,7 @@ export function SettlementDialog({
     [members],
   );
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<SettlementFormInput>({
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid, isDirty } } = useForm<SettlementFormInput>({
     resolver: zodResolver(settlementSchema),
     mode: 'onChange',
     defaultValues,
@@ -58,6 +60,11 @@ export function SettlementDialog({
   useEffect(() => {
     if (open) reset(defaultValues);
   }, [defaultValues, open, reset]);
+  const closeDialog = () => {
+    reset(defaultValues);
+    onOpenChange(false);
+  };
+  const unsavedGuard = useUnsavedDialogGuard(open && isDirty && !pending, closeDialog);
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -78,7 +85,7 @@ export function SettlementDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => unsavedGuard.requestClose(nextOpen)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Record settlement</DialogTitle>
@@ -86,7 +93,7 @@ export function SettlementDialog({
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <RequiredLabel required>Who paid</RequiredLabel>
-            <Select value={watch('payerUserId')} onValueChange={(v) => setValue('payerUserId', v)}>
+            <Select value={watch('payerUserId')} onValueChange={(v) => setValue('payerUserId', v, { shouldDirty: true, shouldValidate: true })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {members.map((m) => (
@@ -97,7 +104,7 @@ export function SettlementDialog({
           </div>
           <div className="space-y-2">
             <RequiredLabel required>Who receives</RequiredLabel>
-            <Select value={watch('receiverUserId')} onValueChange={(v) => setValue('receiverUserId', v)}>
+            <Select value={watch('receiverUserId')} onValueChange={(v) => setValue('receiverUserId', v, { shouldDirty: true, shouldValidate: true })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {members.map((m) => (
@@ -124,6 +131,11 @@ export function SettlementDialog({
           </Button>
         </form>
       </DialogContent>
+      <UnsavedChangesDialog
+        open={unsavedGuard.confirmOpen}
+        onOpenChange={unsavedGuard.setConfirmOpen}
+        onDiscard={unsavedGuard.discardChanges}
+      />
     </Dialog>
   );
 }

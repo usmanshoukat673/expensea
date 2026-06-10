@@ -10,9 +10,11 @@ import { RequiredLabel } from '@/components/ui/required-label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemePreference } from '@/components/settings/theme-preference';
 import { CurrencyPreference } from '@/components/settings/currency-preference';
+import { useFormDirtyState } from '@/hooks/use-unsaved-changes';
 
 export function ProfileSettingsForm({ profile }: { profile: Profile }) {
   const [pending, startTransition] = useTransition();
+  const { formRef, resetDirtyState, updateDirtyState, setIsDirty } = useFormDirtyState<HTMLFormElement>();
 
   return (
     <Card className="h-full">
@@ -23,11 +25,17 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
       <CardContent>
         <div className="space-y-6">
         <form
+          ref={formRef}
+          onChange={updateDirtyState}
           action={(fd) =>
             startTransition(async () => {
               const r = await updateProfile(fd);
               if (r?.error) toast.error(r.error);
-              else toast.success('Profile updated successfully.');
+              else {
+                setIsDirty(false);
+                resetDirtyState();
+                toast.success('Profile updated successfully.');
+              }
             })
           }
           className="space-y-4"

@@ -8,6 +8,8 @@ import { createExpenseCategory, updateExpenseCategory } from '@/lib/actions/expe
 import { categorySchema, type CategoryInput } from '@/lib/validations';
 import type { ExpenseCategory } from '@/lib/database.types';
 import { CATEGORY_ICON_OPTIONS, getCategoryIcon } from '@/lib/categories/icons';
+import { useUnsavedDialogGuard } from '@/hooks/use-unsaved-changes';
+import { UnsavedChangesDialog } from '@/components/ui/confirmation-dialog';
 import {
   Dialog,
   DialogContent,
@@ -45,7 +47,7 @@ export function CategoryDialog({
   const [pending, startTransition] = useTransition();
   const isEdit = !!category;
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<CategoryInput>({
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid, isDirty } } = useForm<CategoryInput>({
     resolver: zodResolver(categorySchema),
     mode: 'onChange',
     defaultValues: EMPTY_CATEGORY_VALUES,
@@ -68,6 +70,17 @@ export function CategoryDialog({
   const iconName = watch('icon');
   const color = watch('color');
   const PreviewIcon = getCategoryIcon(iconName);
+  const resetValues = () => reset(category ? {
+    name: category.name,
+    icon: category.icon,
+    color: category.color,
+    description: category.description ?? '',
+  } : EMPTY_CATEGORY_VALUES);
+  const closeDialog = () => {
+    resetValues();
+    onOpenChange(false);
+  };
+  const unsavedGuard = useUnsavedDialogGuard(open && isDirty && !pending, closeDialog);
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -89,7 +102,7 @@ export function CategoryDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(nextOpen) => unsavedGuard.requestClose(nextOpen)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit category' : 'Add category'}</DialogTitle>
@@ -108,7 +121,7 @@ export function CategoryDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <RequiredLabel required>Icon</RequiredLabel>
-              <Select value={iconName} onValueChange={(v) => setValue('icon', v)}>
+              <Select value={iconName} onValueChange={(v) => setValue('icon', v, { shouldDirty: true, shouldValidate: true })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {CATEGORY_ICON_OPTIONS.map((i) => (
@@ -137,6 +150,11 @@ export function CategoryDialog({
           </Button>
         </form>
       </DialogContent>
+      <UnsavedChangesDialog
+        open={unsavedGuard.confirmOpen}
+        onOpenChange={unsavedGuard.setConfirmOpen}
+        onDiscard={unsavedGuard.discardChanges}
+      />
     </Dialog>
   );
 }

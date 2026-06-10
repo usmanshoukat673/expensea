@@ -55,7 +55,7 @@ export default async function DashboardPage({
         monthlyExpenses: myEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
         assignedExpenses: myAssignedEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
         settlements: balance.personal.youOwe + balance.personal.youReceive,
-        pendingApprovals: myEntries.filter((entry) => (entry as { approval_status?: string }).approval_status === "pending_approval").length,
+        pendingApprovals: data.personalPendingApprovals,
         budgetImpact: myEntries.reduce((sum, entry) => sum + Number(entry.amount), 0),
       }}
       balance={{

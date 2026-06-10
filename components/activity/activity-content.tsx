@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import {
   Bell,
   BookOpen,
@@ -26,6 +26,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-states';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 type ActivityRow = ActivityLog & {
   profiles?: { full_name: string | null; avatar_url?: string | null } | null;
@@ -102,6 +103,7 @@ export function ActivityContent({
 }) {
   const router = useRouter();
   const [activity, setActivity] = useState(initialActivity);
+  const [selectedActivity, setSelectedActivity] = useState<ActivityRow | null>(null);
   const [query, setQuery] = useState(search);
   const [typeDraft, setTypeDraft] = useState(activeType);
   const pages = Math.max(1, Math.ceil(total / limit));
@@ -233,9 +235,11 @@ export function ActivityContent({
               {filteredActivity.map((item, index) => {
                 const Icon = iconMap[item.entity_type as keyof typeof iconMap] ?? Bell;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={item.id}
-                    className="relative flex gap-3 px-4 py-4 transition-colors hover:bg-accent/10 dark:hover:bg-muted/50 sm:px-6"
+                    onClick={() => setSelectedActivity(item)}
+                    className="relative flex w-full gap-3 px-4 py-4 text-left transition-colors hover:bg-accent/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-muted/50 sm:px-6"
                   >
                     {index !== filteredActivity.length - 1 && (
                       <span className="absolute left-[34px] top-12 h-[calc(100%-2.25rem)] w-px bg-border sm:left-[42px]" />
@@ -261,7 +265,7 @@ export function ActivityContent({
                         {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -290,6 +294,106 @@ export function ActivityContent({
           </Button>
         </div>
       )}
+      <ActivityDetailSheet
+        activity={selectedActivity}
+        open={!!selectedActivity}
+        onOpenChange={(open) => {
+          if (!open) setSelectedActivity(null);
+        }}
+      />
+    </div>
+  );
+}
+
+function ActivityDetailSheet({
+  activity,
+  open,
+  onOpenChange,
+}: {
+  activity: ActivityRow | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const metadata = activity?.metadata ?? {};
+  const metadataEntries = Object.entries(metadata).filter(([, value]) => value != null && value !== '');
+  const beforeAfter = metadataEntries.filter(([key, value]) => {
+    if (key.toLowerCase().includes('before') || key.toLowerCase().includes('after')) return true;
+    return typeof value === 'object' && value != null && ('before' in value || 'after' in value);
+  });
+  const otherMetadata = metadataEntries.filter(([key]) => !beforeAfter.some(([beforeAfterKey]) => beforeAfterKey === key));
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle>Activity details</SheetTitle>
+          <SheetDescription>
+            {activity ? format(new Date(activity.created_at), 'PPpp') : 'Audit event details'}
+          </SheetDescription>
+        </SheetHeader>
+        {activity && (
+          <div className="space-y-5 px-4 pb-6">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-sm font-medium">{activity.description ?? activity.message}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <StatusBadge status={actionStatus(activity.action_type)} />
+                <Badge variant="outline" className="capitalize">{activity.entity_type}</Badge>
+              </div>
+            </div>
+            <DetailRows
+              rows={[
+                ['User', activity.profiles?.full_name ?? 'System'],
+                ['Date / time', format(new Date(activity.created_at), 'PPpp')],
+                ['Related entity', activity.entity_id ?? 'Not linked'],
+                ['Action performed', activity.action_type.replace(/_/g, ' ')],
+                ['Team event', activity.team_id],
+              ]}
+            />
+            {beforeAfter.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Before / after values</p>
+                <MetadataList entries={beforeAfter} />
+              </div>
+            )}
+            {otherMetadata.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Relevant values</p>
+                <MetadataList entries={otherMetadata} />
+              </div>
+            )}
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DetailRows({ rows }: { rows: [string, string][] }) {
+  return (
+    <div className="divide-y divide-border rounded-lg border border-border">
+      {rows.map(([label, value]) => (
+        <div key={label} className="grid gap-1 px-3 py-2 text-sm sm:grid-cols-[120px_1fr]">
+          <span className="text-muted-foreground">{label}</span>
+          <span className="min-w-0 break-words font-medium">{value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MetadataList({ entries }: { entries: [string, unknown][] }) {
+  return (
+    <div className="space-y-2">
+      {entries.map(([key, value]) => (
+        <div key={key} className="rounded-lg border border-border bg-muted/20 p-3">
+          <p className="text-xs font-medium uppercase text-muted-foreground">{key.replace(/_/g, ' ')}</p>
+          <pre className="mt-1 whitespace-pre-wrap break-words text-xs text-foreground">
+            {typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+              ? String(value)
+              : JSON.stringify(value, null, 2)}
+          </pre>
+        </div>
+      ))}
     </div>
   );
 }
