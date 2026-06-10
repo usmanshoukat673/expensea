@@ -62,7 +62,7 @@ export function CurrencyProvider({
           router.refresh();
           return;
         }
-        toast.success('Currency updated');
+        toast.success('Currency updated successfully.');
         router.refresh();
       });
     },

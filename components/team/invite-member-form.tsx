@@ -51,7 +51,8 @@ export function InviteMemberForm() {
       const result = await sendEmailInvite(fd);
       if (result?.error) toast.error(result.error);
       else {
-        toast.success('Email invitation created');
+        toast.success('Email invitation created successfully.');
+        setExpiry('7d');
         reset({ email: '', role: 'viewer' });
       }
     });

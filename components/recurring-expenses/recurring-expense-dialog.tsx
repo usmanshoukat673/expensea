@@ -80,6 +80,7 @@ export function RecurringExpenseDialog({
   });
 
   useEffect(() => {
+    if (!open) return;
     reset({
       title: recurringExpense?.title ?? '',
       amount: recurringExpense ? Number(recurringExpense.amount) : 0,
@@ -89,7 +90,7 @@ export function RecurringExpenseDialog({
       startDate: recurringExpense?.start_date ?? defaultStartDate,
       endDate: recurringExpense?.end_date ?? '',
     });
-  }, [recurringExpense, reset, defaultCategory?.id, defaultStartDate]);
+  }, [recurringExpense, open, reset, defaultCategory?.id, defaultStartDate]);
 
   const categoryId = watch('categoryId');
   const frequency = watch('frequency');
@@ -111,8 +112,17 @@ export function RecurringExpenseDialog({
 
       if (result?.error) toast.error(result.error);
       else {
-        toast.success(isEdit ? 'Recurring expense updated' : 'Recurring expense created');
+        toast.success(isEdit ? 'Recurring expense updated successfully.' : 'Recurring expense created successfully.');
         onOpenChange(false);
+        reset({
+          title: '',
+          amount: 0,
+          categoryId: defaultCategory?.id ?? '',
+          frequency: 'monthly',
+          intervalValue: 1,
+          startDate: defaultStartDate,
+          endDate: '',
+        });
         router.refresh();
       }
     });

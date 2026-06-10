@@ -46,7 +46,7 @@ function formatNumber(amount: number, locale: string): string {
   }).format(amount);
 }
 
-/** Display: Rs 1,500 · $200 · €90 */
+/** Display: PKR 1,500 · $200 · €90 */
 export function formatCurrencyAmount(amount: number, code?: string | null): string {
   const currency = getCurrency(code);
   const value = formatNumber(amount, currency.locale);
@@ -58,7 +58,7 @@ export function formatCurrencyAmount(amount: number, code?: string | null): stri
     case 'INR':
       return `${currency.symbol}${value}`;
     case 'PKR':
-      return `${currency.symbol} ${value}`;
+      return `${currency.code} ${value}`;
     case 'AED':
     case 'SAR':
       return `${currency.symbol} ${value}`;

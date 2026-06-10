@@ -105,6 +105,16 @@ export function BudgetsContent({
     setCategoryFilter('all');
   };
 
+  const openCreateDialog = () => {
+    setEdit(null);
+    setOpen(true);
+  };
+
+  const handleOpenChange = (value: boolean) => {
+    setOpen(value);
+    if (!value) setEdit(null);
+  };
+
   const monthLabel = format(new Date(monthStart), 'MMMM yyyy');
 
   return (
@@ -119,7 +129,7 @@ export function BudgetsContent({
         <div className="flex flex-col gap-2 sm:items-end">
           <DateRangeFilter range={dateRange} />
           {canEdit && (
-            <Button onClick={() => { setEdit(null); setOpen(true); }}>
+            <Button onClick={openCreateDialog}>
               <Plus className="size-4" />
               Create budget
             </Button>
@@ -186,7 +196,7 @@ export function BudgetsContent({
           title="No budgets"
           description="Set monthly or category budgets to control team spending."
           actionLabel={canEdit ? 'Create budget' : undefined}
-          onAction={canEdit ? () => setOpen(true) : undefined}
+          onAction={canEdit ? openCreateDialog : undefined}
         />
       ) : (
         <>
@@ -303,7 +313,7 @@ export function BudgetsContent({
                                       startTransition(async () => {
                                         const r = await deleteTeamBudget(b.id);
                                         if (r?.error) toast.error(r.error);
-                                        else toast.success('Budget deleted');
+                                        else toast.success('Budget deleted successfully.');
                                       })
                                     }
                                   >
@@ -382,7 +392,7 @@ export function BudgetsContent({
                             startTransition(async () => {
                               const r = await deleteTeamBudget(b.id);
                               if (r?.error) toast.error(r.error);
-                              else toast.success('Budget deleted');
+                              else toast.success('Budget deleted successfully.');
                             })
                           }
                         >
@@ -402,7 +412,7 @@ export function BudgetsContent({
         budget={edit}
         categories={categories}
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={handleOpenChange}
       />
     </div>
   );

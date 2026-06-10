@@ -27,6 +27,13 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 
+const EMPTY_CATEGORY_VALUES: CategoryInput = {
+  name: '',
+  icon: 'circle',
+  color: '#6366f1',
+  description: '',
+};
+
 export function CategoryDialog({
   category,
   open,
@@ -42,15 +49,11 @@ export function CategoryDialog({
   const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<CategoryInput>({
     resolver: zodResolver(categorySchema),
     mode: 'onChange',
-    defaultValues: {
-      name: category?.name ?? '',
-      icon: category?.icon ?? 'circle',
-      color: category?.color ?? '#6366f1',
-      description: category?.description ?? '',
-    },
+    defaultValues: EMPTY_CATEGORY_VALUES,
   });
 
   useEffect(() => {
+    if (!open) return;
     if (category) {
       reset({
         name: category.name,
@@ -58,8 +61,10 @@ export function CategoryDialog({
         color: category.color,
         description: category.description ?? '',
       });
+    } else {
+      reset(EMPTY_CATEGORY_VALUES);
     }
-  }, [category, reset]);
+  }, [category, open, reset]);
 
   const iconName = watch('icon');
   const color = watch('color');
@@ -77,9 +82,9 @@ export function CategoryDialog({
         : await createExpenseCategory(fd);
       if (result?.error) toast.error(result.error);
       else {
-        toast.success(isEdit ? 'Category updated' : 'Category created');
+        toast.success(isEdit ? 'Category updated successfully.' : 'Category created successfully.');
         onOpenChange(false);
-        reset();
+        reset(EMPTY_CATEGORY_VALUES);
       }
     });
   });

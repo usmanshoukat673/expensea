@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { sendEmailInvite } from '@/lib/actions/team-invites';
 import { addMemberByEmail } from '@/lib/actions/teams';
@@ -33,6 +33,19 @@ export function InviteMemberDialog() {
   const [role, setRole] = useState<'admin' | 'viewer'>('viewer');
   const [expiry, setExpiry] = useState<InviteExpiryOption>('7d');
   const [open, setOpen] = useState(false);
+  const inviteFormRef = useRef<HTMLFormElement>(null);
+  const manualFormRef = useRef<HTMLFormElement>(null);
+
+  const resetDialogState = useCallback(() => {
+    inviteFormRef.current?.reset();
+    manualFormRef.current?.reset();
+    setRole('viewer');
+    setExpiry('7d');
+  }, []);
+
+  useEffect(() => {
+    if (open) resetDialogState();
+  }, [open, resetDialogState]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -58,6 +71,7 @@ export function InviteMemberDialog() {
           </TabsList>
           <TabsContent value="invite" className="space-y-4 pt-2">
             <form
+              ref={inviteFormRef}
               className="space-y-4"
               action={(fd) =>
                 startTransition(async () => {
@@ -65,7 +79,10 @@ export function InviteMemberDialog() {
                   fd.set('expiry', expiry);
                   const r = await sendEmailInvite(fd);
                   if (r?.error) toast.error(r.error);
-                  else toast.success('Email invitation created');
+                  else {
+                    toast.success('Email invitation created successfully.');
+                    resetDialogState();
+                  }
                 })
               }
             >
@@ -120,13 +137,15 @@ export function InviteMemberDialog() {
           </TabsContent>
           <TabsContent value="manual">
             <form
+              ref={manualFormRef}
               className="space-y-4 pt-2"
               action={(fd) =>
                 startTransition(async () => {
                   const r = await addMemberByEmail(fd);
                   if (r?.error) toast.error(r.error);
                   else {
-                    toast.success('Member added');
+                    toast.success('Member added successfully.');
+                    resetDialogState();
                     setOpen(false);
                   }
                 })

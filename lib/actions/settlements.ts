@@ -6,6 +6,7 @@ import { requireTeam, canEdit } from '@/lib/auth/session';
 import { settlementSchema } from '@/lib/validations';
 import { notifyTeamMembers } from '@/lib/notifications';
 import { recordActivity } from '@/lib/activity';
+import { formatCurrencyAmount } from '@/lib/currency';
 
 export type ActionResult = { error?: string; success?: boolean };
 
@@ -18,7 +19,7 @@ function revalidateSettlementSurfaces() {
 }
 
 function formatSettlementAmount(amount: number | string | null | undefined) {
-  return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
+  return formatCurrencyAmount(Number(amount ?? 0));
 }
 
 async function validateSettlementMembers(

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useMemo, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -39,17 +39,26 @@ export function SettlementDialog({
   const [pending, startTransition] = useTransition();
   const { currency } = useCurrency();
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isValid } } = useForm<SettlementFormInput>({
-    resolver: zodResolver(settlementSchema),
-    mode: 'onChange',
-    defaultValues: {
+  const defaultValues = useMemo<SettlementFormInput>(
+    () => ({
       payerUserId: members[0]?.userId ?? '',
       receiverUserId: members[1]?.userId ?? members[0]?.userId ?? '',
       amount: 0,
       note: '',
       proofUrl: '',
-    },
+    }),
+    [members],
+  );
+
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isValid } } = useForm<SettlementFormInput>({
+    resolver: zodResolver(settlementSchema),
+    mode: 'onChange',
+    defaultValues,
   });
+
+  useEffect(() => {
+    if (open) reset(defaultValues);
+  }, [defaultValues, open, reset]);
 
   const onSubmit = handleSubmit((data) => {
     const fd = new FormData();
@@ -62,7 +71,8 @@ export function SettlementDialog({
       const r = await createSettlement(fd);
       if (r?.error) toast.error(r.error);
       else {
-        toast.success('Settlement recorded');
+        toast.success('Settlement recorded successfully.');
+        reset(defaultValues);
         onOpenChange(false);
       }
     });

@@ -8,6 +8,7 @@ import { notifyTeamMembers } from '@/lib/notifications';
 import { recordActivity } from '@/lib/activity';
 import { notifyBudgetThresholds } from '@/lib/budget-alerts';
 import { FINANCIAL_AMOUNT_MAX } from '@/lib/financial-input';
+import { formatCurrencyAmount } from '@/lib/currency';
 
 export type ActionResult = { error?: string; success?: boolean };
 
@@ -61,7 +62,7 @@ function parseParticipantShares(formData: FormData): Record<string, number> {
 }
 
 function formatExpenseAmount(amount: number | string | null | undefined) {
-  return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
+  return formatCurrencyAmount(Number(amount ?? 0));
 }
 
 function actorLabel(session: Awaited<ReturnType<typeof requireTeam>>) {
