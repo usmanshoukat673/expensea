@@ -48,6 +48,17 @@ type ParticipantInsert = {
   share_amount: number;
 };
 
+function splitAmountIntoCents(amount: number, count: number): number[] {
+  if (count <= 0) return [];
+  const cents = Math.round(amount * 100);
+  const base = Math.trunc(cents / count);
+  const remainder = cents - base * count;
+
+  return Array.from({ length: count }, (_, index) =>
+    (base + (index < remainder ? 1 : 0)) / 100,
+  );
+}
+
 export async function seedDemoExpenses(
   admin: SeedAdmin,
   users: UserMap,
@@ -172,9 +183,13 @@ export async function seedDemoExpenses(
     if (!ctx) continue;
 
     if (row.split_type === 'equal') {
-      const share = Math.round((row.amount / ctx.memberIds.length) * 100) / 100;
-      for (const uid of ctx.memberIds) {
-        participants.push({ entry_id: id, user_id: uid, share_amount: share });
+      const shares = splitAmountIntoCents(row.amount, ctx.memberIds.length);
+      for (let i = 0; i < ctx.memberIds.length; i++) {
+        participants.push({
+          entry_id: id,
+          user_id: ctx.memberIds[i],
+          share_amount: shares[i] ?? 0,
+        });
       }
       continue;
     }

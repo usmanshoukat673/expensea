@@ -13,13 +13,6 @@ Apply migrations in `supabase/migrations/` in filename order. The current requir
 017_disable_auth_auto_profile_provisioning.sql
 ```
 
-Migration `012_expense_approvals_reimbursements.sql` introduces the approval and reimbursement workflow and updates summary behavior so only approved financial rows are aggregated.
-Migration `013_notifications_activity_center.sql` completes the notifications and activity center schema with deep links, archive/read state, search indexes, compatibility triggers, and normalized activity descriptions.
-Migration `014_dashboard_customization_saved_views.sql` adds team-aware dashboard preferences, saved dashboard views, and dashboard favorites.
-Migration `015_member_ledger_assignment.sql` adds member expense assignment, member-ledger indexes, assignment-aware monthly summaries, and viewer-scoped expense read policy behavior.
-Migration `016_notification_activity_audit_hardening.sql` hardens realtime delivery for notifications and activity logs by setting `REPLICA IDENTITY FULL` and ensuring both tables are part of `supabase_realtime`.
-Migration `017_disable_auth_auto_profile_provisioning.sql` disables the old auth trigger so arbitrary `auth.users` inserts do not silently become Expensea accounts. Signup creates profiles explicitly through the server action.
-
 ## Expense Workflow Columns
 
 Expenses are stored in `lunch_entries`.
@@ -71,25 +64,11 @@ status = 'inactive' -- treated as deleted/disabled and forced to sign in or sign
 
 The signup path may create a profile intentionally through `createUserProfileForSignup()`. Session validation, middleware, protected layouts, invite acceptance, and non-signup server actions must not insert profiles.
 
-## Migration 012 Notes
-
-`012_expense_approvals_reimbursements.sql`:
-
-- Creates `approval_status` and `reimbursement_status` enums.
-- Adds workflow and reimbursement columns to `lunch_entries`.
-- Adds indexes for approval queue and reimbursement filtering.
-- Replaces `refresh_monthly_summary` so summaries aggregate approved/reimbursed rows only.
-- Updates `lunch_entries_summary_trigger` so approval changes recompute summaries.
-- Replaces insert/update RLS policies for expense submission and approval.
-- Updates recurring expense generation so generated expenses enter `pending_approval`.
-
 ## Demo Data
 
 The TypeScript seeders create team and individual assigned expenses, pending, approved, rejected, partially reimbursed, and fully reimbursed expenses. Settlement and activity seeders include member settlements, member timeline events such as `expense_created`, `expense_updated`, `expense_deleted`, `expense_assigned`, submitted, approved, rejected, reimbursed, budget, settlement, invite, and recurring workflow events. Notification seeders include owner/admin operational alerts and personal assignee/submitter alerts. Dashboard seeders create role-aware layouts, saved views, default views, saved filters, widget visibility preferences, and favorites for reports, categories, teams, and dashboards.
 
 Seeded shared expenses include equal splits across all active team members and custom `selected` splits with explicit `lunch_entry_participants.share_amount` values. Seeded individual expenses are kept non-shared so they do not affect settlement balances.
-
-Auth QA seed fixtures include `missing.profile@expensea.app` with an auth user and no profile, `deleted.account@expensea.app` with an inactive profile, and an expired team invite. Expired sessions are tested by revoking or clearing the Supabase session cookie, since refresh-token state is owned by Supabase Auth.
 
 ## Member Ledger Data Model
 
@@ -104,7 +83,7 @@ The `lunch_entries_assignment_consistency` constraint enforces that shape. Index
 
 Monthly summaries now aggregate approved/reimbursed rows where the member is either the payer (`user_id`) or assignee (`assigned_user_id`). Member reports and dashboards use the assignee for individual expenses and the payer for team expenses.
 
-Shared team expense participants live in `lunch_entry_participants`. Equal split rows store equal `share_amount` values for the selected active members. Custom split rows store explicit per-member `share_amount` values and the server action validates that the selected rows add up to the expense amount. Individual expenses must not create participant rows.
+Shared team expense participants live in `lunch_entry_participants`. Equal split rows store cent-allocated `share_amount` values for the selected active members, and those values add back to the original expense amount. Custom split rows store explicit per-member `share_amount` values and the server action validates that the selected rows add up to the expense amount. Individual expenses must not create participant rows.
 
 ## Notifications
 
@@ -128,8 +107,6 @@ Shared team expense participants live in `lunch_entry_participants`. Equal split
 
 Indexes cover user/team/read queries, archive filtering, and text search over title/message/body.
 
-`notifications` is included in `supabase_realtime` and uses `REPLICA IDENTITY FULL` so inbox and bell subscriptions receive enough row data for insert, update, and delete handling.
-
 ## Activity Logs
 
 `activity_logs` is the normalized team timeline.
@@ -148,8 +125,6 @@ Indexes cover user/team/read queries, archive filtering, and text search over ti
 | `created_at` | Event time. |
 
 `team_activity_log` remains for compatibility. New legacy inserts are mirrored into `activity_logs`, while new feature code writes normalized activity directly through `recordActivity`.
-
-`activity_logs` is included in `supabase_realtime` and uses `REPLICA IDENTITY FULL` so the activity center can stream new rows and diagnose update/delete payloads if future UI surfaces need them.
 
 ## Dashboard Customization
 

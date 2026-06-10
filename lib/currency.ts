@@ -39,14 +39,20 @@ export function getCurrency(code?: string | null): CurrencyDefinition {
   return currencyMap.get(normalizeCurrencyCode(code)) ?? CURRENCIES[0];
 }
 
+function hasFractionalCents(amount: number): boolean {
+  return Math.abs(amount - Math.trunc(amount)) > Number.EPSILON;
+}
+
 function formatNumber(amount: number, locale: string): string {
+  const hasDecimals = hasFractionalCents(amount);
+
   return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: hasDecimals ? 2 : 0,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
-/** Display: PKR 1,500 · $200 · €90 */
+/** Display: PKR 1,500 · PKR 122.50 · $200 · $99.99 */
 export function formatCurrencyAmount(amount: number, code?: string | null): string {
   const currency = getCurrency(code);
   const value = formatNumber(amount, currency.locale);

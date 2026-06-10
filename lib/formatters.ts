@@ -45,7 +45,8 @@ export function formatDate(date: Date, format: 'short' | 'long' = 'short'): stri
  * Calculate balance split between participants
  */
 export function calculateSplit(amount: number, participants: number): number {
-  return Math.round((amount / participants) * 100) / 100;
+  if (participants <= 0) return 0;
+  return amount / participants;
 }
 
 /**

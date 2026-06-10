@@ -56,7 +56,7 @@ export function LunchEntryDialog({
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
-  const { currency } = useCurrency();
+  const { currency, format } = useCurrency();
   const isEdit = !!entry;
   const defaultCategory =
     categories.find((c) => c.slug === 'miscellaneous') ?? categories[0];
@@ -450,12 +450,12 @@ export function LunchEntryDialog({
                 </div>
                 {sharedEnabled && splitType === 'equal' && equalShare > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Each selected member owes {equalShare.toFixed(2)} {currency.symbol}.
+                    Each selected member owes {format(equalShare)}.
                   </p>
                 )}
                 {sharedEnabled && splitType === 'selected' && (
                   <p className="text-xs text-muted-foreground">
-                    Custom shares total {customTotal.toFixed(2)} of {amount.toFixed(2)} {currency.symbol}.
+                    Custom shares total {format(customTotal)} of {format(amount)}.
                   </p>
                 )}
                 {customSplitMismatch && (

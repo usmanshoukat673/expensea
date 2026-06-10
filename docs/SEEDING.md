@@ -105,12 +105,7 @@ lib/seed/dashboard-customization.ts -> dashboard layouts, saved views, favorites
 
 The seeders use fixed team slugs for idempotency and a seeded Faker instance for repeatable realistic notes.
 
-## Seeder Audit Notes
+## Notes
 
-- Current seeders are complete for the implemented product surface.
-- Expense seeders now cover approval statuses, reimbursement statuses, individual assignments, team expenses, equal splits, and custom splits.
-- The recurring-expense seeder covers active, paused, and completed rules.
-- The dashboard customization seeder covers owner/admin/viewer default layouts, saved views, saved filters, hidden widgets, pinned widgets, and favorites.
-- Reset now clears all demo-owned relational tables, including dashboard preferences/views/favorites, `recurring_expenses`, `team_invites`, normalized `activity_logs`, and legacy `team_activity_log`.
-- The app stores expenses in `lunch_entries`; documentation may refer to these as expenses for product clarity.
-- `activity_logs` is populated explicitly after seeding legacy `team_activity_log`, avoiding duplicate mirrored rows while keeping legacy team views covered.
+- The app stores expenses in `lunch_entries`; product documentation may call these rows expenses.
+- Demo data is designed to exercise the implemented product surface without requiring manual setup.

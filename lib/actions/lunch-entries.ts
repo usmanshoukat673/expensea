@@ -69,6 +69,17 @@ function actorLabel(session: Awaited<ReturnType<typeof requireTeam>>) {
   return session.profile.full_name ?? session.profile.email ?? 'A team member';
 }
 
+function splitAmountIntoCents(amount: number, count: number): number[] {
+  if (count <= 0) return [];
+  const cents = Math.round(amount * 100);
+  const base = Math.trunc(cents / count);
+  const remainder = cents - base * count;
+
+  return Array.from({ length: count }, (_, index) =>
+    (base + (index < remainder ? 1 : 0)) / 100,
+  );
+}
+
 async function getCategoryName(
   supabase: Awaited<ReturnType<typeof createClient>>,
   teamId: string,
@@ -116,14 +127,17 @@ async function syncParticipants(
 
   if (!participantIds.length || splitType === 'none') return null;
 
-  const share =
-    splitType === 'equal' ? amount / participantIds.length : null;
+  const equalShares = splitType === 'equal'
+    ? splitAmountIntoCents(amount, participantIds.length)
+    : [];
 
   const { error: insertError } = await supabase.from('lunch_entry_participants').insert(
-    participantIds.map((userId) => ({
+    participantIds.map((userId, index) => ({
       entry_id: entryId,
       user_id: userId,
-      share_amount: splitType === 'selected' ? participantShares[userId] ?? null : share,
+      share_amount: splitType === 'selected'
+        ? participantShares[userId] ?? null
+        : equalShares[index] ?? null,
     })),
   );
 

@@ -178,14 +178,14 @@ Role-aware defaults are generated in `lib/dashboard-customization.ts`: owners pr
 
 ## Settlement Engine
 
-Shared expenses are recorded in approved/reimbursed `lunch_entries` with participant rows in `lunch_entry_participants`. The balance engine in `lib/balance/engine.ts`:
+Shared expenses are recorded in approved/reimbursed `lunch_entries` with participant rows in `lunch_entry_participants`. Money values keep cent precision for storage and display. Equal splits allocate cents deterministically so the stored participant shares add back to the original expense amount. The balance engine in `lib/balance/engine.ts`:
 
 1. Calculates participant shares for equal or selected/custom splits.
 2. Creates raw debts from participants to payers.
 3. Applies completed settlements.
 4. Simplifies pairwise debts into minimal payment edges.
 
-Pending settlements are visible records. Completed settlements reduce outstanding debt. Cancelled settlements are ignored by debt calculations.
+Pending settlements are visible records. Completed settlements reduce outstanding debt. Cancelled settlements are ignored by debt calculations. Settlement summaries and exports display values through the shared currency formatter instead of rounding amounts to whole numbers.
 
 Individual expenses do not enter the settlement balance engine because they are stored with `is_shared=false` and no participant rows. They still affect member reporting through `assigned_user_id` and team/category budgets after approval.
 
@@ -219,8 +219,7 @@ Role-aware audience selection happens before insert:
 - `owners`: team owners only.
 - `team`: all active members, optionally excluding the actor.
 
-Migration `013_notifications_activity_center.sql` keeps compatibility columns aligned. `body/message` and `read/read_at/is_read` are synchronized by trigger so old and new paths remain consistent.
-Migration `016_notification_activity_audit_hardening.sql` sets `REPLICA IDENTITY FULL` for `notifications` and `activity_logs` and ensures both tables are in `supabase_realtime`, so focused UI subscriptions can handle inserts, updates, and deletes reliably.
+Notification compatibility columns are kept aligned by database triggers so older and newer paths read the same message and read-state values.
 
 ## Activity Architecture
 
@@ -237,5 +236,4 @@ server action / cron
   -> /activity and dashboard recent activity update without refresh
 ```
 
-Activity filters use `entity_type` and cover expense, budget, team, settlement, approval, and recurring expense events. Search runs against description, message, and action type. Pages load in bounded ranges and realtime subscriptions are scoped to the active team to avoid large payloads and excessive channel usage.
-Realtime subscription failures are logged in the global team subscription, notification bell, notification inbox, and activity center so broken broadcasts are visible during development and production diagnostics.
+Activity filters use `entity_type` and cover expense, budget, team, settlement, approval, and recurring expense events. Search runs against description, message, and action type. Pages load in bounded ranges and realtime subscriptions are scoped to the active team.

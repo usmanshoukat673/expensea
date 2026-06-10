@@ -37,17 +37,17 @@ export function MemberWorkspace({ data, ledgerOnly = false }: { data: MemberWork
     Payer: entry.profiles?.full_name ?? entry.profiles?.email ?? "Member",
     Assigned: entry.assignment_type === "individual" ? entry.assigned_profile?.full_name ?? entry.assigned_profile?.email ?? "Member" : "Team",
     Category: entry.expense_categories?.name ?? "Uncategorized",
-    Amount: Number(entry.amount),
+    Amount: format(Number(entry.amount)),
     Status: entry.payment_status,
     Approval: entry.approval_status.replace(/_/g, " "),
     Notes: entry.notes ?? "",
   }))
   const ledgerRows = [
-    { Type: "Credits paid by member", Amount: data.ledger.credits },
-    { Type: "Assigned debits and owed balances", Amount: data.ledger.debits },
-    { Type: "Shared balance owed", Amount: data.ledger.youOwe },
-    { Type: "Shared balance receivable", Amount: data.ledger.youReceive },
-    { Type: "Net balance", Amount: data.ledger.netBalance },
+    { Type: "Credits paid by member", Amount: format(data.ledger.credits) },
+    { Type: "Assigned debits and owed balances", Amount: format(data.ledger.debits) },
+    { Type: "Shared balance owed", Amount: format(data.ledger.youOwe) },
+    { Type: "Shared balance receivable", Amount: format(data.ledger.youReceive) },
+    { Type: "Net balance", Amount: format(data.ledger.netBalance) },
   ]
 
   const exportRows = (rows: Record<string, string | number>[], filename: string) => {
@@ -176,7 +176,7 @@ export function MemberWorkspace({ data, ledgerOnly = false }: { data: MemberWork
           <ReportTable
             title="Assigned and personal expenses"
             headers={["Date", "Payer", "Assigned", "Category", "Amount", "Approval"]}
-            rows={expenseRows.map((row) => [row.Date, row.Payer, row.Assigned, row.Category, format(row.Amount), row.Approval])}
+            rows={expenseRows.map((row) => [row.Date, row.Payer, row.Assigned, row.Category, row.Amount, row.Approval])}
           />
 
           <ReportTable
