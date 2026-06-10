@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Spinner } from '@/components/ui/spinner';
 import { PasswordInput } from '@/components/auth/password-input';
 
 export function LoginForm({ redirect }: { redirect?: string }) {
@@ -75,8 +74,7 @@ export function LoginForm({ redirect }: { redirect?: string }) {
         </RequiredLabel>
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-      <Button type="submit" className="w-full" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Signing in...">
         Sign in
       </Button>
       <p className="text-center text-sm text-muted-foreground">

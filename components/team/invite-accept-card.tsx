@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { acceptTeamInvite, type TeamInvitePreview } from '@/lib/actions/team-invites';
 import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CalendarClock, Mail, ShieldCheck, Users } from 'lucide-react';
 
@@ -144,8 +143,7 @@ export function InviteAcceptCard({
       </div>
 
       {isAuthenticated ? (
-        <Button type="button" className="w-full" disabled={pending} onClick={onJoin}>
-          {pending ? <Spinner /> : null}
+        <Button type="button" className="w-full" isLoading={pending} loadingText="Joining team..." onClick={onJoin}>
           Join team
         </Button>
       ) : (

@@ -77,6 +77,7 @@ export function NotificationsContent({
   const [query, setQuery] = useState(search);
   const [statusDraft, setStatusDraft] = useState(status);
   const [isPending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
   const pages = Math.max(1, Math.ceil(total / limit));
   const selectedCount = selected.length;
   const allVisibleSelected = items.length > 0 && items.every((item) => selected.includes(item.id));
@@ -129,16 +130,37 @@ export function NotificationsContent({
     });
   }, [items, status]);
 
-  const submitSearch = () => router.push(hrefFor(status, query));
+  const submitSearch = () => {
+    setActionKey('search');
+    startTransition(() => {
+      router.push(hrefFor(status, query));
+      setActionKey(null);
+    });
+  };
 
   const runBulk = (action: 'read' | 'archive' | 'delete') => {
+    setActionKey(`bulk:${action}`);
     startTransition(async () => {
-      const result = await bulkUpdateNotifications(selected, action);
-      if (!result.error) {
+      try {
+        const result = await bulkUpdateNotifications(selected, action);
+        if (result.error) return;
         if (action === 'delete') setItems((prev) => prev.filter((item) => !selected.includes(item.id)));
         if (action === 'read') setItems((prev) => prev.map((item) => (selected.includes(item.id) ? { ...item, is_read: true, read: true, read_at: new Date().toISOString() } : item)));
         if (action === 'archive') setItems((prev) => prev.filter((item) => !selected.includes(item.id)));
         setSelected([]);
+      } finally {
+        setActionKey(null);
+      }
+    });
+  };
+
+  const runItemAction = (key: string, action: () => Promise<void>) => {
+    setActionKey(key);
+    startTransition(async () => {
+      try {
+        await action();
+      } finally {
+        setActionKey(null);
       }
     });
   };
@@ -151,12 +173,14 @@ export function NotificationsContent({
           <p className="mt-1 text-sm text-muted-foreground">Actionable alerts and team updates.</p>
         </div>
         <Button
-          onClick={() => startTransition(async () => {
+          onClick={() => runItemAction('mark-all-read', async () => {
             await markAllNotificationsRead();
             const now = new Date().toISOString();
             setItems((prev) => prev.map((item) => ({ ...item, is_read: true, read: true, read_at: now })));
           })}
-          disabled={isPending}
+          disabled={isPending && actionKey !== 'mark-all-read'}
+          isLoading={actionKey === 'mark-all-read'}
+          loadingText="Marking read..."
         >
           <CheckCheck className="size-4" />
           Mark all read
@@ -181,7 +205,7 @@ export function NotificationsContent({
         <FilterSheet
           activeCount={status !== 'all' ? 1 : 0}
           title="Notification filters"
-          description="Filter inbox items by read and archive status."
+          description="Filter notifications by read and archive status."
           align="start"
           onReset={() => {
             setStatusDraft('all');
@@ -207,15 +231,15 @@ export function NotificationsContent({
       {selectedCount > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
           <span className="mr-auto text-sm text-muted-foreground">{selectedCount} selected</span>
-          <Button size="sm" variant="outline" onClick={() => runBulk('read')} disabled={isPending}>
+          <Button size="sm" variant="outline" onClick={() => runBulk('read')} disabled={isPending && actionKey !== 'bulk:read'} isLoading={actionKey === 'bulk:read'} loadingText="Marking read...">
             <CheckCheck className="size-4" />
             Read
           </Button>
-          <Button size="sm" variant="outline" onClick={() => runBulk('archive')} disabled={isPending}>
+          <Button size="sm" variant="outline" onClick={() => runBulk('archive')} disabled={isPending && actionKey !== 'bulk:archive'} isLoading={actionKey === 'bulk:archive'} loadingText="Archiving...">
             <Archive className="size-4" />
             Archive
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => runBulk('delete')} disabled={isPending}>
+          <Button size="sm" variant="destructive" onClick={() => runBulk('delete')} disabled={isPending && actionKey !== 'bulk:delete'} isLoading={actionKey === 'bulk:delete'} loadingText="Deleting...">
             <Trash2 className="size-4" />
             Delete
           </Button>
@@ -226,7 +250,7 @@ export function NotificationsContent({
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Bell className="size-5" />
-            Inbox
+            Notifications
           </CardTitle>
           <div className="flex items-center gap-2">
             <Checkbox
@@ -286,7 +310,9 @@ export function NotificationsContent({
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => startTransition(async () => {
+                        disabled={isPending && actionKey !== `read:${item.id}`}
+                        isLoading={actionKey === `read:${item.id}`}
+                        onClick={() => runItemAction(`read:${item.id}`, async () => {
                           await markNotificationRead(item.id);
                           setItems((prev) => prev.map((row) => (row.id === item.id ? { ...row, is_read: true, read: true, read_at: new Date().toISOString() } : row)));
                         })}
@@ -299,7 +325,9 @@ export function NotificationsContent({
                       variant="ghost"
                       size="icon-sm"
                       className="text-destructive hover:text-destructive"
-                      onClick={() => startTransition(async () => {
+                      disabled={isPending && actionKey !== `delete:${item.id}`}
+                      isLoading={actionKey === `delete:${item.id}`}
+                      onClick={() => runItemAction(`delete:${item.id}`, async () => {
                         await deleteNotification(item.id);
                         setItems((prev) => prev.filter((row) => row.id !== item.id));
                       })}

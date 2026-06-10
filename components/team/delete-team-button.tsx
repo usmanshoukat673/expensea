@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 
 export function DeleteTeamButton() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export function DeleteTeamButton() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
+                disabled={pending}
                 onClick={() =>
                   startTransition(async () => {
                     const r = await deleteTeam();
@@ -56,7 +58,8 @@ export function DeleteTeamButton() {
                   })
                 }
               >
-                Delete
+                {pending ? <Spinner /> : null}
+                {pending ? 'Deleting...' : 'Delete'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

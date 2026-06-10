@@ -11,7 +11,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
-import { Spinner } from '@/components/ui/spinner';
 
 type FormData = z.infer<typeof joinTeamSchema>;
 
@@ -52,8 +51,7 @@ export function JoinTeamForm({ defaultToken }: { defaultToken?: string }) {
       <div className="rounded-xl border border-border/70 bg-muted/20 p-4 text-sm leading-6 text-muted-foreground">
         Invite links automatically open a preview with the team name, invited role, and inviter before you join.
       </div>
-      <Button type="submit" className="w-full" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Joining workspace...">
         Join workspace
       </Button>
     </form>

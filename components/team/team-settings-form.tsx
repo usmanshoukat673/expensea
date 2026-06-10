@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
 import { CurrencySelector } from '@/components/ui/currency-selector';
 import { useCurrency } from '@/hooks/use-currency';
 import type { CurrencyCode } from '@/lib/currency';
@@ -94,8 +93,7 @@ export function TeamSettingsForm({ team }: { team: Team }) {
             Public: /public/team/{team.id} · /share/{team.slug}
           </p>
           <PublicTeamShare teamId={team.id} isPublic={team.is_public} baseUrl={baseUrl} />
-          <Button type="submit" disabled={pending}>
-            {pending ? <Spinner /> : null}
+          <Button type="submit" isLoading={pending} loadingText="Saving settings...">
             Save settings
           </Button>
         </form>

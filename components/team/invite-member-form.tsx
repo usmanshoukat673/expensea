@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { Card, CardContent } from '@/components/ui/card';
 import { InviteLinkSection } from '@/components/team/invite-link-section';
 
@@ -98,8 +97,7 @@ export function InviteMemberForm() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" disabled={pending || !isValid}>
-              {pending ? <Spinner /> : null}
+            <Button type="submit" disabled={!isValid} isLoading={pending} loadingText="Sending invite...">
               Send email invite
             </Button>
           </form>

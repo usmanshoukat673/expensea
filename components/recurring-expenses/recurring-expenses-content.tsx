@@ -38,7 +38,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { LoadingOverlay } from '@/components/loaders/loading-overlay';
 import {
   Empty,
   EmptyDescription,
@@ -48,6 +47,7 @@ import {
 } from '@/components/ui/empty';
 import { getCategoryIcon } from '@/lib/categories/icons';
 import { RecurringExpenseDialog } from '@/components/recurring-expenses/recurring-expense-dialog';
+import { Spinner } from '@/components/ui/spinner';
 
 export function RecurringExpensesContent({
   recurringExpenses: initialRecurringExpenses,
@@ -67,6 +67,7 @@ export function RecurringExpensesContent({
   const [open, setOpen] = useState(false);
   const [editRule, setEditRule] = useState<RecurringExpenseWithCategory | null>(null);
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
 
   useEffect(() => {
     setRecurringExpenses(initialRecurringExpenses);
@@ -93,25 +94,53 @@ export function RecurringExpensesContent({
   };
 
   const toggleActive = (rule: RecurringExpenseWithCategory) => {
+    setActionKey(`toggle:${rule.id}`);
     startTransition(async () => {
-      const result = await setRecurringExpenseActive(rule.id, !rule.is_active);
-      if (result?.error) toast.error(result.error);
-      else {
-        setRecurringExpenses((prev) =>
-          prev.map((r) => (r.id === rule.id ? { ...r, is_active: !r.is_active } : r)),
-        );
-        toast.success(rule.is_active ? 'Recurring expense paused' : 'Recurring expense resumed');
+      try {
+        const result = await setRecurringExpenseActive(rule.id, !rule.is_active);
+        if (result?.error) toast.error(result.error);
+        else {
+          setRecurringExpenses((prev) =>
+            prev.map((r) => (r.id === rule.id ? { ...r, is_active: !r.is_active } : r)),
+          );
+          toast.success(rule.is_active ? 'Recurring expense paused' : 'Recurring expense resumed');
+        }
+      } finally {
+        setActionKey(null);
       }
     });
   };
 
   const runDueRules = () => {
+    setActionKey('run-due');
     startTransition(async () => {
-      const result = await processDueRecurringExpenses();
-      if (result?.error) toast.error(result.error);
-      else {
-        toast.success(`${result.generated ?? 0} recurring expense${result.generated === 1 ? '' : 's'} generated`);
-        router.refresh();
+      try {
+        const result = await processDueRecurringExpenses();
+        if (result?.error) toast.error(result.error);
+        else {
+          toast.success(`${result.generated ?? 0} recurring expense${result.generated === 1 ? '' : 's'} generated`);
+          router.refresh();
+        }
+      } finally {
+        setActionKey(null);
+      }
+    });
+  };
+
+  const deleteRule = (rule: RecurringExpenseWithCategory) => {
+    setActionKey(`delete:${rule.id}`);
+    startTransition(async () => {
+      try {
+        const result = await deleteRecurringExpense(rule.id);
+        if (result?.error) toast.error(result.error);
+        else {
+          setRecurringExpenses((prev) =>
+            prev.filter((r) => r.id !== rule.id),
+          );
+          toast.success('Recurring expense deleted');
+        }
+      } finally {
+        setActionKey(null);
       }
     });
   };
@@ -128,7 +157,13 @@ export function RecurringExpensesContent({
           </div>
           {canEdit && (
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button variant="outline" onClick={runDueRules} disabled={pending}>
+              <Button
+                variant="outline"
+                onClick={runDueRules}
+                disabled={pending && actionKey !== 'run-due'}
+                isLoading={actionKey === 'run-due'}
+                loadingText="Running..."
+              >
                 <RotateCw className="size-4" />
                 Run due
               </Button>
@@ -151,7 +186,6 @@ export function RecurringExpensesContent({
       </div>
 
       <div className="relative min-h-[220px] min-w-0 overflow-auto rounded-lg border border-border bg-card">
-        <LoadingOverlay show={pending} />
         <Table>
           <TableHeader className="sticky top-0 z-10 shadow-sm">
             <TableRow className="hover:bg-transparent">
@@ -200,6 +234,9 @@ export function RecurringExpensesContent({
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={pending && actionKey !== `toggle:${rule.id}`}
+                            isLoading={actionKey === `toggle:${rule.id}`}
+                            aria-label={rule.is_active ? 'Pause recurring expense' : 'Resume recurring expense'}
                             onClick={() => toggleActive(rule)}
                           >
                             {rule.is_active ? (
@@ -234,20 +271,11 @@ export function RecurringExpensesContent({
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => {
-                                    startTransition(async () => {
-                                      const result = await deleteRecurringExpense(rule.id);
-                                      if (result?.error) toast.error(result.error);
-                                      else {
-                                        setRecurringExpenses((prev) =>
-                                          prev.filter((r) => r.id !== rule.id),
-                                        );
-                                        toast.success('Recurring expense deleted');
-                                      }
-                                    });
-                                  }}
+                                  disabled={pending && actionKey !== `delete:${rule.id}`}
+                                  onClick={() => deleteRule(rule)}
                                 >
-                                  Delete
+                                  {actionKey === `delete:${rule.id}` ? <Spinner /> : null}
+                                  {actionKey === `delete:${rule.id}` ? 'Deleting...' : 'Delete'}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

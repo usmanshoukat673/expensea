@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus } from 'lucide-react';
-import { Spinner } from '@/components/ui/spinner';
 import { InviteLinkSection } from '@/components/team/invite-link-section';
 
 export function InviteMemberDialog() {
@@ -123,8 +122,7 @@ export function InviteMemberDialog() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" className="w-full" disabled={pending}>
-                {pending ? <Spinner /> : null}
+              <Button type="submit" className="w-full" isLoading={pending} loadingText="Sending invite...">
                 Send email invite
               </Button>
             </form>
@@ -167,7 +165,7 @@ export function InviteMemberDialog() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button type="submit" variant="secondary" className="w-full" disabled={pending}>
+              <Button type="submit" variant="secondary" className="w-full" isLoading={pending} loadingText="Adding member...">
                 Add to team
               </Button>
             </form>

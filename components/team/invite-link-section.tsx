@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { Copy, Link2, RefreshCw } from 'lucide-react';
 
 export function InviteLinkSection({
@@ -67,11 +66,15 @@ export function InviteLinkSection({
     fd.set('role', role);
     fd.set('expiry', expiry);
     startTransition(async () => {
-      const r = await generateShareableInvite(fd);
-      if (r?.error) toast.error(r.error);
-      else if (r.data?.url) {
-        setLinkUrl(r.data.url);
-        toast.success('New invite link generated');
+      try {
+        const r = await generateShareableInvite(fd);
+        if (r?.error) toast.error(r.error);
+        else if (r.data?.url) {
+          setLinkUrl(r.data.url);
+          toast.success('New invite link generated');
+        }
+      } catch {
+        toast.error('Could not generate invite link');
       }
     });
   };
@@ -123,10 +126,11 @@ export function InviteLinkSection({
           type="button"
           variant="outline"
           className="flex-1"
-          disabled={pending}
+          isLoading={pending}
+          loadingText="Generating..."
           onClick={generate}
         >
-          {pending ? <Spinner /> : <RefreshCw className="size-4" />}
+          <RefreshCw className="size-4" />
           {linkUrl ? 'Generate new link' : 'Generate link'}
         </Button>
       </div>

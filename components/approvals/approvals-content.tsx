@@ -61,6 +61,7 @@ export function ApprovalsContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
   const [reasonEntry, setReasonEntry] = useState<{ entry: QueueEntry; mode: 'reject' | 'changes' } | null>(null);
   const [reimburseEntry, setReimburseEntry] = useState<QueueEntry | null>(null);
   const [categoryDraft, setCategoryDraft] = useState(categoryFilter);
@@ -84,13 +85,24 @@ export function ApprovalsContent({
     };
   }, [queue]);
 
-  const runAction = (label: string, action: () => Promise<{ error?: string }>) => {
+  const runAction = (
+    key: string,
+    label: string,
+    action: () => Promise<{ error?: string }>,
+    onSuccess?: () => void,
+  ) => {
+    setActionKey(key);
     startTransition(async () => {
-      const result = await action();
-      if (result?.error) toast.error(result.error);
-      else {
-        router.refresh();
-        toast.success(label);
+      try {
+        const result = await action();
+        if (result?.error) toast.error(result.error);
+        else {
+          onSuccess?.();
+          router.refresh();
+          toast.success(label);
+        }
+      } finally {
+        setActionKey(null);
       }
     });
   };
@@ -171,7 +183,8 @@ export function ApprovalsContent({
             entries={queue.pending}
             canReview={canReview}
             pending={pending}
-            onApprove={(entry) => runAction('Expense approved', () => approveExpense(entry.id))}
+            actionKey={actionKey}
+            onApprove={(entry) => runAction(`approve:${entry.id}`, 'Expense approved', () => approveExpense(entry.id))}
             onReject={(entry) => setReasonEntry({ entry, mode: 'reject' })}
             onChanges={(entry) => setReasonEntry({ entry, mode: 'changes' })}
             onReimburse={(entry) => setReimburseEntry(entry)}
@@ -182,7 +195,8 @@ export function ApprovalsContent({
             entries={queue.approved}
             canReview={canReview}
             pending={pending}
-            onApprove={(entry) => runAction('Expense approved', () => approveExpense(entry.id))}
+            actionKey={actionKey}
+            onApprove={(entry) => runAction(`approve:${entry.id}`, 'Expense approved', () => approveExpense(entry.id))}
             onReject={(entry) => setReasonEntry({ entry, mode: 'reject' })}
             onChanges={(entry) => setReasonEntry({ entry, mode: 'changes' })}
             onReimburse={(entry) => setReimburseEntry(entry)}
@@ -193,7 +207,8 @@ export function ApprovalsContent({
             entries={queue.rejected}
             canReview={canReview}
             pending={pending}
-            onApprove={(entry) => runAction('Expense approved', () => approveExpense(entry.id))}
+            actionKey={actionKey}
+            onApprove={(entry) => runAction(`approve:${entry.id}`, 'Expense approved', () => approveExpense(entry.id))}
             onReject={(entry) => setReasonEntry({ entry, mode: 'reject' })}
             onChanges={(entry) => setReasonEntry({ entry, mode: 'changes' })}
             onReimburse={(entry) => setReimburseEntry(entry)}
@@ -206,8 +221,9 @@ export function ApprovalsContent({
         pending={pending}
         onOpenChange={(open) => !open && setReasonEntry(null)}
         onSubmit={(entry, mode, formData) =>
-          runAction(mode === 'reject' ? 'Expense rejected' : 'Changes requested', () =>
+          runAction(`${mode}:${entry.id}`, mode === 'reject' ? 'Expense rejected' : 'Changes requested', () =>
             mode === 'reject' ? rejectExpense(entry.id, formData) : requestExpenseChanges(entry.id, formData),
+            () => setReasonEntry(null),
           )
         }
       />
@@ -216,7 +232,7 @@ export function ApprovalsContent({
         pending={pending}
         onOpenChange={(open) => !open && setReimburseEntry(null)}
         onSubmit={(entry, formData) =>
-          runAction('Reimbursement recorded', () => recordExpenseReimbursement(entry.id, formData))
+          runAction(`reimburse:${entry.id}`, 'Reimbursement recorded', () => recordExpenseReimbursement(entry.id, formData), () => setReimburseEntry(null))
         }
       />
     </div>
@@ -238,6 +254,7 @@ function ApprovalTable({
   entries,
   canReview,
   pending,
+  actionKey,
   onApprove,
   onReject,
   onChanges,
@@ -246,6 +263,7 @@ function ApprovalTable({
   entries: QueueEntry[];
   canReview: boolean;
   pending: boolean;
+  actionKey: string | null;
   onApprove: (entry: QueueEntry) => void;
   onReject: (entry: QueueEntry) => void;
   onChanges: (entry: QueueEntry) => void;
@@ -285,13 +303,13 @@ function ApprovalTable({
                       <div className="flex justify-end gap-1">
                         {entry.approval_status === 'pending_approval' && (
                           <>
-                            <Button size="icon" variant="ghost" disabled={pending} onClick={() => onApprove(entry)}><Check className="size-4" /></Button>
-                            <Button size="icon" variant="ghost" disabled={pending} onClick={() => onChanges(entry)}><RotateCcw className="size-4" /></Button>
-                            <Button size="icon" variant="ghost" disabled={pending} onClick={() => onReject(entry)}><X className="size-4" /></Button>
+                            <Button size="icon" variant="ghost" disabled={pending && actionKey !== `approve:${entry.id}`} isLoading={actionKey === `approve:${entry.id}`} aria-label="Approve expense" onClick={() => onApprove(entry)}><Check className="size-4" /></Button>
+                            <Button size="icon" variant="ghost" disabled={pending} aria-label="Request expense changes" onClick={() => onChanges(entry)}><RotateCcw className="size-4" /></Button>
+                            <Button size="icon" variant="ghost" disabled={pending} aria-label="Reject expense" onClick={() => onReject(entry)}><X className="size-4" /></Button>
                           </>
                         )}
                         {['approved', 'reimbursed'].includes(entry.approval_status) && entry.reimbursement_status !== 'fully_reimbursed' && (
-                          <Button size="icon" variant="ghost" disabled={pending} onClick={() => onReimburse(entry)}><WalletCards className="size-4" /></Button>
+                          <Button size="icon" variant="ghost" disabled={pending} aria-label="Record reimbursement" onClick={() => onReimburse(entry)}><WalletCards className="size-4" /></Button>
                         )}
                       </div>
                     </TableCell>
@@ -337,8 +355,6 @@ function ReasonDialog({
           }
           if (state) {
             onSubmit(state.entry, state.mode, formData);
-            setReason('');
-            onOpenChange(false);
           }
         }} className="space-y-4">
           <div className="space-y-2">
@@ -346,7 +362,14 @@ function ReasonDialog({
             <Textarea id="reason" name="reason" required rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
             {!isValid && reason.length > 0 ? <p className="text-sm text-destructive">Reason is required</p> : null}
           </div>
-          <Button disabled={pending || !isValid} type="submit">Submit</Button>
+          <Button
+            disabled={!isValid}
+            isLoading={pending}
+            loadingText={state?.mode === 'reject' ? 'Rejecting...' : 'Requesting changes...'}
+            type="submit"
+          >
+            Submit
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
@@ -394,8 +417,6 @@ function ReimbursementDialog({
           }
           if (entry) {
             onSubmit(entry, formData);
-            setAmount('');
-            onOpenChange(false);
           }
         }} className="space-y-4">
           <div className="space-y-2">
@@ -418,7 +439,7 @@ function ReimbursementDialog({
             <RequiredLabel htmlFor="notes" optional>Notes</RequiredLabel>
             <Textarea id="notes" name="notes" rows={2} />
           </div>
-          <Button disabled={pending || !!amountError} type="submit">Record reimbursement</Button>
+          <Button disabled={!!amountError} isLoading={pending} loadingText="Recording reimbursement..." type="submit">Record reimbursement</Button>
         </form>
       </DialogContent>
     </Dialog>

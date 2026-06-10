@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
 import { ThemePreference } from '@/components/settings/theme-preference';
 import { CurrencyPreference } from '@/components/settings/currency-preference';
 
@@ -44,8 +43,7 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
             <RequiredLabel htmlFor="avatarUrl" optional>Avatar URL</RequiredLabel>
             <Input id="avatarUrl" name="avatarUrl" defaultValue={profile.avatar_url ?? ''} placeholder="https://..." />
           </div>
-          <Button type="submit" disabled={pending}>
-            {pending ? <Spinner /> : null}
+          <Button type="submit" isLoading={pending} loadingText="Saving changes...">
             Save changes
           </Button>
         </form>

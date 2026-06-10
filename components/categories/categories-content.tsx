@@ -24,6 +24,7 @@ import {
 import { CategoryDialog } from '@/components/categories/category-dialog';
 import { EmptyState } from '@/components/ui/empty-states';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { Spinner } from '@/components/ui/spinner';
 
 export function CategoriesContent({
   categories,
@@ -40,6 +41,7 @@ export function CategoriesContent({
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<ExpenseCategory | null>(null);
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
 
   useEffect(() => {
     setItems(categories);
@@ -64,6 +66,22 @@ export function CategoriesContent({
         (c.description?.toLowerCase().includes(q) ?? false),
     );
   }, [items, debounced]);
+
+  const deleteCategory = (cat: ExpenseCategory) => {
+    setActionKey(`delete:${cat.id}`);
+    startTransition(async () => {
+      try {
+        const r = await deleteExpenseCategory(cat.id);
+        if (r?.error) toast.error(r.error);
+        else {
+          setItems((prev) => prev.filter((c) => c.id !== cat.id));
+          toast.success('Category deleted successfully.');
+        }
+      } finally {
+        setActionKey(null);
+      }
+    });
+  };
 
   return (
     <div className="min-w-0 space-y-6">
@@ -140,19 +158,11 @@ export function CategoriesContent({
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                disabled={pending}
-                                onClick={() =>
-                                  startTransition(async () => {
-                                    const r = await deleteExpenseCategory(cat.id);
-                                    if (r?.error) toast.error(r.error);
-                                    else {
-                                      setItems((prev) => prev.filter((c) => c.id !== cat.id));
-                                      toast.success('Category deleted successfully.');
-                                    }
-                                  })
-                                }
+                                disabled={pending && actionKey !== `delete:${cat.id}`}
+                                onClick={() => deleteCategory(cat)}
                               >
-                                Delete
+                                {actionKey === `delete:${cat.id}` ? <Spinner /> : null}
+                                {actionKey === `delete:${cat.id}` ? 'Deleting...' : 'Delete'}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

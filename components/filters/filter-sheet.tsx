@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useTransition, type ReactNode } from "react"
 import { Funnel, RotateCcw } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,7 @@ export function FilterSheet({
   align?: "start" | "end"
 }) {
   const isActive = activeCount > 0
+  const [pending, startTransition] = useTransition()
 
   return (
     <Sheet>
@@ -69,14 +70,22 @@ export function FilterSheet({
               type="button"
               variant="outline"
               className="flex-1"
-              onClick={onReset}
+              onClick={() => startTransition(() => onReset?.())}
               disabled={!isActive}
+              isLoading={pending && isActive}
+              loadingText="Resetting..."
             >
               <RotateCcw className="size-4" />
               Reset
             </Button>
             <SheetClose asChild>
-              <Button type="button" className="flex-1" onClick={onApply}>
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => startTransition(() => onApply?.())}
+                isLoading={pending}
+                loadingText="Applying..."
+              >
                 Apply filters
               </Button>
             </SheetClose>

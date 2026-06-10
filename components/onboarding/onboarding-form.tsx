@@ -11,7 +11,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
-import { Spinner } from '@/components/ui/spinner';
 
 type FormData = z.infer<typeof onboardingNameSchema>;
 
@@ -48,8 +47,7 @@ export function OnboardingForm({ defaultName }: { defaultName: string }) {
         <Input id="fullName" placeholder="e.g. Ayesha Khan" autoComplete="name" {...register('fullName')} />
         {errors.fullName && <p className="text-sm text-destructive">{errors.fullName.message}</p>}
       </div>
-      <Button type="submit" className="w-full sm:w-auto" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full sm:w-auto" disabled={!isValid} isLoading={pending} loadingText="Saving profile...">
         Save profile
       </Button>
     </form>
