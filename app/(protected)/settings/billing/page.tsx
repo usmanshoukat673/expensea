@@ -1,69 +1,69 @@
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
 import { canEdit, requireTeam } from '@/lib/auth/session';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusBadge } from '@/components/ui/status-badge';
-
-const tabs = [
-  { href: '/settings/profile', label: 'Profile' },
-  { href: '/settings/team', label: 'Team' },
-  { href: '/settings/billing', label: 'Billing' },
-];
+import { SettingsPageShell } from '@/components/settings/settings-page-shell';
+import { Badge } from '@/components/ui/badge';
 
 export const metadata = { title: 'Billing' };
 
 export default async function BillingSettingsPage() {
   const session = await requireTeam();
-  const visibleTabs = canEdit(session.role)
-    ? tabs
-    : tabs.filter((tab) => tab.href !== '/settings/team');
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <nav className="flex gap-4 mt-4 border-b border-border">
-          {visibleTabs.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              className={cn(
-                'pb-3 text-sm font-medium border-b-2 -mb-px transition-colors',
-                t.href === '/settings/billing'
-                  ? 'border-accent text-foreground'
-                  : 'border-transparent text-muted-foreground hover:bg-accent/10 hover:text-foreground dark:hover:bg-muted/50'
-              )}
-            >
-              {t.label}
-            </Link>
-          ))}
-        </nav>
+    <SettingsPageShell activeHref="/settings/billing" canManageTeam={canEdit(session.role)}>
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle>Free plan</CardTitle>
+              <StatusBadge status="active" />
+            </div>
+            <CardDescription>
+              Expensea is free for teams. Billing integrations can be added when you scale.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <p className="font-medium">Members</p>
+              <p className="mt-1 text-muted-foreground">Unlimited workspace access</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <p className="font-medium">Entries</p>
+              <p className="mt-1 text-muted-foreground">Unlimited expense records</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <p className="font-medium">Reports</p>
+              <p className="mt-1 text-muted-foreground">Exports and team summaries</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <p className="font-medium">Sharing</p>
+              <p className="mt-1 text-muted-foreground">Public team pages included</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle>Billing status</CardTitle>
+              <Badge variant="outline">No payment required</Badge>
+            </div>
+            <CardDescription>Plan and product details for this workspace.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">Current product</p>
+              <p className="mt-1 font-medium">Expensea — Smarter Expense Tracking</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Version</p>
+              <p className="mt-1 font-medium">0.1.0</p>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-muted-foreground">
+              Premium billing controls can be connected here when paid plans launch.
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Free plan</CardTitle>
-            <StatusBadge status="active" />
-          </div>
-          <CardDescription>
-            Expensea is free for teams. Billing integrations can be added when you scale.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>Unlimited members, entries, and public sharing on the free tier.</p>
-          <p>Contact your admin to upgrade when premium plans launch.</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>About Expensea</CardTitle>
-          <CardDescription>Expensea — Smarter Expense Tracking</CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>A modern platform to manage team expenses efficiently.</p>
-          <p className="text-xs">Version 0.1.0</p>
-        </CardContent>
-      </Card>
-    </div>
+    </SettingsPageShell>
   );
 }

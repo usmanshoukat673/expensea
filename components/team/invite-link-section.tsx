@@ -80,10 +80,15 @@ export function InviteLinkSection({
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-muted/20 p-4">
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <Link2 className="size-4" />
-        Shareable invite link
+    <div className="space-y-4 rounded-xl border border-border bg-card p-6 text-card-foreground shadow-sm transition-[border-color,box-shadow] duration-200 ease-out hover:border-accent/50 hover:shadow-lg dark:hover:border-border dark:hover:shadow-md">
+      <div>
+        <div className="flex items-center gap-2 font-semibold">
+          <Link2 className="size-4" />
+          Shareable invite link
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Generate a reusable invite URL with the selected role and expiry.
+        </p>
       </div>
       {onExpiryChange && (
         <div className="space-y-2">

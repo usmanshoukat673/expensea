@@ -14,6 +14,12 @@ const items = [
   { href: "/settings/profile", icon: Settings, label: "Settings" },
 ]
 
+function isNavItemActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/"
+  if (href === "/settings/profile") return pathname === href || pathname.startsWith("/settings/")
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 export function MobileBottomNav({ role }: { role: TeamRole | null }) {
   const pathname = usePathname()
   const canManage = role === "owner" || role === "admin"
@@ -23,9 +29,7 @@ export function MobileBottomNav({ role }: { role: TeamRole | null }) {
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around h-16 px-2">
         {visibleItems.map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href))
+          const active = isNavItemActive(pathname, item.href)
           const Icon = item.icon
           return (
             <Link

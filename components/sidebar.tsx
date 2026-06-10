@@ -66,6 +66,13 @@ const navSections = [
 const collapsedSidebarItemClass =
   "group relative flex h-11 w-full items-center justify-center rounded-lg px-0 text-sm font-medium leading-none text-sidebar-foreground outline-none transition-[background-color,color,box-shadow] duration-200 ease-out hover:bg-sidebar-accent/10 dark:hover:bg-sidebar-accent/50 focus-visible:ring-2 focus-visible:ring-ring"
 
+function isNavItemActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/"
+  if (href === "/settings/profile") return pathname === href || pathname.startsWith("/settings/")
+  if (href === "/team") return pathname === href || pathname === "/team/settings"
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 function CollapsedTooltip({
   collapsed,
   label,
@@ -160,9 +167,7 @@ export function Sidebar({
                 </p>
               )}
               {items.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== "/" && pathname.startsWith(item.href))
+                const isActive = isNavItemActive(pathname, item.href)
                 const Icon = item.icon
                 return (
                   <CollapsedTooltip
