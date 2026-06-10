@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
 import { updateTeamSettings } from '@/lib/actions/teams';
 import type { Team } from '@/lib/database.types';
@@ -12,21 +12,33 @@ import { CurrencySelector } from '@/components/ui/currency-selector';
 import { useCurrency } from '@/hooks/use-currency';
 import type { CurrencyCode } from '@/lib/currency';
 import { PublicTeamShare } from '@/components/team/public-team-share';
+import { useFormDirtyState } from '@/hooks/use-unsaved-changes';
 
 export function TeamSettingsForm({ team }: { team: Team }) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const [pending, startTransition] = useTransition();
   const { currencyCode, setCurrency, isPending: currencyPending } = useCurrency();
+  const { formRef, resetDirtyState, updateDirtyState, setIsDirty } = useFormDirtyState<HTMLFormElement>();
+
+  useEffect(() => {
+    updateDirtyState();
+  }, [currencyCode, updateDirtyState]);
 
   return (
     <Card className="h-full">
       <CardContent className="pt-6">
         <form
+          ref={formRef}
+          onChange={updateDirtyState}
           action={(fd) =>
             startTransition(async () => {
               const r = await updateTeamSettings(fd);
               if (r?.error) toast.error(r.error);
-              else toast.success('Settings saved successfully.');
+              else {
+                setIsDirty(false);
+                resetDirtyState();
+                toast.success('Settings saved successfully.');
+              }
             })
           }
           className="space-y-4"
@@ -42,6 +54,16 @@ export function TeamSettingsForm({ team }: { team: Team }) {
               name="brandName"
               defaultValue={team.brand_name ?? ''}
               placeholder="Display name on public pages"
+            />
+          </div>
+          <div className="space-y-2">
+            <RequiredLabel htmlFor="logoUrl" optional>Team logo</RequiredLabel>
+            <Input
+              id="logoUrl"
+              name="logoUrl"
+              type="url"
+              defaultValue={team.logo_url ?? ''}
+              placeholder="https://..."
             />
           </div>
           <input type="hidden" name="currency" value={currencyCode} />

@@ -1,27 +1,17 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { deleteTeam } from '@/lib/actions/teams';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Spinner } from '@/components/ui/spinner';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 export function DeleteTeamButton() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
     <Card className="border-destructive/50">
@@ -30,40 +20,28 @@ export function DeleteTeamButton() {
         <CardDescription>Permanently remove all team data. This cannot be undone.</CardDescription>
       </CardHeader>
       <CardContent>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={pending}>
-              Delete workspace
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete entire workspace?</AlertDialogTitle>
-              <AlertDialogDescription>
-                All entries, members, and summaries will be permanently deleted.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                disabled={pending}
-                onClick={() =>
-                  startTransition(async () => {
-                    const r = await deleteTeam();
-                    if (r?.error) toast.error(r.error);
-                    else {
-                      toast.success('Workspace deleted');
-                      router.push('/onboarding');
-                    }
-                  })
-                }
-              >
-                {pending ? <Spinner /> : null}
-                {pending ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button variant="destructive" disabled={pending} onClick={() => setConfirmOpen(true)}>
+          Delete workspace
+        </Button>
+        <ConfirmationDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title="Delete workspace?"
+          description="All entries, members, settings, and summaries will be permanently deleted. This action cannot be undone."
+          confirmLabel="Delete workspace"
+          loadingLabel="Deleting workspace..."
+          pending={pending}
+          onConfirm={() =>
+            startTransition(async () => {
+              const r = await deleteTeam();
+              if (r?.error) toast.error(r.error);
+              else {
+                toast.success('Workspace deleted');
+                router.push('/onboarding');
+              }
+            })
+          }
+        />
       </CardContent>
     </Card>
   );
