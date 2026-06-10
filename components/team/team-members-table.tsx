@@ -238,7 +238,7 @@ export function TeamMembersTable({
                               startTransition(async () => {
                                 const r = await toggleMemberStatus(m.user_id, checked);
                                 if (r?.error) toast.error(r.error);
-                                else toast.success(checked ? 'Member activated' : 'Member deactivated');
+                                else toast.success(checked ? 'Member activated successfully.' : 'Member deactivated successfully.');
                               })
                             }
                           />
@@ -274,7 +274,7 @@ export function TeamMembersTable({
                               startTransition(async () => {
                                 const r = await updateMemberRole(m.id, role as TeamRole);
                                 if (r?.error) toast.error(r.error);
-                                else toast.success('Role updated');
+                                else toast.success('Role updated successfully.');
                               })
                             }
                           >
@@ -295,7 +295,7 @@ export function TeamMembersTable({
                                 startTransition(async () => {
                                   const r = await transferOwnership(m.id);
                                   if (r?.error) toast.error(r.error);
-                                  else toast.success('Ownership transferred');
+                                  else toast.success('Ownership transferred successfully.');
                                 })
                               }
                             >
@@ -322,7 +322,7 @@ export function TeamMembersTable({
                                     startTransition(async () => {
                                       const r = await removeMember(m.id);
                                       if (r?.error) toast.error(r.error);
-                                      else toast.success('Member removed');
+                                      else toast.success('Member removed successfully.');
                                     })
                                   }
                                 >

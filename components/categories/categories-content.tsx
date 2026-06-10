@@ -45,6 +45,16 @@ export function CategoriesContent({
     setItems(categories);
   }, [categories]);
 
+  const openCreateDialog = () => {
+    setEdit(null);
+    setOpen(true);
+  };
+
+  const handleOpenChange = (value: boolean) => {
+    setOpen(value);
+    if (!value) setEdit(null);
+  };
+
   const filtered = useMemo(() => {
     const q = debounced.toLowerCase();
     if (!q) return items;
@@ -65,7 +75,7 @@ export function CategoriesContent({
           </p>
         </div>
         {canEdit && (
-          <Button onClick={() => { setEdit(null); setOpen(true); }}>
+          <Button onClick={openCreateDialog}>
             <Plus className="size-4" />
             Add category
           </Button>
@@ -88,7 +98,7 @@ export function CategoriesContent({
           title="No categories"
           description="Create categories to organize team expenses."
           actionLabel={canEdit ? 'Add category' : undefined}
-          onAction={canEdit ? () => setOpen(true) : undefined}
+          onAction={canEdit ? openCreateDialog : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -137,7 +147,7 @@ export function CategoriesContent({
                                     if (r?.error) toast.error(r.error);
                                     else {
                                       setItems((prev) => prev.filter((c) => c.id !== cat.id));
-                                      toast.success('Deleted');
+                                      toast.success('Category deleted successfully.');
                                     }
                                   })
                                 }
@@ -168,7 +178,7 @@ export function CategoriesContent({
         </div>
       )}
 
-      <CategoryDialog category={edit} open={open} onOpenChange={setOpen} />
+      <CategoryDialog category={edit} open={open} onOpenChange={handleOpenChange} />
     </div>
   );
 }

@@ -27,7 +27,7 @@ export function TeamSettingsForm({ team }: { team: Team }) {
             startTransition(async () => {
               const r = await updateTeamSettings(fd);
               if (r?.error) toast.error(r.error);
-              else toast.success('Settings saved');
+              else toast.success('Settings saved successfully.');
             })
           }
           className="space-y-4"

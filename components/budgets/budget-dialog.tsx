@@ -83,8 +83,9 @@ export function BudgetDialog({
   });
 
   useEffect(() => {
+    if (!open) return;
     reset(budgetToForm(budget));
-  }, [budget, reset]);
+  }, [budget, open, reset]);
 
   const budgetType = watch('type');
 
@@ -102,7 +103,7 @@ export function BudgetDialog({
         : await createTeamBudget(fd);
       if (result?.error) toast.error(result.error);
       else {
-        toast.success(isEdit ? 'Budget updated' : 'Budget created');
+        toast.success(isEdit ? 'Budget updated successfully.' : 'Budget created successfully.');
         onOpenChange(false);
         reset(budgetToForm(null));
       }

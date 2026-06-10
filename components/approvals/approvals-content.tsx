@@ -322,6 +322,10 @@ function ReasonDialog({
   const [reason, setReason] = useState('');
   const isValid = reason.trim().length >= 3;
 
+  useEffect(() => {
+    setReason('');
+  }, [state?.entry.id, state?.mode]);
+
   return (
     <Dialog open={!!state} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -331,7 +335,11 @@ function ReasonDialog({
             toast.error('Reason is required');
             return;
           }
-          if (state) onSubmit(state.entry, state.mode, formData);
+          if (state) {
+            onSubmit(state.entry, state.mode, formData);
+            setReason('');
+            onOpenChange(false);
+          }
         }} className="space-y-4">
           <div className="space-y-2">
             <RequiredLabel htmlFor="reason" required>Reason</RequiredLabel>
@@ -371,6 +379,10 @@ function ReimbursementDialog({
           ? 'Amount exceeds allowed limit'
           : null;
 
+  useEffect(() => {
+    setAmount('');
+  }, [entry?.id]);
+
   return (
     <Dialog open={!!entry} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -380,7 +392,11 @@ function ReimbursementDialog({
             toast.error(amountError);
             return;
           }
-          if (entry) onSubmit(entry, formData);
+          if (entry) {
+            onSubmit(entry, formData);
+            setAmount('');
+            onOpenChange(false);
+          }
         }} className="space-y-4">
           <div className="space-y-2">
             <RequiredLabel htmlFor="amount" required>Amount</RequiredLabel>

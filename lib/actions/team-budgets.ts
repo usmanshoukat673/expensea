@@ -6,12 +6,13 @@ import { requireTeam, canEdit } from '@/lib/auth/session';
 import { budgetSchema } from '@/lib/validations';
 import { notifyTeamMembers, recordActivity } from '@/lib/activity';
 import { notifyBudgetThresholds } from '@/lib/budget-alerts';
+import { formatCurrencyAmount } from '@/lib/currency';
 export type ActionResult = { error?: string; success?: boolean };
 
 const BUDGET_PATHS = ['/', '/budgets', '/analytics', '/notifications', '/activity'] as const;
 
 function formatBudgetAmount(amount: number | string | null | undefined) {
-  return `Rs ${Number(amount ?? 0).toLocaleString('en-PK')}`;
+  return formatCurrencyAmount(Number(amount ?? 0));
 }
 
 function revalidateBudgetPaths() {

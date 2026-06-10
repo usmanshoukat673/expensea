@@ -27,7 +27,7 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
             startTransition(async () => {
               const r = await updateProfile(fd);
               if (r?.error) toast.error(r.error);
-              else toast.success('Profile updated');
+              else toast.success('Profile updated successfully.');
             })
           }
           className="space-y-4"
