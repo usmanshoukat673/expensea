@@ -11,6 +11,8 @@ import { TeamMembersTable, type MemberRow } from '@/components/team/team-members
 import { InviteMemberDialog } from '@/components/team/invite-member-dialog';
 import { TeamInvitesSection } from '@/components/team/team-invites-section';
 import { buildTeamInviteUrl } from '@/lib/invites/utils';
+import { EmptyState } from '@/components/ui/empty-states';
+import { Activity, Mail, UserPlus, Users } from 'lucide-react';
 
 export function TeamContent({
   members,
@@ -32,15 +34,48 @@ export function TeamContent({
   const [pending, startTransition] = useTransition();
   const [actionKey, setActionKey] = useState<string | null>(null);
   const canEdit = currentRole === 'owner' || currentRole === 'admin';
+  const activeInviteCount = invites.length + invitations.length;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expense Team</h1>
-          <p className="text-muted-foreground mt-1">{members.length} members · shared expense tracking</p>
+    <div className="min-w-0 max-w-full space-y-6">
+      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold tracking-tight">Team</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage members, invitations, and workspace activity.
+          </p>
         </div>
         {canEdit && <InviteMemberDialog />}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Users className="size-4" />
+              Members
+            </CardDescription>
+            <CardTitle className="text-2xl">{members.length}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Mail className="size-4" />
+              Pending invites
+            </CardDescription>
+            <CardTitle className="text-2xl">{activeInviteCount}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-2">
+              <Activity className="size-4" />
+              Recent activity
+            </CardDescription>
+            <CardTitle className="text-2xl">{activity.length}</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
       <Card>
@@ -61,6 +96,20 @@ export function TeamContent({
 
       {canEdit && invites.length > 0 && (
         <TeamInvitesSection invites={invites} inviteBaseUrl={inviteBaseUrl} />
+      )}
+
+      {canEdit && invites.length === 0 && invitations.length === 0 && (
+        <Card>
+          <CardContent>
+            <EmptyState
+              icon={UserPlus}
+              title="No invites"
+              description="Create an invitation when you are ready to bring another teammate into the workspace."
+              actionLabel="Invite member"
+              actionHref="/team/invite"
+            />
+          </CardContent>
+        </Card>
       )}
 
       {canEdit && invitations.length > 0 && (

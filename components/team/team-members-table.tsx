@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SearchInput } from '@/components/ui/search-input';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -136,7 +136,7 @@ export function TeamMembersTable({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <Input
+        <SearchInput
           placeholder="Search members..."
           value={search}
           onChange={(e) => {
@@ -213,7 +213,7 @@ export function TeamMembersTable({
                         : 'Invite colleagues to start tracking expenses together.'
                     }
                     actionLabel={search || activeFilterCount > 0 ? undefined : 'Invite member'}
-                    actionHref={search || activeFilterCount > 0 ? undefined : '/team'}
+                    actionHref={search || activeFilterCount > 0 ? undefined : '/team/invite'}
                   />
                 </TableCell>
               </TableRow>

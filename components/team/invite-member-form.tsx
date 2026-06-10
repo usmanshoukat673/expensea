@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InviteLinkSection } from '@/components/team/invite-link-section';
 
 type FormData = z.infer<typeof inviteSchema>;
@@ -58,9 +58,13 @@ export function InviteMemberForm() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="h-full space-y-6">
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader>
+          <CardTitle>Email invitation</CardTitle>
+          <CardDescription>Send a direct invite to one teammate with a role and expiry.</CardDescription>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <RequiredLabel htmlFor="email" required>Email</RequiredLabel>
@@ -104,11 +108,13 @@ export function InviteMemberForm() {
         </CardContent>
       </Card>
 
-      <InviteLinkSection
-        role={role}
-        expiry={expiry}
-        onExpiryChange={setExpiry}
-      />
+      <div>
+        <InviteLinkSection
+          role={role}
+          expiry={expiry}
+          onExpiryChange={setExpiry}
+        />
+      </div>
     </div>
   );
 }

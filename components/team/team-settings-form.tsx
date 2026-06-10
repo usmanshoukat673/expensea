@@ -19,7 +19,7 @@ export function TeamSettingsForm({ team }: { team: Team }) {
   const { currencyCode, setCurrency, isPending: currencyPending } = useCurrency();
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardContent className="pt-6">
         <form
           action={(fd) =>

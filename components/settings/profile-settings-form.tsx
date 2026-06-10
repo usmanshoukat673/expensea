@@ -15,12 +15,13 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
   const [pending, startTransition] = useTransition();
 
   return (
-    <Card>
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Profile</CardTitle>
         <CardDescription>Update your personal information</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="space-y-6">
         <form
           action={(fd) =>
             startTransition(async () => {
@@ -47,9 +48,10 @@ export function ProfileSettingsForm({ profile }: { profile: Profile }) {
             Save changes
           </Button>
         </form>
-        <div className="mt-6 pt-6 border-t border-border space-y-6">
+        <div className="space-y-6 border-t border-border pt-6">
           <CurrencyPreference />
           <ThemePreference />
+        </div>
         </div>
       </CardContent>
     </Card>
