@@ -62,6 +62,7 @@ export function SettlementsContent({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [items, setItems] = useState(settlements);
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
 
   useEffect(() => {
     setItems(settlements);
@@ -101,18 +102,23 @@ export function SettlementsContent({
   const completedList = filterList(items.filter((s) => s.status === 'completed'));
 
   const markStatus = (id: string, status: 'completed' | 'cancelled') => {
+    setActionKey(`${status}:${id}`);
     startTransition(async () => {
-      const r = await updateSettlementStatus(id, status);
-      if (r?.error) toast.error(r.error);
-      else {
-        setItems((prev) =>
-          prev.map((s) =>
-            s.id === id
-              ? { ...s, status, settled_at: status === 'completed' ? new Date().toISOString() : null }
-              : s,
-          ),
-        );
-        toast.success(status === 'completed' ? 'Marked settled' : 'Cancelled');
+      try {
+        const r = await updateSettlementStatus(id, status);
+        if (r?.error) toast.error(r.error);
+        else {
+          setItems((prev) =>
+            prev.map((s) =>
+              s.id === id
+                ? { ...s, status, settled_at: status === 'completed' ? new Date().toISOString() : null }
+                : s,
+            ),
+          );
+          toast.success(status === 'completed' ? 'Marked settled' : 'Cancelled');
+        }
+      } finally {
+        setActionKey(null);
       }
     });
   };
@@ -269,6 +275,7 @@ export function SettlementsContent({
             format={format}
             canEdit={canEdit}
             pending={pending}
+            actionKey={actionKey}
             onMark={markStatus}
           />
         </TabsContent>
@@ -278,6 +285,7 @@ export function SettlementsContent({
             format={format}
             canEdit={false}
             pending={pending}
+            actionKey={actionKey}
           />
         </TabsContent>
         <TabsContent value="all" className="mt-4">
@@ -286,6 +294,7 @@ export function SettlementsContent({
             format={format}
             canEdit={canEdit}
             pending={pending}
+            actionKey={actionKey}
             onMark={markStatus}
           />
         </TabsContent>
@@ -323,12 +332,14 @@ function SettlementTable({
   format,
   canEdit,
   pending,
+  actionKey,
   onMark,
 }: {
   rows: SettlementWithProfiles[];
   format: (n: number) => string;
   canEdit: boolean;
   pending: boolean;
+  actionKey?: string | null;
   onMark?: (id: string, status: 'completed' | 'cancelled') => void;
 }) {
   if (!rows.length) {
@@ -371,7 +382,9 @@ function SettlementTable({
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={pending}
+                    disabled={pending && actionKey !== `completed:${s.id}`}
+                    isLoading={actionKey === `completed:${s.id}`}
+                    loadingText="Settling..."
                     onClick={() => onMark(s.id, 'completed')}
                   >
                     Settle
@@ -379,7 +392,9 @@ function SettlementTable({
                   <Button
                     size="sm"
                     variant="ghost"
-                    disabled={pending}
+                    disabled={pending && actionKey !== `cancelled:${s.id}`}
+                    isLoading={actionKey === `cancelled:${s.id}`}
+                    loadingText="Cancelling..."
                     onClick={() => onMark(s.id, 'cancelled')}
                   >
                     Cancel

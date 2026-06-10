@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 
 function monthOptions(): { value: string; label: string }[] {
   const opts: { value: string; label: string }[] = [
@@ -198,8 +197,13 @@ export function BudgetDialog({
             </Select>
           </div>
 
-          <Button type="submit" className="w-full" disabled={pending || !isValid}>
-            {pending ? <Spinner /> : null}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!isValid}
+            isLoading={pending}
+            loadingText={isEdit ? 'Saving budget...' : 'Creating budget...'}
+          >
             {isEdit ? 'Save' : 'Create'}
           </Button>
         </form>

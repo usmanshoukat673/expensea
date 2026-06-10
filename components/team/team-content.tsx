@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { revokeInvitation } from '@/lib/actions/teams';
@@ -29,7 +29,8 @@ export function TeamContent({
   currentRole: TeamRole | null;
   inviteBaseUrl: string;
 }) {
-  const [, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
   const canEdit = currentRole === 'owner' || currentRole === 'admin';
 
   return (
@@ -81,12 +82,22 @@ export function TeamContent({
                   variant="outline"
                   size="sm"
                   className="shrink-0"
+                  disabled={pending && actionKey !== `revoke:${inv.id}`}
+                  isLoading={actionKey === `revoke:${inv.id}`}
+                  loadingText="Revoking..."
                   onClick={() =>
+                    {
+                    setActionKey(`revoke:${inv.id}`);
                     startTransition(async () => {
-                      const r = await revokeInvitation(inv.id);
-                      if (r?.error) toast.error(r.error);
-                      else toast.success('Invitation revoked');
+                      try {
+                        const r = await revokeInvitation(inv.id);
+                        if (r?.error) toast.error(r.error);
+                        else toast.success('Invitation revoked');
+                      } finally {
+                        setActionKey(null);
+                      }
                     })
+                    }
                   }
                 >
                   Revoke

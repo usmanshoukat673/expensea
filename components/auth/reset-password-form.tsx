@@ -9,7 +9,6 @@ import { resetPasswordSchema } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/auth/password-input';
 import { RequiredLabel } from '@/components/ui/required-label';
-import { Spinner } from '@/components/ui/spinner';
 import { z } from 'zod';
 
 type FormData = z.infer<typeof resetPasswordSchema>;
@@ -46,8 +45,7 @@ export function ResetPasswordForm() {
           <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
         )}
       </div>
-      <Button type="submit" className="w-full" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Updating password...">
         Update password
       </Button>
     </form>

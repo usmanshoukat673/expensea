@@ -11,7 +11,6 @@ import { signupSchema, type SignupInput } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
-import { Spinner } from '@/components/ui/spinner';
 import { PasswordInput } from '@/components/auth/password-input';
 
 const STORED_INVITE_TOKEN_KEY = 'expensea.inviteToken';
@@ -96,8 +95,7 @@ export function SignupForm({ inviteToken }: { inviteToken?: string }) {
         )}
       </div>
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
-      <Button type="submit" className="w-full" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Creating account...">
         Create account
       </Button>
       <p className="text-center text-sm text-muted-foreground">

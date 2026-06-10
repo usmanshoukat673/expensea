@@ -30,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { useCurrency } from '@/hooks/use-currency';
 import { CategorySelector } from '@/components/categories/category-selector';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -55,6 +54,7 @@ export function LunchEntryDialog({
   defaultLunchDate: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [pendingIntent, setPendingIntent] = useState<'draft' | 'submit' | null>(null);
   const router = useRouter();
   const { currency, format } = useCurrency();
   const isEdit = !!entry;
@@ -241,17 +241,22 @@ export function LunchEntryDialog({
       fd.set('participantIds', JSON.stringify(isTeamExpense && data.isShared ? participantIds : []));
       fd.set('participantShares', JSON.stringify(data.splitType === 'selected' ? participantShares : {}));
       fd.set('intent', intent);
+      setPendingIntent(intent);
       startTransition(async () => {
-        const result = isEdit
-          ? await updateLunchEntry(entry!.id, fd)
-          : await createLunchEntry(fd);
-        if (result?.error) toast.error(result.error);
-        else {
-          toast.success(isEdit ? 'Entry updated' : intent === 'submit' ? 'Submitted for approval' : 'Draft saved');
-          router.refresh();
-          onOpenChange(false);
-          reset();
-          setParticipantIds([]);
+        try {
+          const result = isEdit
+            ? await updateLunchEntry(entry!.id, fd)
+            : await createLunchEntry(fd);
+          if (result?.error) toast.error(result.error);
+          else {
+            toast.success(isEdit ? 'Entry updated' : intent === 'submit' ? 'Submitted for approval' : 'Draft saved');
+            router.refresh();
+            onOpenChange(false);
+            reset();
+            setParticipantIds([]);
+          }
+        } finally {
+          setPendingIntent(null);
         }
       });
     })();
@@ -499,13 +504,24 @@ export function LunchEntryDialog({
             </p>
           )}
           <div className="grid gap-2 sm:grid-cols-2">
-            <Button type="button" variant="outline" disabled={pending || !isValid || customSplitMismatch} onClick={() => submitExpense('draft')}>
-              {pending ? <Spinner /> : null}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending || !isValid || customSplitMismatch}
+              isLoading={pendingIntent === 'draft'}
+              loadingText={isEdit ? 'Saving changes...' : 'Saving draft...'}
+              onClick={() => submitExpense('draft')}
+            >
               {isEdit ? 'Save changes' : 'Save draft'}
             </Button>
             {!isEdit && (
-              <Button type="button" disabled={pending || !isValid || customSplitMismatch} onClick={() => submitExpense('submit')}>
-                {pending ? <Spinner /> : null}
+              <Button
+                type="button"
+                disabled={!isValid || customSplitMismatch || pending}
+                isLoading={pendingIntent === 'submit'}
+                loadingText="Submitting..."
+                onClick={() => submitExpense('submit')}
+              >
                 Submit for approval
               </Button>
             )}

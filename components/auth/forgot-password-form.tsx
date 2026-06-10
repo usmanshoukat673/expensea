@@ -10,7 +10,6 @@ import { forgotPasswordSchema } from '@/lib/validations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
-import { Spinner } from '@/components/ui/spinner';
 import { z } from 'zod';
 
 type FormData = z.infer<typeof forgotPasswordSchema>;
@@ -55,8 +54,7 @@ export function ForgotPasswordForm() {
         <Input id="email" type="email" {...register('email')} />
         {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
       </div>
-      <Button type="submit" className="w-full" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Sending reset link...">
         Send reset link
       </Button>
       <p className="text-center text-sm">

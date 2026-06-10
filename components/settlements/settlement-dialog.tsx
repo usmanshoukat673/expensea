@@ -24,7 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { useCurrency } from '@/hooks/use-currency';
 
 export function SettlementDialog({
@@ -120,8 +119,7 @@ export function SettlementDialog({
             <RequiredLabel optional>Proof URL</RequiredLabel>
             <Input type="url" placeholder="https://..." {...register('proofUrl')} />
           </div>
-          <Button type="submit" className="w-full" disabled={pending || !isValid}>
-            {pending ? <Spinner /> : null}
+          <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Saving settlement...">
             Save
           </Button>
         </form>

@@ -49,6 +49,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { EmptyState } from '@/components/ui/empty-states';
 import { ExternalLink, Users } from 'lucide-react';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
+import { Spinner } from '@/components/ui/spinner';
 
 export type MemberRow = {
   id: string;
@@ -83,6 +84,7 @@ export function TeamMembersTable({
   const [activityFilter, setActivityFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
   const canEdit = currentRole === 'owner' || currentRole === 'admin';
   const isOwner = currentRole === 'owner';
 
@@ -119,6 +121,17 @@ export function TeamMembersTable({
   const recentJoins = [...members]
     .sort((a, b) => new Date(b.joined_at).getTime() - new Date(a.joined_at).getTime())
     .slice(0, 3);
+
+  const runMemberAction = (key: string, action: () => Promise<void>) => {
+    setActionKey(key);
+    startTransition(async () => {
+      try {
+        await action();
+      } finally {
+        setActionKey(null);
+      }
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -234,14 +247,16 @@ export function TeamMembersTable({
                         <div className="flex items-center gap-2">
                           <Switch
                             checked={active}
+                            disabled={pending && actionKey !== `status:${m.id}`}
                             onCheckedChange={(checked) =>
-                              startTransition(async () => {
+                              runMemberAction(`status:${m.id}`, async () => {
                                 const r = await toggleMemberStatus(m.user_id, checked);
                                 if (r?.error) toast.error(r.error);
                                 else toast.success(checked ? 'Member activated successfully.' : 'Member deactivated successfully.');
                               })
                             }
                           />
+                          {actionKey === `status:${m.id}` ? <Spinner /> : null}
                           <span className="text-xs text-muted-foreground">
                             {active ? 'Active' : 'Inactive'}
                           </span>
@@ -270,8 +285,9 @@ export function TeamMembersTable({
                           <>
                           <Select
                             defaultValue={m.role}
+                            disabled={pending}
                             onValueChange={(role) =>
-                              startTransition(async () => {
+                              runMemberAction(`role:${m.id}`, async () => {
                                 const r = await updateMemberRole(m.id, role as TeamRole);
                                 if (r?.error) toast.error(r.error);
                                 else toast.success('Role updated successfully.');
@@ -286,13 +302,16 @@ export function TeamMembersTable({
                               <SelectItem value="viewer">Viewer</SelectItem>
                             </SelectContent>
                           </Select>
+                          {actionKey === `role:${m.id}` ? <Spinner /> : null}
                           {isOwner && (
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={pending}
+                              disabled={pending && actionKey !== `owner:${m.id}`}
+                              isLoading={actionKey === `owner:${m.id}`}
+                              loadingText="Transferring..."
                               onClick={() =>
-                                startTransition(async () => {
+                                runMemberAction(`owner:${m.id}`, async () => {
                                   const r = await transferOwnership(m.id);
                                   if (r?.error) toast.error(r.error);
                                   else toast.success('Ownership transferred successfully.');
@@ -318,15 +337,17 @@ export function TeamMembersTable({
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
+                                  disabled={pending && actionKey !== `remove:${m.id}`}
                                   onClick={() =>
-                                    startTransition(async () => {
+                                    runMemberAction(`remove:${m.id}`, async () => {
                                       const r = await removeMember(m.id);
                                       if (r?.error) toast.error(r.error);
                                       else toast.success('Member removed successfully.');
                                     })
                                   }
                                 >
-                                  Remove
+                                  {actionKey === `remove:${m.id}` ? <Spinner /> : null}
+                                  {actionKey === `remove:${m.id}` ? 'Removing...' : 'Remove'}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

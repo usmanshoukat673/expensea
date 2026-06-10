@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 
 const EMPTY_CATEGORY_VALUES: CategoryInput = {
   name: '',
@@ -127,8 +126,13 @@ export function CategoryDialog({
             <RequiredLabel optional>Description</RequiredLabel>
             <Textarea rows={2} {...register('description')} />
           </div>
-          <Button type="submit" className="w-full" disabled={pending || !isValid}>
-            {pending ? <Spinner /> : null}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!isValid}
+            isLoading={pending}
+            loadingText={isEdit ? 'Saving category...' : 'Creating category...'}
+          >
             {isEdit ? 'Save' : 'Create'}
           </Button>
         </form>

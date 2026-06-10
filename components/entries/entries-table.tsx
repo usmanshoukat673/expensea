@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
   useReactTable,
@@ -52,8 +52,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { LoadingOverlay } from "@/components/loaders/loading-overlay"
 import { FilterField, FilterSheet } from "@/components/filters/filter-sheet"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Empty,
   EmptyDescription,
@@ -95,6 +95,7 @@ export function EntriesTable({
   const [categoryFilter, setCategoryFilter] = useState<string[]>([])
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({})
   const [pending, startTransition] = useTransition()
+  const [actionKey, setActionKey] = useState<string | null>(null)
 
   useEffect(() => {
     setEntries(initialEntries)
@@ -149,6 +150,17 @@ export function EntriesTable({
     setMinAmount("")
     setMaxAmount("")
   }
+
+  const runEntryAction = useCallback((key: string, action: () => Promise<void>) => {
+    setActionKey(key)
+    startTransition(async () => {
+      try {
+        await action()
+      } finally {
+        setActionKey(null)
+      }
+    })
+  }, [startTransition])
 
   const columns = useMemo<ColumnDef<LunchEntryWithProfile>[]>(
     () => [
@@ -262,8 +274,9 @@ export function EntriesTable({
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
+                          disabled={pending}
                           onClick={() => {
-                            startTransition(async () => {
+                            runEntryAction(`delete:${row.original.id}`, async () => {
                               const r = await deleteLunchEntry(row.original.id)
                               if (r?.error) toast.error(r.error)
                               else {
@@ -275,7 +288,8 @@ export function EntriesTable({
                             })
                           }}
                         >
-                          Delete
+                          {actionKey === `delete:${row.original.id}` ? <Spinner /> : null}
+                          {actionKey === `delete:${row.original.id}` ? "Deleting..." : "Delete"}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -297,9 +311,11 @@ export function EntriesTable({
                   <Button
                     variant="ghost"
                     size="icon"
-                    disabled={pending}
+                    disabled={pending && actionKey !== `submit:${row.original.id}`}
+                    isLoading={actionKey === `submit:${row.original.id}`}
+                    aria-label={actionKey === `submit:${row.original.id}` ? "Submitting expense" : "Submit expense for approval"}
                     onClick={() => {
-                      startTransition(async () => {
+                      runEntryAction(`submit:${row.original.id}`, async () => {
                         const r = await submitExpenseForApproval(row.original.id)
                         if (r?.error) toast.error(r.error)
                         else {
@@ -323,7 +339,7 @@ export function EntriesTable({
             } as ColumnDef<LunchEntryWithProfile>,
           ]),
     ],
-    [canManageEntries, currentUserId, onOpenChange, onEditEntry, pending, startTransition, formatCurrency, router],
+    [actionKey, canManageEntries, currentUserId, onOpenChange, onEditEntry, pending, runEntryAction, formatCurrency, router],
   )
 
   const table = useReactTable({
@@ -463,9 +479,11 @@ export function EntriesTable({
             <Button
               variant="destructive"
               size="sm"
-              disabled={pending}
+              disabled={pending && actionKey !== "bulk-delete"}
+              isLoading={actionKey === "bulk-delete"}
+              loadingText={`Deleting ${selectedIds.length}...`}
               onClick={() =>
-                startTransition(async () => {
+                runEntryAction("bulk-delete", async () => {
                   const r = await bulkDeleteLunchEntries(selectedIds)
                   if (r?.error) toast.error(r.error)
                   else {
@@ -488,7 +506,6 @@ export function EntriesTable({
       </div>
 
       <div className="relative max-h-[calc(100dvh-280px)] min-h-[220px] min-w-0 overflow-auto rounded-lg border border-border bg-card">
-        <LoadingOverlay show={pending} />
         <Table>
           <TableHeader className="sticky top-0 z-10 shadow-sm">
             {table.getHeaderGroups().map((hg) => (

@@ -11,7 +11,6 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RequiredLabel } from '@/components/ui/required-label';
-import { Spinner } from '@/components/ui/spinner';
 import { Text } from 'lucide-react';
 
 type FormData = z.infer<typeof teamNameSchema>;
@@ -61,8 +60,7 @@ export function CreateTeamForm() {
         </div>
       </div>
 
-      <Button type="submit" className="w-full" disabled={pending || !isValid}>
-        {pending ? <Spinner /> : null}
+      <Button type="submit" className="w-full" disabled={!isValid} isLoading={pending} loadingText="Creating workspace...">
         Create & continue
       </Button>
     </form>

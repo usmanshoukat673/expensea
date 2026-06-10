@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { toast } from 'sonner';
 import {
@@ -23,17 +23,21 @@ export function TeamInvitesSection({
   inviteBaseUrl: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
 
   const active = invites.filter((i) => i.is_active && !isInviteExpired(i));
   const inactive = invites.filter((i) => !i.is_active || isInviteExpired(i));
 
   const copyUrl = async (token: string) => {
+    setActionKey(`copy:${token}`);
     const url = buildTeamInviteUrl(inviteBaseUrl, token);
     try {
       await navigator.clipboard.writeText(url);
       toast.success('Invite link copied');
     } catch {
       toast.error('Could not copy to clipboard');
+    } finally {
+      setActionKey(null);
     }
   };
 
@@ -69,7 +73,9 @@ export function TeamInvitesSection({
           <Button
             variant="outline"
             size="sm"
-            disabled={pending}
+            disabled={pending && actionKey !== `copy:${inv.token}`}
+            isLoading={actionKey === `copy:${inv.token}`}
+            loadingText="Copying..."
             onClick={() => copyUrl(inv.token)}
           >
             <Copy className="size-3.5" />
@@ -78,16 +84,23 @@ export function TeamInvitesSection({
           <Button
             variant="outline"
             size="sm"
-            disabled={pending}
+            disabled={pending && actionKey !== `regenerate:${inv.id}`}
+            isLoading={actionKey === `regenerate:${inv.id}`}
+            loadingText="Regenerating..."
             onClick={() => {
               const fd = new FormData();
               fd.set('expiry', '7d');
+              setActionKey(`regenerate:${inv.id}`);
               startTransition(async () => {
-                const r = await regenerateTeamInvite(inv.id, fd);
-                if (r?.error) toast.error(r.error);
-                else {
-                  toast.success('Invite regenerated');
-                  if (r.data?.url) await navigator.clipboard.writeText(r.data.url);
+                try {
+                  const r = await regenerateTeamInvite(inv.id, fd);
+                  if (r?.error) toast.error(r.error);
+                  else {
+                    toast.success('Invite regenerated');
+                    if (r.data?.url) await navigator.clipboard.writeText(r.data.url);
+                  }
+                } finally {
+                  setActionKey(null);
                 }
               });
             }}
@@ -98,13 +111,22 @@ export function TeamInvitesSection({
           <Button
             variant="outline"
             size="sm"
-            disabled={pending}
+            disabled={pending && actionKey !== `disable:${inv.id}`}
+            isLoading={actionKey === `disable:${inv.id}`}
+            loadingText="Disabling..."
             onClick={() =>
+              {
+              setActionKey(`disable:${inv.id}`);
               startTransition(async () => {
-                const r = await disableTeamInvite(inv.id);
-                if (r?.error) toast.error(r.error);
-                else toast.success('Invite disabled');
+                try {
+                  const r = await disableTeamInvite(inv.id);
+                  if (r?.error) toast.error(r.error);
+                  else toast.success('Invite disabled');
+                } finally {
+                  setActionKey(null);
+                }
               })
+              }
             }
           >
             <Ban className="size-3.5" />

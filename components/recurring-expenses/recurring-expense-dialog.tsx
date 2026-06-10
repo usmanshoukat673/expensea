@@ -34,7 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Spinner } from '@/components/ui/spinner';
 import { CategorySelector } from '@/components/categories/category-selector';
 import { useCurrency } from '@/hooks/use-currency';
 
@@ -213,8 +212,13 @@ export function RecurringExpenseDialog({
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={pending || !isValid}>
-            {pending ? <Spinner /> : null}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={!isValid}
+            isLoading={pending}
+            loadingText={isEdit ? 'Saving rule...' : 'Creating rule...'}
+          >
             {isEdit ? 'Save changes' : 'Create rule'}
           </Button>
         </form>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { CalendarDays, RotateCcw } from "lucide-react"
 import { dateRangeOptions, type DateRangePreset, type DateRangeValue } from "@/lib/date-ranges"
@@ -45,6 +45,7 @@ export function DateRangeFilter({
   const [preset, setPreset] = useState<DateRangePreset>(range.preset)
   const [customFrom, setCustomFrom] = useState(range.from)
   const [customTo, setCustomTo] = useState(range.to)
+  const [pending, startTransition] = useTransition()
   const isActive = range.preset !== "this_month"
 
   useEffect(() => {
@@ -60,7 +61,9 @@ export function DateRangeFilter({
       else params.delete(key)
     })
     const qs = params.toString()
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    startTransition(() => {
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    })
   }
 
   const applyRange = () => {
@@ -153,12 +156,14 @@ export function DateRangeFilter({
               className="flex-1"
               onClick={resetRange}
               disabled={!isActive}
+              isLoading={pending && isActive}
+              loadingText="Resetting..."
             >
               <RotateCcw className="size-4" />
               Reset
             </Button>
             <SheetClose asChild>
-              <Button type="button" className="flex-1" onClick={applyRange}>
+              <Button type="button" className="flex-1" onClick={applyRange} isLoading={pending} loadingText="Applying...">
                 Apply range
               </Button>
             </SheetClose>

@@ -44,6 +44,7 @@ import { getCategoryIcon } from '@/lib/categories/icons';
 import type { DateRangeValue } from '@/lib/date-ranges';
 import { DateRangeFilter } from '@/components/filters/date-range-filter';
 import { FilterField, FilterSheet } from '@/components/filters/filter-sheet';
+import { Spinner } from '@/components/ui/spinner';
 
 export function BudgetsContent({
   budgets,
@@ -69,6 +70,7 @@ export function BudgetsContent({
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<TeamBudget | null>(null);
   const [pending, startTransition] = useTransition();
+  const [actionKey, setActionKey] = useState<string | null>(null);
 
   const usageMap = useMemo(
     () => new Map(usages.map((u) => [u.id, u])),
@@ -113,6 +115,19 @@ export function BudgetsContent({
   const handleOpenChange = (value: boolean) => {
     setOpen(value);
     if (!value) setEdit(null);
+  };
+
+  const deleteBudget = (id: string) => {
+    setActionKey(`delete:${id}`);
+    startTransition(async () => {
+      try {
+        const r = await deleteTeamBudget(id);
+        if (r?.error) toast.error(r.error);
+        else toast.success('Budget deleted successfully.');
+      } finally {
+        setActionKey(null);
+      }
+    });
   };
 
   const monthLabel = format(new Date(monthStart), 'MMMM yyyy');
@@ -308,16 +323,11 @@ export function BudgetsContent({
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    disabled={pending}
-                                    onClick={() =>
-                                      startTransition(async () => {
-                                        const r = await deleteTeamBudget(b.id);
-                                        if (r?.error) toast.error(r.error);
-                                        else toast.success('Budget deleted successfully.');
-                                      })
-                                    }
+                                    disabled={pending && actionKey !== `delete:${b.id}`}
+                                    onClick={() => deleteBudget(b.id)}
                                   >
-                                    Delete
+                                    {actionKey === `delete:${b.id}` ? <Spinner /> : null}
+                                    {actionKey === `delete:${b.id}` ? 'Deleting...' : 'Delete'}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
@@ -387,14 +397,10 @@ export function BudgetsContent({
                           variant="outline"
                           size="sm"
                           className="text-destructive"
-                          disabled={pending}
-                          onClick={() =>
-                            startTransition(async () => {
-                              const r = await deleteTeamBudget(b.id);
-                              if (r?.error) toast.error(r.error);
-                              else toast.success('Budget deleted successfully.');
-                            })
-                          }
+                          disabled={pending && actionKey !== `delete:${b.id}`}
+                          isLoading={actionKey === `delete:${b.id}`}
+                          loadingText="Deleting..."
+                          onClick={() => deleteBudget(b.id)}
                         >
                           <Trash2 className="size-4" />
                         </Button>
