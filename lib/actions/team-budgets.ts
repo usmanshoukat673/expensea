@@ -26,6 +26,21 @@ function parseMonth(month?: string | null): string | null {
   return null;
 }
 
+function formatBudgetSlot(month: string | null) {
+  if (!month) return 'every month';
+  return new Date(`${month}T00:00:00`).toLocaleString('default', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function duplicateBudgetMessage(type: 'monthly' | 'category', month: string | null) {
+  const slot = formatBudgetSlot(month);
+  return type === 'monthly'
+    ? `A monthly team budget already exists for ${slot}. Edit the existing budget instead.`
+    : `A category budget already exists for ${slot}. Edit the existing budget instead.`;
+}
+
 async function validateBudgetCategory(
   supabase: Awaited<ReturnType<typeof createClient>>,
   teamId: string,
@@ -44,6 +59,56 @@ async function validateBudgetCategory(
   if (error) return error.message;
   if (!data) return 'Selected category does not belong to this team';
   return null;
+}
+
+async function findDuplicateBudget(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  {
+    teamId,
+    type,
+    categoryId,
+    month,
+    excludeId,
+  }: {
+    teamId: string;
+    type: 'monthly' | 'category';
+    categoryId?: string | null;
+    month: string | null;
+    excludeId?: string;
+  },
+) {
+  let query = supabase
+    .from('team_budgets')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('type', type)
+    .limit(1);
+
+  if (excludeId) query = query.neq('id', excludeId);
+  query = month ? query.eq('month', month) : query.is('month', null);
+  if (type === 'category') {
+    if (!categoryId) return null;
+    query = query.eq('category_id', categoryId);
+  } else {
+    query = query.is('category_id', null);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) return { error: error.message };
+  if (data) return { error: duplicateBudgetMessage(type, month) };
+  return null;
+}
+
+function normalizeBudgetError(error: { message?: string; code?: string } | null, type: 'monthly' | 'category', month: string | null) {
+  if (!error) return 'Unable to save budget';
+  if (
+    error.code === '23505' ||
+    error.message?.includes('idx_team_budgets_monthly_unique') ||
+    error.message?.includes('idx_team_budgets_category_unique')
+  ) {
+    return duplicateBudgetMessage(type, month);
+  }
+  return error.message ?? 'Unable to save budget';
 }
 
 export async function createTeamBudget(formData: FormData): Promise<ActionResult> {
@@ -66,6 +131,14 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
     parsed.data.categoryId,
   );
   if (categoryError) return { error: categoryError };
+  const month = parseMonth(parsed.data.month);
+  const duplicate = await findDuplicateBudget(supabase, {
+    teamId: session.teamId,
+    type: parsed.data.type,
+    categoryId: parsed.data.categoryId,
+    month,
+  });
+  if (duplicate?.error) return { error: duplicate.error };
 
   const { data: team } = await supabase
     .from('teams')
@@ -79,11 +152,11 @@ export async function createTeamBudget(formData: FormData): Promise<ActionResult
     category_id: parsed.data.type === 'category' ? parsed.data.categoryId : null,
     amount: parsed.data.amount,
     currency: team?.currency ?? 'PKR',
-    month: parseMonth(parsed.data.month),
+    month,
     created_by: session.user.id,
   }).select('id').single();
 
-  if (error) return { error: error.message };
+  if (error) return { error: normalizeBudgetError(error, parsed.data.type, month) };
   if (budget) {
     await recordActivity(supabase, {
       teamId: session.teamId,
@@ -137,6 +210,15 @@ export async function updateTeamBudget(
     parsed.data.categoryId,
   );
   if (categoryError) return { error: categoryError };
+  const month = parseMonth(parsed.data.month);
+  const duplicate = await findDuplicateBudget(supabase, {
+    teamId: session.teamId,
+    type: parsed.data.type,
+    categoryId: parsed.data.categoryId,
+    month,
+    excludeId: id,
+  });
+  if (duplicate?.error) return { error: duplicate.error };
 
   const { error } = await supabase
     .from('team_budgets')
@@ -144,12 +226,12 @@ export async function updateTeamBudget(
       type: parsed.data.type,
       category_id: parsed.data.type === 'category' ? parsed.data.categoryId : null,
       amount: parsed.data.amount,
-      month: parseMonth(parsed.data.month),
+      month,
     })
     .eq('id', id)
     .eq('team_id', session.teamId);
 
-  if (error) return { error: error.message };
+  if (error) return { error: normalizeBudgetError(error, parsed.data.type, month) };
   await recordActivity(supabase, {
     teamId: session.teamId,
     userId: session.user.id,
