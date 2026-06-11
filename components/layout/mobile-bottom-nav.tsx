@@ -26,7 +26,7 @@ export function MobileBottomNav({ role }: { role: TeamRole | null }) {
   const visibleItems = canManage ? items : items.filter((item) => item.href !== "/settings/team")
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 backdrop-blur-md md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-sidebar/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
       <div className="flex items-center justify-around h-16 px-2">
         {visibleItems.map((item) => {
           const active = isNavItemActive(pathname, item.href)
