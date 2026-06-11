@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { AppProviders } from '@/components/providers/app-providers';
@@ -22,6 +23,15 @@ export const metadata: Metadata = {
     apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'Expensea',
+    statusBarStyle: 'default',
+  },
+  applicationName: 'Expensea',
+  formatDetection: {
+    telephone: false,
+  },
   openGraph: {
     title: 'Expensea — Smarter Expense Tracking',
     description: 'Modern SaaS platform for tracking and managing shared team expenses',
@@ -42,6 +52,12 @@ export const metadata: Metadata = {
     description: 'Modern SaaS platform for tracking and managing shared team expenses',
     images: ['/branding/expensea-og.png'],
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#00a3a3',
+  colorScheme: 'light dark',
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

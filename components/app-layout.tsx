@@ -95,7 +95,7 @@ export function AppLayout({
         className={sidebarCollapsed ? "md:left-20" : "md:left-64"}
       />
       <main
-        className={`relative mt-16 min-w-0 flex-1 overflow-x-hidden p-4 pb-24 transition-[margin,opacity] duration-200 md:mt-0 md:pb-8 md:pl-6 md:pr-6 md:pt-24 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"} ${switching ? "opacity-60 pointer-events-none" : ""}`}
+        className={`relative mt-16 min-w-0 flex-1 overflow-x-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+6rem)] transition-[margin,opacity] duration-200 md:mt-0 md:pb-8 md:pl-6 md:pr-6 md:pt-24 ${sidebarCollapsed ? "md:ml-20" : "md:ml-64"} ${switching ? "opacity-60 pointer-events-none" : ""}`}
       >
         <PageTransition>{children}</PageTransition>
       </main>

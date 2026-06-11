@@ -87,6 +87,10 @@ password123
 | `npm run db:reset` | Remove seeded demo workspace data. |
 | `npm run db:refresh` | Reset demo data, then seed again. |
 
+## Progressive Web App
+
+Expensea is installable from supported browsers on desktop, Android, and iOS. Use the browser install action or, on iOS Safari, Share > Add to Home Screen. The installed app uses Expensea branding, standalone display mode, offline detection, cached static assets, and a manual refresh prompt when a new version is available.
+
 ## Core Rules
 
 - A Supabase Auth user must have an active `profiles` row to use Expensea.

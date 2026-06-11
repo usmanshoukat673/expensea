@@ -4,6 +4,7 @@ import { updateSession } from '@/lib/supabase/middleware';
 
 const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password'];
 const ONBOARDING_ROUTES = ['/onboarding', '/create-team', '/join-team'];
+const PUBLIC_PWA_ROUTES = ['/manifest.webmanifest', '/sw.js', '/offline.html'];
 const SESSION_COOKIE_RE = /sb-.+-auth-token/;
 
 function matches(pathname: string, routes: string[]) {
@@ -40,6 +41,10 @@ export async function proxy(request: NextRequest) {
   const inviteFlowActive = isInviteFlowRequest(request);
 
   if (pathname.startsWith('/auth/callback')) {
+    return supabaseResponse;
+  }
+
+  if (PUBLIC_PWA_ROUTES.includes(pathname)) {
     return supabaseResponse;
   }
 
@@ -110,6 +115,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

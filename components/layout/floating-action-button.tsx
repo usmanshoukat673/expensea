@@ -17,7 +17,7 @@ export function FloatingActionButton({ canEdit }: { canEdit: boolean }) {
     <Button
       size="icon-lg"
       className={cn(
-        'md:hidden fixed right-4 bottom-20 z-40 rounded-full shadow-lg glow h-14 w-14',
+        'md:hidden fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-40 rounded-full shadow-lg glow h-14 w-14',
         'transition-transform hover:scale-105'
       )}
       onClick={() => {
