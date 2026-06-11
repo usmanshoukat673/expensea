@@ -22,6 +22,7 @@ import {
   PanelLeftOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SignOutButton } from "@/components/auth/sign-out-button"
 import { BrandLogo } from "@/components/branding/brand-logo"
 import {
   Tooltip,
@@ -55,11 +56,11 @@ const navSections = [
   },
   {
     heading: "Insights",
-    items: navItems.slice(8, 11),
+    items: navItems.slice(8, 11).concat(navItems[12]),
   },
   {
-    heading: "Team",
-    items: navItems.slice(11),
+    heading: "Account",
+    items: [navItems[11], navItems[13]],
   },
 ]
 
@@ -227,6 +228,9 @@ export function Sidebar({
           </CollapsedTooltip>
         )}
       </nav>
+      <div className={cn("shrink-0 border-t border-sidebar-border", collapsed ? "px-3 py-3" : "px-4 py-4")}>
+        <SignOutButton collapsed={collapsed} />
+      </div>
       </aside>
     </TooltipProvider>
   )
